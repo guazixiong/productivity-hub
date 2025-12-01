@@ -1,0 +1,65 @@
+import { defineStore } from 'pinia'
+import type { LoginPayload, UserInfo, AuthResponse } from '@/types/auth'
+import { authApi } from '@/services/api'
+
+const TOKEN_KEY = 'phub/token'
+const REFRESH_KEY = 'phub/refreshToken'
+const USER_KEY = 'phub/user'
+
+interface AuthState {
+  token: string
+  refreshToken: string
+  user: UserInfo | null
+  loading: boolean
+  isHydrated: boolean
+}
+
+export const useAuthStore = defineStore('auth', {
+  state: (): AuthState => ({
+    token: '',
+    refreshToken: '',
+    user: null,
+    loading: false,
+    isHydrated: false,
+  }),
+  getters: {
+    isAuthenticated: (state) => Boolean(state.token),
+  },
+  actions: {
+    async login(payload: LoginPayload) {
+      this.loading = true
+      try {
+        const response = await authApi.login(payload)
+        this.applyAuthResponse(response)
+      } finally {
+        this.loading = false
+      }
+    },
+    logout() {
+      this.token = ''
+      this.refreshToken = ''
+      this.user = null
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(REFRESH_KEY)
+      localStorage.removeItem(USER_KEY)
+    },
+    hydrateFromCache() {
+      if (this.isHydrated) return
+      this.token = localStorage.getItem(TOKEN_KEY) ?? ''
+      this.refreshToken = localStorage.getItem(REFRESH_KEY) ?? ''
+      const cachedUser = localStorage.getItem(USER_KEY)
+      this.user = cachedUser ? (JSON.parse(cachedUser) as UserInfo) : null
+      this.isHydrated = true
+    },
+    applyAuthResponse(response: AuthResponse) {
+      this.token = response.token
+      this.refreshToken = response.refreshToken
+      this.user = response.user
+      this.isHydrated = true
+      localStorage.setItem(TOKEN_KEY, response.token)
+      localStorage.setItem(REFRESH_KEY, response.refreshToken)
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user))
+    },
+  },
+})
+

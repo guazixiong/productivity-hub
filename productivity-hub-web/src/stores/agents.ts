@@ -1,0 +1,74 @@
+import { defineStore } from 'pinia'
+import { agentApi } from '@/services/api'
+import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
+
+interface AgentState {
+  agents: AgentSummary[]
+  logs: AgentLogEntry[]
+  loadingAgents: boolean
+  loadingLogs: boolean
+  invoking: boolean
+  lastInvocation: AgentInvocationResult | null
+  selectedAgentId: string | null
+}
+
+export const useAgentStore = defineStore('agents', {
+  state: (): AgentState => ({
+    agents: [],
+    logs: [],
+    loadingAgents: false,
+    loadingLogs: false,
+    invoking: false,
+    lastInvocation: null,
+    selectedAgentId: null,
+  }),
+  getters: {
+    selectedAgent(state) {
+      return state.agents.find((agent) => agent.id === state.selectedAgentId) ?? null
+    },
+  },
+  actions: {
+    async fetchAgents() {
+      this.loadingAgents = true
+      try {
+        this.agents = await agentApi.list()
+        if (!this.selectedAgentId && this.agents.length) {
+          this.selectedAgentId = this.agents[0]?.id ?? null
+        }
+      } finally {
+        this.loadingAgents = false
+      }
+    },
+    async fetchLogs() {
+      this.loadingLogs = true
+      try {
+        this.logs = await agentApi.logs()
+      } finally {
+        this.loadingLogs = false
+      }
+    },
+    selectAgent(id: string) {
+      this.selectedAgentId = id
+    },
+    async invokeAgent(payload: Omit<AgentInvocationPayload, 'agentId'> & { agentId?: string }) {
+      if (!payload.agentId && !this.selectedAgentId) {
+        throw new Error('请选择智能体')
+      }
+      this.invoking = true
+      try {
+        const result = await agentApi.invoke({
+          agentId: payload.agentId ?? (this.selectedAgentId as string),
+          input: payload.input,
+          mode: payload.mode,
+          context: payload.context,
+        })
+        this.lastInvocation = result
+        await this.fetchLogs()
+        return result
+      } finally {
+        this.invoking = false
+      }
+    },
+  },
+})
+

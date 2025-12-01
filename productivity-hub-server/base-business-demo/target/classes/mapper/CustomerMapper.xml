@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.customer.mapper.CustomerMapper">
+
+    <resultMap id="baseResultMap" type="com.pbad.customer.domain.po.CustomerPO">
+        <id column="customer_id" property="customerId"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="phone" property="phone"/>
+        <result column="address" property="address"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        customer_id,customer_name,phone,address,remark,create_by,create_time,update_by,update_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="customerId">
+        INSERT INTO mall_customer
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="customerId != null">customer_id,</if>
+            <if test="customerName != null">customer_name,</if>
+            <if test="phone != null">phone,</if>
+            <if test="address != null">address,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="customerId != null">#{customerId},</if>
+            <if test="customerName != null">#{customerName},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="address != null">#{address},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="update">
+        UPDATE mall_customer
+        <set>
+            <if test="customerName != null">customer_name = #{customerName},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        WHERE customer_id = #{customerId}
+    </update>
+
+    <select id="selectBaseInfoByCustomerId" resultMap="baseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM mall_customer
+        where customer_id = #{customerId}
+    </select>
+
+    <select id="selectBaseInfoByQuery" resultMap="baseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM mall_customer
+        <include refid="where"/>
+    </select>
+
+    <update id="delete">
+        update mall_customer
+        set del_flag = '1'
+        WHERE customer_id = #{cutomerId}
+    </update>
+
+    <sql id="info_Column_List">
+        customer_id
+        ,customer_name,phone,address,remark,create_by,create_time,update_by,update_time
+    </sql>
+
+    <resultMap id="infoResultMap" type="com.pbad.customer.domain.bo.CustomerBankBO">
+        <id column="customer_id" property="customerId"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="phone" property="phone"/>
+        <result column="address" property="address"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <collection property="bankCardList" column="{customerId = customer_id}"
+                    select="com.pbad.customer.mapper.BankCardMapper.selectByCustomerId"/>
+    </resultMap>
+
+    <select id="selectInfoByQuery" resultMap="infoResultMap">
+        SELECT
+        <include refid="info_Column_List"/>
+        FROM mall_customer
+        <include refid="where"/>
+    </select>
+
+    <sql id="where">
+        <where>
+            1 = 1
+            <if test="customerId != null">AND customer_id = #{customerId}</if>
+            <if test="customerName != null">AND customer_name LIKE CONCAT('%', #{customerName}, '%') </if>
+            <if test="phone != null">AND phone LIKE CONCAT('%', #{phone}, '%') </if>
+            <if test="address != null">AND address LIKE CONCAT('%', #{address}, '%')</if>
+            <if test="remark != null">AND remark LIKE CONCAT('%', #{remark}, '%')</if>
+        </where>
+    </sql>
+
+</mapper>
