@@ -1,4 +1,4 @@
-export type MessageChannel = 'sendgrid' | 'dingtalk' | 'dify'
+export type MessageChannel = 'sendgrid' | 'dingtalk'
 
 export interface BaseMessagePayload {
   channel: MessageChannel

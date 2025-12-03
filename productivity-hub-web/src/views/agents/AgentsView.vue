@@ -24,6 +24,9 @@ const logFilters = reactive({
   onlySelected: true,
 })
 
+const detailDrawerVisible = ref(false)
+const viewingLog = ref<typeof agentStore.logs[0] | null>(null)
+
 marked.setOptions({ gfm: true, breaks: true })
 
 const rules: FormRules = {
@@ -155,6 +158,76 @@ const handleCopyOutput = async () => {
   }
 }
 
+const openLogDetail = (log: typeof agentStore.logs[0]) => {
+  viewingLog.value = log
+  detailDrawerVisible.value = true
+}
+
+const renderedLogOutput = computed(() => {
+  if (!viewingLog.value?.output) return ''
+  if (isStructuredLogOutput.value) {
+    return JSON.stringify(structuredLogData.value, null, 2)
+  }
+  return marked.parse(viewingLog.value.output)
+})
+
+const isStructuredLogOutput = computed(() => {
+  if (!viewingLog.value?.output) return false
+  try {
+    const parsed = JSON.parse(viewingLog.value.output)
+    return parsed && typeof parsed === 'object'
+  } catch {
+    return false
+  }
+})
+
+const structuredLogData = computed<Record<string, unknown> | Record<string, unknown>[] | null>(() => {
+  if (!viewingLog.value?.output || !isStructuredLogOutput.value) return null
+  try {
+    const parsed = JSON.parse(viewingLog.value.output)
+    if (parsed && typeof parsed === 'object') {
+      return parsed as Record<string, unknown> | Record<string, unknown>[]
+    }
+  } catch {
+    return null
+  }
+  return null
+})
+
+const structuredLogRows = computed<Record<string, unknown>[]>(() => {
+  if (!structuredLogData.value) return []
+  if (Array.isArray(structuredLogData.value)) {
+    return structuredLogData.value.filter(
+      (item): item is Record<string, unknown> => item !== null && typeof item === 'object',
+    )
+  }
+  return [structuredLogData.value]
+})
+
+const structuredLogColumns = computed(() => {
+  if (!structuredLogRows.value.length) return []
+  const keys = new Set<string>()
+  structuredLogRows.value.forEach((row) => {
+    Object.keys(row).forEach((key) => keys.add(key))
+  })
+  return Array.from(keys)
+})
+
+const agentUsageStats = computed(() => {
+  const stats = new Map<string, number>()
+  agentStore.logs.forEach((log) => {
+    const current = stats.get(log.agentId) ?? 0
+    stats.set(log.agentId, current + 1)
+  })
+  return stats
+})
+
+const hotAgentIdSet = computed(() => {
+  const sorted = [...agentUsageStats.value.entries()].sort((a, b) => b[1] - a[1])
+  const top = sorted.filter(([, count]) => count > 0).slice(0, 3)
+  return new Set(top.map(([agentId]) => agentId))
+})
+
 watch(
   () => agentStore.selectedAgentId,
   (id) => {
@@ -188,11 +261,19 @@ onMounted(async () => {
         <el-tab-pane label="智能体列表" name="catalog">
           <template v-if="catalogMode === 'grid'">
             <div class="catalog-header">
-              <div>
-                <h2>智能体目录</h2>
-                <p>按需筛选智能体，点击卡片进入执行界面</p>
+              <h2>智能体目录</h2>
+              <div class="catalog-filters">
+                <el-input
+                  v-model="searchKeyword"
+                  placeholder="搜索智能体名称或描述"
+                  clearable
+                  :prefix-icon="Search"
+                  class="catalog-search"
+                />
+                <el-button text type="primary" @click="agentStore.fetchAgents(true)" :loading="agentStore.loadingAgents">
+                  刷新
+                </el-button>
               </div>
-              <el-input v-model="searchKeyword" placeholder="搜索智能体" clearable :prefix-icon="Search" />
             </div>
             <el-skeleton :loading="agentStore.loadingAgents" animated>
               <template #default>
@@ -206,6 +287,7 @@ onMounted(async () => {
                     :class="agent.id === agentStore.selectedAgentId && 'active'"
                     @click="enterAgentDetail(agent.id)"
                   >
+                    <div class="agent-hot-badge" v-if="hotAgentIdSet.has(agent.id)">热</div>
                     <div class="card-title">
                       <h3>{{ agent.name }}</h3>
                       <el-tag size="small">{{ agent.version }}</el-tag>
@@ -311,22 +393,26 @@ onMounted(async () => {
         </el-tab-pane>
         <el-tab-pane label="调用历史" name="history">
           <div class="logs-toolbar">
-            <el-radio-group v-model="logFilters.status" size="small">
-              <el-radio-button label="all">全部</el-radio-button>
-              <el-radio-button label="success">成功</el-radio-button>
-              <el-radio-button label="running">执行中</el-radio-button>
-              <el-radio-button label="failed">失败</el-radio-button>
-            </el-radio-group>
-            <el-switch v-model="logFilters.onlySelected" size="small" active-text="仅当前智能体" />
-            <el-input
-              v-model="logFilters.search"
-              size="small"
-              placeholder="搜索输入或输出"
-              clearable
-              :prefix-icon="Search"
-              class="logs-search"
-            />
-            <el-button text type="primary" @click="agentStore.fetchLogs()" :loading="agentStore.loadingLogs">刷新</el-button>
+            <div class="logs-filters-left">
+              <el-radio-group v-model="logFilters.status" size="default" class="status-filter-group">
+                <el-radio-button label="all">全部</el-radio-button>
+                <el-radio-button label="success">成功</el-radio-button>
+                <el-radio-button label="running">执行中</el-radio-button>
+                <el-radio-button label="failed">失败</el-radio-button>
+              </el-radio-group>
+              <el-switch v-model="logFilters.onlySelected" size="default" active-text="仅当前智能体" />
+            </div>
+            <div class="logs-filters-right">
+              <el-input
+                v-model="logFilters.search"
+                size="default"
+                placeholder="搜索输入或输出"
+                clearable
+                :prefix-icon="Search"
+                class="logs-search"
+              />
+              <el-button text type="primary" @click="agentStore.fetchLogs()" :loading="agentStore.loadingLogs">刷新</el-button>
+            </div>
           </div>
           <el-empty v-if="!agentStore.loadingLogs && !filteredLogs.length" description="暂无符合条件的记录" />
           <el-table v-else :data="filteredLogs" :loading="agentStore.loadingLogs" border>
@@ -342,10 +428,92 @@ onMounted(async () => {
             <el-table-column prop="createdAt" label="时间" width="190" />
             <el-table-column prop="input" label="输入" min-width="200" show-overflow-tooltip />
             <el-table-column prop="output" label="输出" min-width="200" show-overflow-tooltip />
+            <el-table-column label="操作" width="100" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="openLogDetail(row)">详情</el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <el-drawer v-model="detailDrawerVisible" title="调用详情" size="60%">
+      <template v-if="viewingLog">
+        <el-descriptions :column="2" border class="log-detail-descriptions">
+          <el-descriptions-item label="智能体">
+            <el-tag size="large">{{ viewingLog.agentName }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="statusTagType(viewingLog.status)" size="large">{{ viewingLog.status }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="任务 ID">
+            <code class="task-id-code">{{ viewingLog.id || '--' }}</code>
+          </el-descriptions-item>
+          <el-descriptions-item label="耗时">
+            <span class="duration-text">{{ viewingLog.duration }} ms</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间" :span="2">
+            <span class="time-text">{{ formatDateTime(viewingLog.createdAt) }}</span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-divider />
+        <div class="log-content-section">
+          <h3 class="section-title">输入内容</h3>
+          <div class="log-content-box">
+            <el-input
+              :model-value="viewingLog.input"
+              type="textarea"
+              :rows="viewingLog.input.length > 200 ? 8 : 6"
+              readonly
+              class="log-content-input"
+            />
+          </div>
+        </div>
+        <el-divider />
+        <div class="log-content-section">
+          <div class="section-header">
+            <h3 class="section-title">输出内容</h3>
+            <el-button
+              text
+              type="primary"
+              size="small"
+              @click="
+                navigator.clipboard?.writeText(viewingLog.output || '').then(() => {
+                  ElMessage.success('已复制输出内容')
+                })
+              "
+            >
+              复制
+            </el-button>
+          </div>
+          <div class="log-content-box">
+            <template v-if="isStructuredLogOutput && structuredLogColumns.length">
+              <el-table :data="structuredLogRows" size="small" border>
+                <el-table-column v-for="column in structuredLogColumns" :key="column" :prop="column" :label="column" />
+              </el-table>
+            </template>
+            <template v-else-if="isStructuredLogOutput">
+              <el-input
+                :model-value="renderedLogOutput"
+                type="textarea"
+                :rows="10"
+                readonly
+                class="log-content-input"
+              />
+            </template>
+            <template v-else>
+              <div class="markdown-output" v-html="renderedLogOutput" />
+            </template>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <span class="drawer-footer">
+          <el-button @click="detailDrawerVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
@@ -364,13 +532,30 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  align-items: flex-end;
-  margin-bottom: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
-.catalog-header p {
-  margin: 4px 0 0;
-  color: #475569;
+.catalog-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.catalog-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.catalog-search {
+  max-width: 400px;
+  min-width: 200px;
+  flex: 1;
 }
 
 .agent-grid {
@@ -383,6 +568,7 @@ onMounted(async () => {
   cursor: pointer;
   border: 1px solid transparent;
   transition: border-color 0.2s ease, transform 0.2s ease;
+  position: relative;
 }
 
 .agent-tile.active {
@@ -391,6 +577,18 @@ onMounted(async () => {
 
 .agent-tile:hover {
   transform: translateY(-4px);
+}
+
+.agent-hot-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #ef4444;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .card-title {
@@ -468,14 +666,107 @@ onMounted(async () => {
 
 .logs-toolbar {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   align-items: center;
+  justify-content: space-between;
+}
+
+.logs-filters-left {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.logs-filters-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.status-filter-group {
+  font-size: 15px;
+}
+
+.status-filter-group :deep(.el-radio-button__inner) {
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .logs-search {
-  max-width: 260px;
+  max-width: 300px;
+  min-width: 200px;
+}
+
+.log-detail-descriptions {
+  margin-bottom: 20px;
+}
+
+.task-id-code {
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: #6366f1;
+  font-size: 13px;
+}
+
+.duration-text {
+  font-weight: 600;
+  color: #6366f1;
+}
+
+.time-text {
+  color: #475569;
+}
+
+.log-content-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.log-content-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.log-content-input :deep(.el-textarea__inner) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.markdown-output {
+  line-height: 1.6;
+  color: #0f172a;
+}
+
+.drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 @media (max-width: 768px) {

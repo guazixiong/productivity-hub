@@ -10,7 +10,10 @@ interface AgentState {
   invoking: boolean
   lastInvocation: AgentInvocationResult | null
   selectedAgentId: string | null
+  lastFetchedAgents: number
 }
+
+const AGENTS_CACHE_TTL = 5 * 60 * 1000 // 5分钟缓存
 
 export const useAgentStore = defineStore('agents', {
   state: (): AgentState => ({
@@ -21,6 +24,7 @@ export const useAgentStore = defineStore('agents', {
     invoking: false,
     lastInvocation: null,
     selectedAgentId: null,
+    lastFetchedAgents: 0,
   }),
   getters: {
     selectedAgent(state) {
@@ -28,10 +32,16 @@ export const useAgentStore = defineStore('agents', {
     },
   },
   actions: {
-    async fetchAgents() {
+    async fetchAgents(force = false) {
+      // 检查缓存，避免频繁请求
+      const now = Date.now()
+      if (!force && this.agents.length > 0 && (now - this.lastFetchedAgents) < AGENTS_CACHE_TTL) {
+        return
+      }
       this.loadingAgents = true
       try {
         this.agents = await agentApi.list()
+        this.lastFetchedAgents = now
         if (!this.selectedAgentId && this.agents.length) {
           this.selectedAgentId = this.agents[0]?.id ?? null
         }

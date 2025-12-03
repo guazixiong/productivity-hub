@@ -46,3 +46,14 @@ Mock.mock('/api/auth/login', 'post', ({ body }) => {
   }
 })
 
+Mock.mock('/api/auth/reset-password', 'post', () => {
+  return {
+    code: 0,
+    message: '密码已重置为默认密码 123456',
+    data: {
+      success: true,
+      message: '密码已重置为默认密码 123456',
+    },
+  }
+})
+

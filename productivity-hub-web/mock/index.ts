@@ -3,6 +3,7 @@ import './auth'
 import './config'
 import './messages'
 import './agents'
+import './tools'
 
 Mock.setup({ timeout: '500-1200' })
 

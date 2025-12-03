@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI架构师成长蓝图 - 可视化展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .header .formula {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: 500;
+            margin: 20px 0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .blueprint-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .blueprint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .blueprint-header:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .blueprint-header h2 {
+            font-size: 1.5em;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .blueprint-header .toggle {
+            font-size: 1.2em;
+            transition: transform 0.3s;
+        }
+
+        .blueprint-header.collapsed .toggle {
+            transform: rotate(-90deg);
+        }
+
+        .blueprint-content {
+            display: block;
+        }
+
+        .blueprint-content.collapsed {
+            display: none;
+        }
+
+        .blueprint-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .blueprint-progress {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .nodes-container {
+            display: grid;
+            gap: 15px;
+        }
+
+        .node-group {
+            margin-bottom: 25px;
+        }
+
+        .node-group-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .node {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .node:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .node.completed {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .node.in-progress {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .node-section {
+            margin-bottom: 30px;
+        }
+
+        .node-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node-section-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .node-section-header.pending {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .node-section-header.completed {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        }
+
+        .node-section-header.completed:hover {
+            background: linear-gradient(135deg, #34ce57 0%, #28a745 100%);
+        }
+
+        .node-section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .node-section-count {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .node-section-toggle {
+            font-size: 1.2em;
+            transition: transform 0.3s;
+        }
+
+        .node-section-header.collapsed .node-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .node-section-content {
+            display: block;
+        }
+
+        .node-section-content.collapsed {
+            display: none;
+        }
+
+        .node.completed {
+            opacity: 0.85;
+        }
+
+        .node.completed:hover {
+            opacity: 1;
+            background: #c3e6cb;
+        }
+
+        .node-expand-icon {
+            transition: all 0.3s;
+        }
+
+        .node.completed .node-header:hover .node-expand-icon {
+            opacity: 1;
+            transform: translateX(-5px);
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .node-id {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .node-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #dc3545;
+            display: inline-block;
+        }
+
+        .node.completed .node-status {
+            background: #28a745;
+        }
+
+        .node.in-progress .node-status {
+            background: #ffc107;
+        }
+
+        .node-title {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .node-details {
+            margin-top: 10px;
+            padding-left: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .node-details div {
+            margin: 5px 0;
+        }
+
+        .node-details strong {
+            color: #495057;
+        }
+
+        .layer-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .layer-badge.basic {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .layer-badge.excellence {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .blueprint-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .quick-jump {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-jump:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .scroll-to-top {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+            z-index: 1000;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scroll-to-top:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ AI架构师成长蓝图</h1>
+            <div class="subtitle">成为国家级AI架构专家的完整路径</div>
+            <div class="formula">
+                核心公式：国家级AI能力体系 = 技术深度 × 创新突破 × 学术影响 × 开源贡献 × 行业引领 × 国际视野 × 战略思维
+            </div>
+            <div class="stats" id="stats">
+                <!-- 统计数据将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div id="blueprints-container">
+            <!-- 蓝图内容将通过JavaScript动态生成 -->
+        </div>
+
+        <!-- 快速跳转按钮 -->
+        <div class="quick-jump" onclick="scrollToNextPending()" id="quick-jump-btn" style="display: none;">
+            ⏳ 跳转到待完成节点
+        </div>
+        <div class="scroll-to-top" onclick="scrollToTop()" id="scroll-to-top-btn" style="display: none;">
+            ⬆️ 返回顶部
+        </div>
+    </div>
+
+    <script>
+        // 蓝图数据
+        const blueprintsData = {
+            "1": {
+                title: "本地AI基础设施蓝图",
+                goal: "搭建稳定可用的本地推理环境",
+                layer: "basic",
+                nodes: [
+                    { id: "1.1", title: "安装Ollama并验证运行", group: "基础环境搭建", check: "ollama --version 正常输出", depends: "", time: "30分钟" },
+                    { id: "1.2", title: "下载第一个代码模型（Qwen2.5-Coder 14B 或 DeepSeek-Coder）", group: "基础环境搭建", check: "ollama list 显示模型，响应速度<10秒", depends: "节点1.1", time: "1-2小时" },
+                    { id: "1.3", title: "测试模型代码生成能力", group: "基础环境搭建", check: "生成至少3段有效代码，质量可接受", depends: "节点1.2", time: "30分钟" },
+                    { id: "1.4", title: "建立模型管理表（Excel/Notion）", group: "模型管理优化", check: "记录至少3个模型的名称/用途/显存占用/响应时间", depends: "节点1.2", time: "1小时" },
+                    { id: "1.5", title: "部署文本总结模型（Qwen2.5-7B）", group: "模型管理优化", check: "能对1000字文档生成摘要", depends: "节点1.2", time: "1小时" },
+                    { id: "1.6", title: "测试模型量化方案（Q4/Q5/Q8）", group: "模型管理优化", check: "对比至少2种量化方案的响应速度和质量", depends: "节点1.4", time: "2小时" },
+                    { id: "1.7", title: "配置OpenAI API兼容层", group: "推理服务优化", check: "本地API能被Continue/Cursor调用", depends: "节点1.2", time: "1小时" },
+                    { id: "1.8", title: "优化并发策略（num_gpu参数调优）", group: "推理服务优化", check: "并发请求响应时间提升20%以上", depends: "节点1.7", time: "2小时" },
+                    { id: "1.9", title: "实现CPU offloading降级方案", group: "推理服务优化", check: "显存不足时能自动降级到CPU", depends: "节点1.6", time: "3小时" },
+                    { id: "1.10", title: "多模型切换策略实现", group: "高级能力", check: "能根据任务类型自动选择合适模型", depends: "节点1.4, 1.5", time: "4小时" }
+                ]
+            },
+            "2": {
+                title: "开发流程集成蓝图",
+                goal: "让AI成为编码过程的\"实时协作者\"",
+                layer: "basic",
+                nodes: [
+                    { id: "2.1", title: "安装并配置Continue/Cursor插件", group: "IDE集成基础", check: "插件能正常启动，连接到本地API", depends: "小蓝图1-节点1.7", time: "30分钟" },
+                    { id: "2.2", title: "配置项目路径绑定", group: "IDE集成基础", check: "AI能理解项目结构和上下文", depends: "节点2.1", time: "30分钟" },
+                    { id: "2.3", title: "创建.cursorrules文件（团队规范）", group: "IDE集成基础", check: "包含Java/SpringBoot编码规范", depends: "节点2.2", time: "1小时" },
+                    { id: "2.4", title: "用AI解释至少5段不熟悉的代码", group: "代码辅助能力", check: "理解遗留代码逻辑，生成解释文档", depends: "节点2.2", time: "2小时" },
+                    { id: "2.5", title: "用AI生成至少3个单元测试", group: "代码辅助能力", check: "测试覆盖主要逻辑，能通过运行", depends: "节点2.3", time: "3小时" },
+                    { id: "2.6", title: "用AI重构至少1段旧代码（>50行）", group: "代码辅助能力", check: "代码质量提升，功能保持不变", depends: "节点2.4", time: "2小时" },
+                    { id: "2.7", title: "建立个人prompt模板库（至少5个模板）", group: "Prompt模板库", check: "包含代码解释/测试生成/文档生成/重构/Commit等模板", depends: "节点2.4, 2.5, 2.6", time: "2小时" },
+                    { id: "2.8", title: "实现代码变更摘要功能", group: "Prompt模板库", check: "能分析Git diff生成技术周报素材", depends: "节点2.7", time: "4小时" },
+                    { id: "2.9", title: "AI辅助完成3个完整工作模块（需求→开发→测试）", group: "工作流程融合", check: "从需求分析到测试生成全流程使用AI", depends: "节点2.5, 2.6", time: "持续使用" },
+                    { id: "2.10", title: "用AI生成项目文档/接口文档", group: "工作流程融合", check: "生成至少2份完整的API文档", depends: "节点2.7", time: "3小时" },
+                    { id: "2.11", title: "构建项目专属prompt模板库", group: "高级集成", check: "针对SpringBoot/SpringCloud项目的专用模板", depends: "节点2.7", time: "4小时" },
+                    { id: "2.12", title: "实现本地vs云端API智能切换", group: "高级集成", check: "根据任务复杂度自动选择API", depends: "小蓝图1-节点1.10", time: "6小时" }
+                ]
+            },
+            "3": {
+                title: "知识库与RAG系统蓝图",
+                goal: "将分散知识转化为可检索的\"外部记忆\"",
+                layer: "basic",
+                nodes: [
+                    { id: "3.1", title: "部署向量数据库（Chroma/Milvus/PostgreSQL+pgvector）", group: "向量数据库搭建", check: "数据库能正常启动，能存储和查询向量", depends: "", time: "2小时" },
+                    { id: "3.2", title: "选择并测试Embedding模型（bge-small-zh 或 bge-large-zh）", group: "向量数据库搭建", check: "能对文档生成向量，相似度计算准确", depends: "节点3.1", time: "2小时" },
+                    { id: "3.3", title: "设计知识库分类策略（公司/学习/代码）", group: "知识库构建", check: "建立3类知识库的目录结构", depends: "", time: "1小时" },
+                    { id: "3.4", title: "实现文档预处理流程（分块/去噪/格式化）", group: "知识库构建", check: "能处理.md/.java/.pdf等格式，chunk_size=512-1024", depends: "节点3.2", time: "4小时" },
+                    { id: "3.5", title: "导入至少50条公司文档/项目文档", group: "知识库构建", check: "文档向量化完成，能检索到相关内容", depends: "节点3.3, 3.4", time: "3小时" },
+                    { id: "3.6", title: "实现RAG检索接口（相似度匹配）", group: "RAG检索实现", check: "top_k=3-10，相似度阈值0.6-0.8", depends: "节点3.5", time: "4小时" },
+                    { id: "3.7", title: "测试RAG检索效果（top3命中率>60%）", group: "RAG检索实现", check: "至少测试20个问题，命中率达标", depends: "节点3.6", time: "2小时" },
+                    { id: "3.8", title: "企业知识助手项目启动并可用", group: "企业知识助手项目", check: "能通过问答方式检索知识库", depends: "节点3.7", time: "8小时" },
+                    { id: "3.9", title: "每周至少查询知识库10次以上（持续1个月）", group: "企业知识助手项目", check: "使用记录，解决实际工作问题", depends: "节点3.8", time: "持续使用" },
+                    { id: "3.10", title: "至少1次通过知识库快速解决工作问题", group: "企业知识助手项目", check: "记录问题和解决方案", depends: "节点3.9", time: "持续使用" },
+                    { id: "3.11", title: "知识库内容扩展到200+条", group: "知识库优化", check: "涵盖项目文档/API文档/技术决策等", depends: "节点3.10", time: "持续维护" },
+                    { id: "3.12", title: "建立自动更新机制（每周同步文档）", group: "知识库优化", check: "定时任务能自动抓取并更新知识库", depends: "节点3.11", time: "6小时" },
+                    { id: "3.13", title: "实现AI预筛选+人工审核流程", group: "知识库优化", check: "新文档先AI评分，再人工审核入库", depends: "节点3.12", time: "8小时" },
+                    { id: "3.14", title: "查询命中率提升到>70%", group: "知识库优化", check: "优化检索策略，命中率达标", depends: "节点3.13", time: "4小时" },
+                    { id: "3.15", title: "至少5个同事使用过你的知识库", group: "知识库优化", check: "用户使用记录，收集反馈", depends: "节点3.14", time: "持续推广" },
+                    { id: "3.16", title: "实现混合检索（关键词+向量）", group: "高级能力", check: "结合BM25和向量检索提升准确率", depends: "节点3.14", time: "6小时" },
+                    { id: "3.17", title: "实现查询重排序（Rerank）", group: "高级能力", check: "检索结果按相关性重新排序", depends: "节点3.16", time: "4小时" },
+                    { id: "3.18", title: "知识库规模扩展到500+条", group: "高级能力", check: "成为不可或缺的工作工具", depends: "节点3.17", time: "持续维护" }
+                ]
+            },
+            "4": {
+                title: "智能体与编排蓝图",
+                goal: "从单次调用进化为\"任务理解→规划→执行\"的自主系统",
+                layer: "basic",
+                nodes: [
+                    { id: "4.1", title: "学习LangChain基础（Agent构建）", group: "框架学习", check: "能理解Agent工作原理，完成基础教程", depends: "", time: "8小时" },
+                    { id: "4.2", title: "学习LangGraph（多步骤编排）", group: "框架学习", check: "能设计多步骤工作流", depends: "节点4.1", time: "6小时" },
+                    { id: "4.3", title: "了解Dify可视化Agent设计", group: "框架学习", check: "能使用Dify创建简单Agent", depends: "节点4.1", time: "4小时" },
+                    { id: "4.4", title: "实现Function Calling功能", group: "简单Agent实现", check: "模型能理解工具描述并正确调用", depends: "节点4.1", time: "6小时" },
+                    { id: "4.5", title: "实现至少1个简单Agent（能调用2个以上工具）", group: "简单Agent实现", check: "Agent能完成多步骤任务", depends: "节点4.4", time: "8小时" },
+                    { id: "4.6", title: "设计代码审查Agent工具链", group: "工具链设计", check: "能读取PR、分析变更、检查规范、生成评审", depends: "节点4.5", time: "10小时" },
+                    { id: "4.7", title: "设计数据分析Agent工具链", group: "工具链设计", check: "SQL生成→执行查询→可视化→分析建议", depends: "节点4.5", time: "12小时" },
+                    { id: "4.8", title: "实现多模型协作（不同任务用不同模型）", group: "多Agent协作", check: "代码任务用Coder模型，文本任务用通用模型", depends: "小蓝图1-节点1.10", time: "6小时" },
+                    { id: "4.9", title: "实现Agent失败重试策略", group: "多Agent协作", check: "失败后能重新规划并执行", depends: "节点4.5", time: "6小时" },
+                    { id: "4.10", title: "实现多Agent通信机制（共享内存/消息传递）", group: "多Agent协作", check: "多个Agent能协作完成复杂任务", depends: "节点4.8", time: "10小时" },
+                    { id: "4.11", title: "实现复杂Agent（3个以上步骤，多工具协作）", group: "高级编排", check: "能完成端到端的复杂业务流程", depends: "节点4.10", time: "16小时" },
+                    { id: "4.12", title: "实现Agent长期记忆机制", group: "高级编排", check: "Agent能记住历史对话和任务", depends: "节点4.11", time: "8小时" }
+                ]
+            },
+            "5": {
+                title: "AI中台架构蓝图",
+                goal: "将AI能力沉淀为可复用的企业级服务",
+                layer: "basic",
+                nodes: [
+                    { id: "5.1", title: "设计AI中台架构（模型层+知识层+智能层）", group: "架构设计", check: "输出完整架构设计文档", depends: "小蓝图3-节点3.8, 小蓝图4-节点4.5", time: "8小时" },
+                    { id: "5.2", title: "设计API接口规范（RESTful/GraphQL）", group: "架构设计", check: "定义统一的服务接口", depends: "节点5.1", time: "4小时" },
+                    { id: "5.3", title: "实现模型管理模块（多模型注册/版本控制）", group: "模型服务层", check: "能注册、查询、切换模型", depends: "节点5.2", time: "12小时" },
+                    { id: "5.4", title: "实现模型动态切换功能", group: "模型服务层", check: "支持3个以上模型动态切换", depends: "节点5.3", time: "6小时" },
+                    { id: "5.5", title: "实现推理优化（并发控制/请求队列）", group: "模型服务层", check: "支持并发请求，响应时间稳定", depends: "节点5.4", time: "8小时" },
+                    { id: "5.6", title: "实现智能缓存策略", group: "模型服务层", check: "相同问题复用结果，减少调用", depends: "节点5.5", time: "6小时" },
+                    { id: "5.7", title: "封装统一RAG接口", group: "知识服务层", check: "整合所有知识库，提供统一查询接口", depends: "小蓝图3-节点3.18", time: "8小时" },
+                    { id: "5.8", title: "实现知识增量更新机制", group: "知识服务层", check: "支持增量索引，不影响现有数据", depends: "节点5.7", time: "6小时" },
+                    { id: "5.9", title: "实现Agent编排框架", group: "智能体编排层", check: "任务分发、状态管理、结果聚合", depends: "小蓝图4-节点4.11", time: "12小时" },
+                    { id: "5.10", title: "实现至少2个跨领域Agent协作", group: "智能体编排层", check: "不同业务场景的Agent能协作", depends: "节点5.9", time: "16小时" },
+                    { id: "5.11", title: "实现调用链追踪", group: "可观测性", check: "能追踪每个请求的完整调用链", depends: "节点5.5", time: "8小时" },
+                    { id: "5.12", title: "实现性能监控（Prometheus + Grafana）", group: "可观测性", check: "监控响应时间、并发数、错误率", depends: "节点5.11", time: "6小时" },
+                    { id: "5.13", title: "实现成本统计功能", group: "可观测性", check: "统计API调用次数、模型使用成本", depends: "节点5.12", time: "4小时" },
+                    { id: "5.14", title: "至少有3个实际业务场景接入", group: "业务融合", check: "业务系统能调用AI中台服务", depends: "节点5.10", time: "持续集成" },
+                    { id: "5.15", title: "实现混合部署（本地+云端API）", group: "业务融合", check: "能根据场景自动选择本地或云端", depends: "节点5.14", time: "8小时" },
+                    { id: "5.16", title: "建立MLOps工作流（模型更新/版本管理）", group: "高级能力", check: "模型版本控制、自动部署流程", depends: "节点5.15", time: "12小时" },
+                    { id: "5.17", title: "实现分层推理（简单问题用小模型，复杂问题用大模型）", group: "高级能力", check: "根据问题复杂度自动选择模型", depends: "节点5.16", time: "8小时" },
+                    { id: "5.18", title: "优化模型推理性能（量化/并发/缓存）", group: "高级能力", check: "响应时间提升30%以上", depends: "节点5.17", time: "10小时" }
+                ]
+            },
+            "6": {
+                title: "项目实战蓝图",
+                goal: "通过实战项目形成能力闭环",
+                layer: "basic",
+                nodes: [
+                    { id: "6.1", title: "设计AI消息聚合系统架构", group: "入门项目：AI消息聚合", check: "RSS抓取+模型摘要+定时推送", depends: "小蓝图1-节点1.5", time: "4小时" },
+                    { id: "6.2", title: "接入至少3个信息源（RSS/API）", group: "入门项目：AI消息聚合", check: "能抓取并解析内容", depends: "节点6.1", time: "6小时" },
+                    { id: "6.3", title: "实现模型自动摘要功能", group: "入门项目：AI消息聚合", check: "能对文章生成摘要", depends: "节点6.2", time: "4小时" },
+                    { id: "6.4", title: "实现定时推送（每日/每周）", group: "入门项目：AI消息聚合", check: "定时任务正常运行", depends: "节点6.3", time: "4小时" },
+                    { id: "6.5", title: "连续使用2周以上", group: "入门项目：AI消息聚合", check: "系统稳定运行，持续推送", depends: "节点6.4", time: "持续使用" },
+                    { id: "6.6", title: "企业知识助手持续运行", group: "核心项目：企业知识助手", check: "每日活跃使用", depends: "小蓝图3-节点3.15", time: "持续使用" },
+                    { id: "6.7", title: "设计财务AI分析系统", group: "个人项目：财务AI分析（可选）", check: "数据分类+分析+可视化+建议", depends: "小蓝图4-节点4.5", time: "8小时" },
+                    { id: "6.8", title: "连续记录3个月财务数据", group: "个人项目：财务AI分析（可选）", check: "数据完整，分类准确", depends: "节点6.7", time: "持续记录" },
+                    { id: "6.9", title: "AI自动分类准确率>80%", group: "个人项目：财务AI分析（可选）", check: "测试分类效果", depends: "节点6.8", time: "4小时" },
+                    { id: "6.10", title: "生成至少3次月度分析报告", group: "个人项目：财务AI分析（可选）", check: "报告包含趋势分析和建议", depends: "节点6.9", time: "持续生成" },
+                    { id: "6.11", title: "设计智能饮食管理系统", group: "个人项目：智能饮食管理（可选）", check: "食材管理+食谱推荐+营养分析", depends: "小蓝图4-节点4.5", time: "10小时" },
+                    { id: "6.12", title: "食材数据库>50种", group: "个人项目：智能饮食管理（可选）", check: "数据完整，包含营养信息", depends: "节点6.11", time: "4小时" },
+                    { id: "6.13", title: "AI推荐食谱并实际做过至少10次", group: "个人项目：智能饮食管理（可选）", check: "推荐合理，实际使用", depends: "节点6.12", time: "持续使用" },
+                    { id: "6.14", title: "设计AI出游助手系统", group: "个人项目：AI出游助手（可选）", check: "偏好匹配+行程规划+天气集成", depends: "小蓝图4-节点4.5", time: "8小时" },
+                    { id: "6.15", title: "至少完成3次周末活动推荐", group: "个人项目：AI出游助手（可选）", check: "推荐合理，实际使用", depends: "节点6.14", time: "持续使用" },
+                    { id: "6.16", title: "AI中台系统落地", group: "核心项目：AI中台系统", check: "至少1个业务场景产生价值", depends: "小蓝图5-节点5.14", time: "持续开发" },
+                    { id: "6.17", title: "至少1个项目达到\"每天/每周都在用\"的状态", group: "核心项目：AI中台系统", check: "使用记录，产生实际价值", depends: "节点6.6, 6.16", time: "持续使用" }
+                ]
+            },
+            "7": {
+                title: "职业进阶蓝图",
+                goal: "从应用开发者到AI架构师的职业进阶",
+                layer: "basic",
+                nodes: [
+                    { id: "7.1", title: "完成本地模型部署和IDE集成", group: "阶段1：AI应用开发者（0-3个月）", check: "小蓝图1完成80%，小蓝图2完成80%", depends: "小蓝图1, 小蓝图2", time: "1-3个月" },
+                    { id: "7.2", title: "实现第一个RAG应用（企业知识助手）", group: "阶段1：AI应用开发者（0-3个月）", check: "小蓝图3完成80%，小蓝图6-节点6.6完成", depends: "小蓝图3, 小蓝图6", time: "2-3个月" },
+                    { id: "7.3", title: "能在现有项目中引入AI能力", group: "阶段1：AI应用开发者（0-3个月）", check: "至少3个工作模块使用AI辅助", depends: "节点7.1", time: "持续使用" },
+                    { id: "7.4", title: "实现Agent能力（至少1个简单Agent）", group: "阶段2：AI系统设计师（3-6个月）", check: "小蓝图4完成60%", depends: "小蓝图4", time: "4-6个月" },
+                    { id: "7.5", title: "完成2-3个项目稳定运行", group: "阶段2：AI系统设计师（3-6个月）", check: "小蓝图6完成60%", depends: "小蓝图6", time: "4-6个月" },
+                    { id: "7.6", title: "能抽象业务需求，设计AI解决方案架构", group: "阶段2：AI系统设计师（3-6个月）", check: "输出至少1份AI架构设计文档", depends: "节点7.4, 7.5", time: "5-6个月" },
+                    { id: "7.7", title: "AI中台系统原型完成", group: "阶段3：AI架构师（6-12个月）", check: "小蓝图5完成70%", depends: "小蓝图5", time: "8-12个月" },
+                    { id: "7.8", title: "优化模型推理性能", group: "阶段3：AI架构师（6-12个月）", check: "响应时间提升30%以上", depends: "小蓝图5-节点5.18", time: "10-12个月" },
+                    { id: "7.9", title: "建立MLOps工作流", group: "阶段3：AI架构师（6-12个月）", check: "模型版本管理、自动部署", depends: "小蓝图5-节点5.16", time: "10-12个月" },
+                    { id: "7.10", title: "能推动AI与现有系统融合", group: "阶段3：AI架构师（6-12个月）", check: "至少3个业务场景接入", depends: "节点7.7", time: "10-12个月" },
+                    { id: "7.11", title: "输出完整的AI系统架构设计文档", group: "阶段4：AI技术专家（1-3年）", check: "包含技术栈、架构图、决策记录，被团队采用", depends: "节点7.10", time: "12-18个月" },
+                    { id: "7.12", title: "在团队/公司内分享AI技术方案", group: "阶段4：AI技术专家（1-3年）", check: "至少3次技术分享，影响50+人，获得正面反馈", depends: "节点7.11", time: "12-18个月" },
+                    { id: "7.13", title: "能评估AI项目的ROI（成本/收益分析）", group: "阶段4：AI技术专家（1-3年）", check: "输出至少3份ROI分析报告，指导项目决策", depends: "节点7.12", time: "15-18个月" },
+                    { id: "7.14", title: "能指导他人完成AI能力搭建", group: "阶段4：AI技术专家（1-3年）", check: "至少帮助5个同事/团队成员搭建AI环境", depends: "节点7.13", time: "18-24个月" },
+                    { id: "7.15", title: "整理出可复用的AI能力方法论", group: "阶段4：AI技术专家（1-3年）", check: "输出方法论文档，包含最佳实践，被团队/公司采用", depends: "节点7.14", time: "20-24个月" },
+                    { id: "7.16", title: "建立个人技术品牌（博客/开源项目/技术分享）", group: "阶段4：AI技术专家（1-3年）", check: "至少1个开源项目（Star>100）或20篇高质量技术文章（阅读量>1000/篇）", depends: "节点7.15", time: "24-36个月" },
+                    { id: "7.17", title: "成为公司/团队AI技术负责人", group: "阶段5：行业专家（3-5年）", check: "负责AI技术战略规划，影响公司技术方向", depends: "节点7.16", time: "36-48个月" },
+                    { id: "7.18", title: "在行业会议/技术大会发表演讲", group: "阶段5：行业专家（3-5年）", check: "至少2次行业级技术分享（参会人数>200）", depends: "节点7.17", time: "42-54个月" },
+                    { id: "7.19", title: "建立AI技术团队（5-10人）", group: "阶段5：行业专家（3-5年）", check: "组建并管理AI技术团队，产出行业级成果", depends: "节点7.18", time: "48-60个月" },
+                    { id: "7.20", title: "推动行业技术标准制定", group: "阶段5：行业专家（3-5年）", check: "参与或主导至少1项行业技术标准/规范制定", depends: "节点7.19", time: "54-60个月" }
+                ]
+            },
+            "8": {
+                title: "技术创新与研发蓝图",
+                goal: "在AI架构领域实现技术突破与创新",
+                layer: "excellence",
+                nodes: [
+                    { id: "8.1", title: "优化RAG检索算法，提升准确率10%以上", group: "核心技术突破", check: "发表技术文章或开源实现，获得行业认可", depends: "小蓝图3-节点3.18", time: "3-6个月" },
+                    { id: "8.2", title: "设计并实现创新的Agent编排框架", group: "核心技术突破", check: "解决现有框架的痛点，性能提升20%以上", depends: "小蓝图4-节点4.12", time: "6-12个月" },
+                    { id: "8.3", title: "实现模型推理性能优化突破（响应时间降低50%）", group: "核心技术突破", check: "通过量化/编译优化/硬件加速等手段实现", depends: "小蓝图1-节点1.10, 小蓝图5-节点5.18", time: "6-12个月" },
+                    { id: "8.4", title: "设计多模态AI架构（文本+图像+语音）", group: "核心技术突破", check: "实现统一的多模态处理框架", depends: "节点8.2", time: "12-18个月" },
+                    { id: "8.5", title: "提出新的AI中台架构模式", group: "架构创新", check: "解决大规模AI服务治理问题，形成方法论", depends: "小蓝图5-节点5.18", time: "12-18个月" },
+                    { id: "8.6", title: "实现边缘AI架构（边缘计算+AI推理）", group: "架构创新", check: "在边缘设备上实现高效AI推理", depends: "节点8.3", time: "18-24个月" },
+                    { id: "8.7", title: "设计联邦学习架构（隐私保护+分布式训练）", group: "架构创新", check: "实现跨组织的安全AI协作", depends: "节点8.5", time: "18-24个月" },
+                    { id: "8.8", title: "申请至少1项AI架构相关技术专利", group: "技术专利与知识产权", check: "专利获得受理或授权", depends: "节点8.2, 8.5", time: "24-36个月" },
+                    { id: "8.9", title: "形成可商业化的AI技术方案", group: "技术专利与知识产权", check: "技术方案被企业采用，产生商业价值", depends: "节点8.8", time: "30-42个月" }
+                ]
+            },
+            "9": {
+                title: "学术研究与影响力蓝图",
+                goal: "在AI架构领域建立学术影响力和理论贡献",
+                layer: "excellence",
+                nodes: [
+                    { id: "9.1", title: "系统学习AI架构相关理论（分布式系统/机器学习/系统设计）", group: "学术研究基础", check: "完成至少3门相关课程，建立理论基础", depends: "", time: "6-12个月" },
+                    { id: "9.2", title: "阅读100+篇AI架构相关顶级论文", group: "学术研究基础", check: "建立论文库，撰写阅读笔记，理解前沿技术", depends: "节点9.1", time: "12-18个月" },
+                    { id: "9.3", title: "跟踪顶级会议（NeurIPS/ICML/ICLR/SIGMOD等）", group: "学术研究基础", check: "每年至少跟踪2个顶级会议，理解最新研究趋势", depends: "节点9.2", time: "持续进行" },
+                    { id: "9.4", title: "在技术博客/期刊发表AI架构实践文章（10+篇）", group: "论文发表", check: "文章获得行业认可，单篇阅读量>5000", depends: "小蓝图7-节点7.16", time: "18-30个月" },
+                    { id: "9.5", title: "在行业技术会议发表论文/演讲", group: "论文发表", check: "至少1篇论文被技术会议接收（如QCon/ArchSummit等）", depends: "节点9.4", time: "24-36个月" },
+                    { id: "9.6", title: "在学术会议/期刊发表研究论文", group: "论文发表", check: "至少1篇论文被CCF A/B类会议或期刊接收", depends: "节点9.5", time: "36-48个月" },
+                    { id: "9.7", title: "成为技术社区KOL（知识意见领袖）", group: "学术影响力", check: "技术博客/社交媒体粉丝>10000，影响力显著", depends: "节点9.4", time: "30-42个月" },
+                    { id: "9.8", title: "担任技术会议/期刊审稿人", group: "学术影响力", check: "至少为2个技术会议/期刊审稿", depends: "节点9.6", time: "42-54个月" },
+                    { id: "9.9", title: "在顶级学术会议发表论文（CCF A类）", group: "学术影响力", check: "至少1篇第一作者论文被顶级会议接收", depends: "节点9.8", time: "48-60个月" }
+                ]
+            },
+            "10": {
+                title: "开源贡献与社区引领蓝图",
+                goal: "通过开源项目建立技术影响力和社区领导力",
+                layer: "excellence",
+                nodes: [
+                    { id: "10.1", title: "为知名AI开源项目贡献代码（Star>1000）", group: "开源贡献基础", check: "至少5个PR被合并，解决实际问题", depends: "小蓝图4-节点4.5", time: "6-12个月" },
+                    { id: "10.2", title: "维护至少1个AI架构相关开源项目", group: "开源贡献基础", check: "项目Star>500，有活跃用户和贡献者", depends: "节点10.1", time: "12-24个月" },
+                    { id: "10.3", title: "建立开源项目技术文档体系", group: "开源贡献基础", check: "文档完整，包含架构设计/API文档/最佳实践", depends: "节点10.2", time: "18-24个月" },
+                    { id: "10.4", title: "组织技术社区活动（Meetup/Workshop）", group: "社区建设", check: "至少组织3次技术活动，参与人数>50/次", depends: "节点10.2", time: "24-30个月" },
+                    { id: "10.5", title: "建立开源项目社区（用户群/讨论区）", group: "社区建设", check: "社区成员>500，活跃讨论，形成生态", depends: "节点10.4", time: "30-36个月" },
+                    { id: "10.6", title: "培养开源项目核心贡献者（5+人）", group: "社区建设", check: "至少有5个核心贡献者，形成协作机制", depends: "节点10.5", time: "36-42个月" },
+                    { id: "10.7", title: "开源项目获得行业认可（Star>5000或企业采用）", group: "行业影响力", check: "项目被知名企业采用，或获得技术奖项", depends: "节点10.6", time: "42-54个月" },
+                    { id: "10.8", title: "成为Apache/CNCF等顶级基金会项目维护者", group: "行业影响力", check: "成为至少1个顶级基金会项目的Committer/Maintainer", depends: "节点10.7", time: "54-60个月" },
+                    { id: "10.9", title: "主导或参与制定开源技术标准", group: "行业影响力", check: "参与制定行业开源技术标准/规范", depends: "节点10.8", time: "60-72个月" }
+                ]
+            },
+            "11": {
+                title: "跨领域融合与国际化蓝图",
+                goal: "实现AI架构与其他领域的深度融合，建立国际化视野",
+                layer: "excellence",
+                nodes: [
+                    { id: "11.1", title: "将AI架构应用于垂直领域（金融/医疗/教育等）", group: "跨领域融合", check: "至少1个垂直领域的AI架构方案落地", depends: "小蓝图5-节点5.14", time: "18-30个月" },
+                    { id: "11.2", title: "实现AI+IoT/边缘计算融合架构", group: "跨领域融合", check: "设计并实现边缘AI系统，解决实际问题", depends: "小蓝图8-节点8.6", time: "24-36个月" },
+                    { id: "11.3", title: "实现AI+区块链融合架构（可信AI/数据确权）", group: "跨领域融合", check: "结合区块链技术解决AI数据隐私和可信问题", depends: "节点11.2", time: "30-42个月" },
+                    { id: "11.4", title: "实现AI+量子计算探索（量子机器学习）", group: "跨领域融合", check: "研究量子计算在AI架构中的应用潜力", depends: "节点11.3", time: "42-54个月" },
+                    { id: "11.5", title: "参与国际技术会议/交流（线上/线下）", group: "国际化视野", check: "至少参加3次国际技术会议，建立国际联系", depends: "小蓝图9-节点9.3", time: "24-36个月" },
+                    { id: "11.6", title: "与国际AI研究机构/企业建立合作", group: "国际化视野", check: "至少1个国际合作项目或技术交流", depends: "节点11.5", time: "36-48个月" },
+                    { id: "11.7", title: "在国际技术社区发表英文技术文章（10+篇）", group: "国际化视野", check: "在Medium/Dev.to/个人博客等平台发表，获得国际认可", depends: "节点11.6", time: "42-54个月" },
+                    { id: "11.8", title: "在国际顶级会议发表论文或演讲", group: "国际化视野", check: "在NeurIPS/ICML/SIGMOD等顶级会议发表", depends: "节点11.7, 小蓝图9-节点9.6", time: "54-60个月" }
+                ]
+            },
+            "12": {
+                title: "战略思维与行业引领蓝图",
+                goal: "建立战略思维，成为AI架构领域的行业引领者",
+                layer: "excellence",
+                nodes: [
+                    { id: "12.1", title: "制定企业/行业AI技术战略规划", group: "战略规划能力", check: "输出3-5年AI技术路线图，被高层采纳", depends: "小蓝图7-节点7.17", time: "36-48个月" },
+                    { id: "12.2", title: "建立AI技术评估与选型方法论", group: "战略规划能力", check: "形成可复用的技术评估框架，指导决策", depends: "节点12.1", time: "42-48个月" },
+                    { id: "12.3", title: "预测并布局AI技术趋势（未来3-5年）", group: "战略规划能力", check: "准确预测至少2个重要技术趋势，提前布局", depends: "节点12.2", time: "48-54个月" },
+                    { id: "12.4", title: "成为行业技术委员会/专家组成员", group: "行业引领", check: "加入至少1个行业技术组织，参与决策", depends: "小蓝图7-节点7.18", time: "42-54个月" },
+                    { id: "12.5", title: "主导制定行业技术标准/规范", group: "行业引领", check: "主导或核心参与至少1项行业标准制定", depends: "节点12.4", time: "54-60个月" },
+                    { id: "12.6", title: "建立AI架构最佳实践与设计模式库", group: "行业引领", check: "形成系统化的架构模式库，被行业采用", depends: "节点12.5", time: "60-66个月" },
+                    { id: "12.7", title: "出版AI架构相关技术书籍", group: "思想领导力", check: "出版至少1本技术书籍，获得行业认可", depends: "节点12.6", time: "66-72个月" },
+                    { id: "12.8", title: "成为AI架构领域的Thought Leader", group: "思想领导力", check: "在行业内有广泛影响力，观点被广泛引用", depends: "节点12.7", time: "72-84个月" },
+                    { id: "12.9", title: "培养下一代AI架构人才（导师/教授）", group: "思想领导力", check: "指导至少10名AI架构师成长，形成传承", depends: "节点12.8", time: "78-90个月" }
+                ]
+            }
+        };
+
+        // 节点状态管理（从localStorage读取，如果没有则初始化为全部未完成）
+        let nodeStatus = JSON.parse(localStorage.getItem('blueprintNodeStatus') || '{}');
+
+        // 初始化所有节点状态
+        function initializeNodeStatus() {
+            Object.keys(blueprintsData).forEach(bpId => {
+                blueprintsData[bpId].nodes.forEach(node => {
+                    if (!nodeStatus[node.id]) {
+                        nodeStatus[node.id] = 'pending'; // pending, in-progress, completed
+                    }
+                });
+            });
+            
+            // 将节点2.10之前的所有节点标记为已完成
+            // 小蓝图1的所有节点（1.1-1.10）
+            for (let i = 1; i <= 10; i++) {
+                nodeStatus[`1.${i}`] = 'completed';
+            }
+            
+            // 小蓝图2的所有节点（2.1-2.12）
+            for (let i = 1; i <= 12; i++) {
+                nodeStatus[`2.${i}`] = 'completed';
+            }
+            
+            saveNodeStatus();
+        }
+
+        // 保存节点状态
+        function saveNodeStatus() {
+            localStorage.setItem('blueprintNodeStatus', JSON.stringify(nodeStatus));
+        }
+
+        // 更新节点状态
+        function updateNodeStatus(nodeId, status) {
+            nodeStatus[nodeId] = status;
+            saveNodeStatus();
+            render();
+        }
+
+        // 计算统计数据
+        function calculateStats() {
+            let totalNodes = 0;
+            let completedNodes = 0;
+            let inProgressNodes = 0;
+            let basicLayerNodes = 0;
+            let basicLayerCompleted = 0;
+            let excellenceLayerNodes = 0;
+            let excellenceLayerCompleted = 0;
+
+            Object.keys(blueprintsData).forEach(bpId => {
+                const blueprint = blueprintsData[bpId];
+                blueprint.nodes.forEach(node => {
+                    totalNodes++;
+                    if (blueprint.layer === 'basic') {
+                        basicLayerNodes++;
+                    } else {
+                        excellenceLayerNodes++;
+                    }
+
+                    const status = nodeStatus[node.id] || 'pending';
+                    if (status === 'completed') {
+                        completedNodes++;
+                        if (blueprint.layer === 'basic') {
+                            basicLayerCompleted++;
+                        } else {
+                            excellenceLayerCompleted++;
+                        }
+                    } else if (status === 'in-progress') {
+                        inProgressNodes++;
+                    }
+                });
+            });
+
+            return {
+                total: totalNodes,
+                completed: completedNodes,
+                inProgress: inProgressNodes,
+                basicTotal: basicLayerNodes,
+                basicCompleted: basicLayerCompleted,
+                excellenceTotal: excellenceLayerNodes,
+                excellenceCompleted: excellenceLayerCompleted,
+                overallProgress: totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0
+            };
+        }
+
+        // 渲染统计数据
+        function renderStats() {
+            const stats = calculateStats();
+            const statsContainer = document.getElementById('stats');
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="number">${stats.completed}/${stats.total}</div>
+                    <div class="label">已完成节点</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">${stats.overallProgress}%</div>
+                    <div class="label">总体进度</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">${stats.basicCompleted}/${stats.basicTotal}</div>
+                    <div class="label">基础层进度</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">${stats.excellenceCompleted}/${stats.excellenceTotal}</div>
+                    <div class="label">卓越层进度</div>
+                </div>
+            `;
+        }
+
+        // 计算蓝图完成度
+        function calculateBlueprintProgress(blueprintId) {
+            const blueprint = blueprintsData[blueprintId];
+            if (!blueprint) return 0;
+
+            let completed = 0;
+            blueprint.nodes.forEach(node => {
+                if (nodeStatus[node.id] === 'completed') {
+                    completed++;
+                }
+            });
+
+            return blueprint.nodes.length > 0 ? Math.round((completed / blueprint.nodes.length) * 100) : 0;
+        }
+
+        // 渲染节点
+        function renderNode(node, blueprintId) {
+            const status = nodeStatus[node.id] || 'pending';
+            const statusClass = status === 'completed' ? 'completed' : (status === 'in-progress' ? 'in-progress' : '');
+            const statusColor = status === 'completed' ? '#28a745' : (status === 'in-progress' ? '#ffc107' : '#dc3545');
+            const isCompleted = status === 'completed';
+            
+            // 已完成节点添加点击查看详情功能
+            const clickHandler = isCompleted ? `onclick="toggleNodeDetails('${node.id}')" style="cursor: pointer;"` : '';
+            const expandIcon = isCompleted ? '<span class="node-expand-icon" style="float: right; font-size: 0.9em; opacity: 0.6; margin-left: 10px;">📋 查看详情</span>' : '';
+            
+            return `
+                <div class="node ${statusClass}" data-node-id="${node.id}" ${clickHandler}>
+                    <div class="node-header">
+                        <span class="node-id">节点${node.id}</span>
+                        <span class="node-status" style="background: ${statusColor}"></span>
+                        <span class="node-title">${node.title}</span>
+                        ${expandIcon}
+                    </div>
+                    <div class="node-details" id="details-${node.id}" ${isCompleted ? 'style="display: none;"' : ''}>
+                        <div><strong>检查项：</strong>${node.check}</div>
+                        ${node.depends ? `<div><strong>依赖：</strong>${node.depends}</div>` : ''}
+                        <div><strong>预计时间：</strong>${node.time}</div>
+                        ${node.group ? `<div><strong>分组：</strong>${node.group}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 切换节点详情显示
+        function toggleNodeDetails(nodeId) {
+            const details = document.getElementById(`details-${nodeId}`);
+            const node = document.querySelector(`[data-node-id="${nodeId}"]`);
+            const expandIcon = node.querySelector('.node-expand-icon');
+            
+            if (details) {
+                const isHidden = details.style.display === 'none';
+                details.style.display = isHidden ? 'block' : 'none';
+                if (expandIcon) {
+                    expandIcon.innerHTML = isHidden ? '📋 收起详情' : '📋 查看详情';
+                }
+            }
+        }
+
+        // 渲染蓝图
+        function renderBlueprint(blueprintId) {
+            const blueprint = blueprintsData[blueprintId];
+            if (!blueprint) return '';
+
+            const progress = calculateBlueprintProgress(blueprintId);
+            const layerClass = blueprint.layer === 'basic' ? 'basic' : 'excellence';
+            const layerName = blueprint.layer === 'basic' ? '基础能力层' : '卓越能力层';
+
+            // 分离已完成和未完成的节点
+            const pendingNodes = [];
+            const inProgressNodes = [];
+            const completedNodes = [];
+            
+            blueprint.nodes.forEach(node => {
+                const status = nodeStatus[node.id] || 'pending';
+                if (status === 'completed') {
+                    completedNodes.push(node);
+                } else if (status === 'in-progress') {
+                    inProgressNodes.push(node);
+                } else {
+                    pendingNodes.push(node);
+                }
+            });
+
+            // 按组分类待完成节点（pending + in-progress）
+            const pendingNodesByGroup = {};
+            [...pendingNodes, ...inProgressNodes].forEach(node => {
+                if (!pendingNodesByGroup[node.group]) {
+                    pendingNodesByGroup[node.group] = [];
+                }
+                pendingNodesByGroup[node.group].push(node);
+            });
+
+            // 按组分类已完成节点
+            const completedNodesByGroup = {};
+            completedNodes.forEach(node => {
+                if (!completedNodesByGroup[node.group]) {
+                    completedNodesByGroup[node.group] = [];
+                }
+                completedNodesByGroup[node.group].push(node);
+            });
+
+            // 渲染待完成节点部分
+            let pendingHTML = '';
+            if (Object.keys(pendingNodesByGroup).length > 0) {
+                Object.keys(pendingNodesByGroup).forEach(groupName => {
+                    pendingHTML += `
+                        <div class="node-group">
+                            <div class="node-group-title">${groupName}</div>
+                            <div class="nodes-container">
+                                ${pendingNodesByGroup[groupName].map(node => renderNode(node, blueprintId)).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                pendingHTML = '<div style="text-align: center; padding: 20px; color: #666;">🎉 所有节点都已完成！</div>';
+            }
+
+            // 渲染已完成节点部分
+            let completedHTML = '';
+            if (Object.keys(completedNodesByGroup).length > 0) {
+                Object.keys(completedNodesByGroup).forEach(groupName => {
+                    completedHTML += `
+                        <div class="node-group">
+                            <div class="node-group-title">${groupName}</div>
+                            <div class="nodes-container">
+                                ${completedNodesByGroup[groupName].map(node => renderNode(node, blueprintId)).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const pendingCount = pendingNodes.length + inProgressNodes.length;
+            const completedCount = completedNodes.length;
+
+            return `
+                <div class="blueprint-section" data-blueprint-id="${blueprintId}">
+                    <div class="blueprint-header" onclick="toggleBlueprint('${blueprintId}')">
+                        <h2>
+                            🧩 小蓝图${blueprintId}：${blueprint.title}
+                            <span class="layer-badge ${layerClass}">${layerName}</span>
+                        </h2>
+                        <span class="toggle">▼</span>
+                    </div>
+                    <div class="blueprint-content" id="blueprint-${blueprintId}">
+                        <div class="blueprint-info">
+                            <strong>目标：</strong>${blueprint.goal}
+                        </div>
+                        <div class="blueprint-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progress}%">
+                                    ${progress}% (${completedCount}/${blueprint.nodes.length})
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 待完成节点部分（始终显示在最前面） -->
+                        <div class="node-section">
+                            <div class="node-section-header pending" onclick="toggleNodeSection('pending-${blueprintId}')">
+                                <div class="node-section-title">
+                                    ⏳ 待完成节点
+                                    <span class="node-section-count">${pendingCount} 个</span>
+                                </div>
+                                <span class="node-section-toggle">▼</span>
+                            </div>
+                            <div class="node-section-content" id="pending-${blueprintId}">
+                                ${pendingHTML}
+                            </div>
+                        </div>
+
+                        <!-- 已完成节点部分（可折叠） -->
+                        ${completedCount > 0 ? `
+                        <div class="node-section">
+                            <div class="node-section-header completed collapsed" onclick="toggleNodeSection('completed-${blueprintId}')">
+                                <div class="node-section-title">
+                                    ✅ 已完成节点
+                                    <span class="node-section-count">${completedCount} 个</span>
+                                </div>
+                                <span class="node-section-toggle">▶</span>
+                            </div>
+                            <div class="node-section-content collapsed" id="completed-${blueprintId}">
+                                ${completedHTML}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染所有蓝图
+        function render() {
+            renderStats();
+            
+            const container = document.getElementById('blueprints-container');
+            let html = '';
+            
+            // 先渲染基础层
+            html += '<h2 style="color: white; margin: 30px 0 20px 0; font-size: 1.8em;">基础能力层（1-7）</h2>';
+            for (let i = 1; i <= 7; i++) {
+                html += renderBlueprint(i.toString());
+            }
+            
+            // 再渲染卓越层
+            html += '<h2 style="color: white; margin: 30px 0 20px 0; font-size: 1.8em;">卓越能力层（8-12）</h2>';
+            for (let i = 8; i <= 12; i++) {
+                html += renderBlueprint(i.toString());
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // 切换蓝图展开/折叠
+        function toggleBlueprint(blueprintId) {
+            const header = document.querySelector(`[data-blueprint-id="${blueprintId}"] .blueprint-header`);
+            const content = document.getElementById(`blueprint-${blueprintId}`);
+            
+            if (content) {
+                header.classList.toggle('collapsed');
+                content.classList.toggle('collapsed');
+            }
+        }
+
+        // 切换节点部分展开/折叠
+        function toggleNodeSection(sectionId) {
+            const header = document.querySelector(`#${sectionId}`).previousElementSibling;
+            const content = document.getElementById(sectionId);
+            
+            if (content) {
+                header.classList.toggle('collapsed');
+                content.classList.toggle('collapsed');
+                
+                // 更新箭头方向
+                const toggle = header.querySelector('.node-section-toggle');
+                if (header.classList.contains('collapsed')) {
+                    toggle.textContent = '▶';
+                } else {
+                    toggle.textContent = '▼';
+                }
+            }
+        }
+
+        // 滚动到下一个待完成节点
+        function scrollToNextPending() {
+            const pendingSections = document.querySelectorAll('.node-section-header.pending');
+            if (pendingSections.length > 0) {
+                // 找到第一个可见的待完成节点部分，或第一个待完成节点部分
+                let targetSection = null;
+                for (let section of pendingSections) {
+                    const rect = section.getBoundingClientRect();
+                    if (rect.top < window.innerHeight && rect.bottom > 0) {
+                        // 当前可见，找下一个
+                        continue;
+                    } else if (rect.top > window.innerHeight) {
+                        // 在下方，滚动到这里
+                        targetSection = section;
+                        break;
+                    }
+                }
+                
+                if (!targetSection && pendingSections.length > 0) {
+                    // 如果没找到，滚动到第一个
+                    targetSection = pendingSections[0];
+                }
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // 展开该部分
+                    const contentId = targetSection.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    const content = document.getElementById(contentId);
+                    if (content && content.classList.contains('collapsed')) {
+                        toggleNodeSection(contentId);
+                    }
+                }
+            }
+        }
+
+        // 滚动到顶部
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 监听滚动，显示/隐藏快速跳转按钮
+        window.addEventListener('scroll', function() {
+            const quickJumpBtn = document.getElementById('quick-jump-btn');
+            const scrollTopBtn = document.getElementById('scroll-to-top-btn');
+            
+            if (window.scrollY > 300) {
+                quickJumpBtn.style.display = 'flex';
+                scrollTopBtn.style.display = 'flex';
+            } else {
+                quickJumpBtn.style.display = 'none';
+                scrollTopBtn.style.display = 'none';
+            }
+        });
+
+        // 初始化
+        initializeNodeStatus();
+        render();
+        
+        // 页面加载后，如果有待完成节点，自动滚动到第一个
+        setTimeout(() => {
+            const firstPending = document.querySelector('.node-section-header.pending');
+            if (firstPending) {
+                firstPending.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 500);
+
+        // 导出更新函数供外部调用
+        window.updateBlueprintNodes = function(completedNodes, inProgressNodes) {
+            // completedNodes: 已完成的节点ID数组，如 ['1.1', '1.2', '2.1']
+            // inProgressNodes: 进行中的节点ID数组，如 ['1.3', '2.2']
+            
+            // 重置所有节点为pending
+            Object.keys(nodeStatus).forEach(nodeId => {
+                nodeStatus[nodeId] = 'pending';
+            });
+            
+            // 设置已完成的节点
+            if (completedNodes && Array.isArray(completedNodes)) {
+                completedNodes.forEach(nodeId => {
+                    nodeStatus[nodeId] = 'completed';
+                });
+            }
+            
+            // 设置进行中的节点
+            if (inProgressNodes && Array.isArray(inProgressNodes)) {
+                inProgressNodes.forEach(nodeId => {
+                    nodeStatus[nodeId] = 'in-progress';
+                });
+            }
+            
+            saveNodeStatus();
+            render();
+        };
+    </script>
+</body>
+</html>

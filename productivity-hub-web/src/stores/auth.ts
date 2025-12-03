@@ -35,6 +35,14 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
+    async resetPassword() {
+      this.loading = true
+      try {
+        await authApi.resetPassword()
+      } finally {
+        this.loading = false
+      }
+    },
     logout() {
       this.token = ''
       this.refreshToken = ''

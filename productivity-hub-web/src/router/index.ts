@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useNavigationStore } from '@/stores/navigation'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -12,24 +13,125 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('@/layouts/DashboardLayout.vue'),
     children: [
-      { path: '', redirect: '/configs' },
+      { path: '', redirect: '/home' },
       {
-        path: 'configs',
-        name: 'ConfigCenter',
+        path: 'home',
+        name: 'Home',
+        meta: { title: '首页' },
+        component: () => import('@/views/home/HomeView.vue'),
+      },
+      {
+        path: 'config',
+        name: 'Config',
         meta: { title: '全局参数配置' },
         component: () => import('@/views/config/ConfigView.vue'),
       },
       {
+        path: 'settings',
+        name: 'Settings',
+        meta: { title: '设置' },
+        component: () => import('@/views/settings/SettingsView.vue'),
+      },
+      {
+        path: 'tools',
+        name: 'Tools',
+        meta: { title: '工具箱' },
+        component: () => import('@/views/tools/ToolsView.vue'),
+      },
+      {
+        path: 'tools/blueprint',
+        name: 'BlueprintRoadmap',
+        meta: { title: 'AI成长蓝图' },
+        component: () => import('@/views/tools/BlueprintRoadmapView.vue'),
+      },
+      {
+        path: 'tools/food',
+        name: 'FoodWheel',
+        meta: { title: '今天吃什么' },
+        component: () => import('@/views/tools/FoodWheelView.vue'),
+      },
+      {
+        path: 'tools/json',
+        name: 'JsonFormatter',
+        meta: { title: 'JSON格式化' },
+        component: () => import('@/views/tools/JsonFormatterView.vue'),
+      },
+      {
+        path: 'tools/time',
+        name: 'TimeConverter',
+        meta: { title: '时间转换' },
+        component: () => import('@/views/tools/TimeConverterView.vue'),
+      },
+      {
+        path: 'tools/clock',
+        name: 'ScreenClock',
+        meta: { title: '屏幕时钟' },
+        component: () => import('@/views/tools/ScreenClockView.vue'),
+      },
+      {
+        path: 'tools/password',
+        name: 'PasswordGenerator',
+        meta: { title: '密码生成器' },
+        component: () => import('@/views/tools/PasswordGeneratorView.vue'),
+      },
+      {
+        path: 'tools/cron',
+        name: 'CronHelper',
+        meta: { title: 'Cron表达式' },
+        component: () => import('@/views/tools/CronExpressionView.vue'),
+      },
+      {
+        path: 'tools/regex',
+        name: 'RegexTester',
+        meta: { title: '正则表达式' },
+        component: () => import('@/views/tools/RegexTesterView.vue'),
+      },
+      {
+        path: 'tools/yaml',
+        name: 'YamlValidator',
+        meta: { title: 'YAML格式检查' },
+        component: () => import('@/views/tools/YamlValidatorView.vue'),
+      },
+      {
+        path: 'tools/workday',
+        name: 'WorkdayCalculator',
+        meta: { title: '工作日计算' },
+        component: () => import('@/views/tools/WorkdayCalculatorView.vue'),
+      },
+      {
         path: 'messages',
-        name: 'MessageHub',
+        name: 'Messages',
         meta: { title: '消息推送' },
         component: () => import('@/views/messages/MessagesView.vue'),
+      },
+      {
+        path: 'messages/history',
+        redirect: (to) => ({
+          path: '/messages',
+          query: { ...to.query, tab: 'history' },
+        }),
+      },
+      {
+        path: 'messages/composer/:channel',
+        redirect: (to) => ({
+          path: '/messages',
+          query: {
+            ...to.query,
+            channel: Array.isArray(to.params.channel) ? to.params.channel[0] : (to.params.channel as string),
+          },
+        }),
       },
       {
         path: 'agents',
         name: 'AgentOps',
         meta: { title: '智能体调用' },
         component: () => import('@/views/agents/AgentsView.vue'),
+      },
+      {
+        path: 'reset-password',
+        name: 'ResetPassword',
+        meta: { title: '重置密码' },
+        component: () => import('@/views/auth/ResetPasswordView.vue'),
       },
     ],
   },
@@ -46,12 +148,13 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+  const navigationStore = useNavigationStore()
 
   if (to.meta.public) {
     if (to.name === 'Login' && authStore.isAuthenticated) {
-      next((to.query.redirect as string) || '/configs')
+      next((to.query.redirect as string) || '/home')
       return
     }
     next()
@@ -65,6 +168,11 @@ router.beforeEach((to, _from, next) => {
   if (!authStore.isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
     return
+  }
+
+  // 记录导航历史（记录来源页面）
+  if (from.path && to.path) {
+    navigationStore.recordNavigation(to.path, from.path)
   }
 
   next()

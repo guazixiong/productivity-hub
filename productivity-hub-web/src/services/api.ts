@@ -3,6 +3,7 @@ import type { LoginPayload, AuthResponse } from '@/types/auth'
 import type { ConfigItem, ConfigUpdatePayload } from '@/types/config'
 import type { BaseMessagePayload, MessageHistoryItem, MessageSendResult } from '@/types/messages'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
+import type { ToolStat } from '@/types/tools'
 
 export const authApi = {
   login: (payload: LoginPayload) =>
@@ -10,6 +11,11 @@ export const authApi = {
       url: '/api/auth/login',
       method: 'POST',
       data: payload,
+    }),
+  resetPassword: () =>
+    request<{ success: boolean; message: string }>({
+      url: '/api/auth/reset-password',
+      method: 'POST',
     }),
 }
 
@@ -57,6 +63,20 @@ export const agentApi = {
     request<AgentLogEntry[]>({
       url: '/api/agents/logs',
       method: 'GET',
+    }),
+}
+
+export const toolApi = {
+  stats: () =>
+    request<ToolStat[]>({
+      url: '/api/tools/stats',
+      method: 'GET',
+    }),
+  track: (toolId: string) =>
+    request<ToolStat[]>({
+      url: '/api/tools/track',
+      method: 'POST',
+      data: { toolId },
     }),
 }
 

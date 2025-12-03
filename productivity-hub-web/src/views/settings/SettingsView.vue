@@ -52,7 +52,6 @@ const moduleList = computed(() => {
     const latestUpdate = new Date(Math.max(...dates))
     const earliestCreate = new Date(Math.min(...createdDates))
     
-    // 获取模块描述，如果没有则显示默认值
     const description = configStore.getModuleDescription(module) || `${configs.length} 个配置项`
     
     modules.push({
@@ -68,7 +67,6 @@ const moduleList = computed(() => {
 })
 
 const parseDate = (dateStr: string): Date => {
-  // 处理格式: "2025-11-28 10:00" 或 ISO 格式
   const normalized = dateStr.replace(' ', 'T')
   const date = new Date(normalized)
   return isNaN(date.getTime()) ? new Date() : date
@@ -96,9 +94,7 @@ const viewingModuleConfigs = computed(() => {
 const openEditDrawer = (module: string) => {
   editingModule.value = module
   editingModuleDescription.value = configStore.getModuleDescription(module) || ''
-  // 清空现有配置
   Object.keys(editingConfigs).forEach((key) => delete editingConfigs[key])
-  // 填充模块配置
   moduleConfigs.value.forEach((item) => {
     editingConfigs[item.id] = {
       value: item.value,
@@ -117,11 +113,9 @@ const handleEditSubmit = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
   try {
-    // 保存模块描述
     if (editingModule.value) {
       configStore.updateModuleDescription(editingModule.value, editingModuleDescription.value)
     }
-    // 保存配置项
     const updates = Object.entries(editingConfigs).map(([id, data]) => ({
       id,
       value: data.value,
@@ -138,7 +132,6 @@ const handleEditSubmit = async () => {
 
 onMounted(() => {
   configStore.fetchConfigs()
-  // 初始化默认模块描述（如果还没有设置）
   const defaultDescriptions: Record<string, string> = {
     auth: '认证模块：管理登录态、Token 等认证相关配置',
     sendgrid: 'SendGrid 模块：管理 SendGrid 邮件发送相关配置',
@@ -195,7 +188,6 @@ onMounted(() => {
 
   <el-drawer v-model="editDrawerVisible" :title="`编辑模块配置 - ${editingModule}`" size="60%">
     <div class="edit-drawer-content">
-      <!-- 模块描述编辑 -->
       <el-card class="module-description-card" shadow="never">
         <template #header>
           <div class="card-header-title">模块描述</div>
@@ -210,7 +202,6 @@ onMounted(() => {
         />
       </el-card>
 
-      <!-- 配置项列表 - 简洁列表布局 -->
       <el-card class="configs-card" shadow="never">
         <template #header>
           <div class="configs-card-header">
@@ -363,45 +354,6 @@ onMounted(() => {
   background: #eef2ff !important;
 }
 
-.update-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: #475569;
-}
-
-.config-item-group {
-  margin-bottom: 32px;
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.config-item-header {
-  margin-bottom: 16px;
-}
-
-.config-item-title {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.config-key-code-small {
-  background: #e2e8f0;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  color: #6366f1;
-}
-
-.config-meta {
-  margin-top: 12px;
-}
-
 .drawer-footer {
   display: flex;
   justify-content: flex-end;
@@ -420,29 +372,10 @@ onMounted(() => {
   color: #6366f1;
 }
 
-.config-value-display {
-  width: 100%;
-}
-
-.config-description {
-  margin: 0;
-  color: #475569;
-  line-height: 1.6;
-}
-
 .update-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.update-info strong {
-  color: #0f172a;
-}
-
-.update-info span {
-  color: #64748b;
-  font-size: 13px;
 }
 
 .module-configs-table {
@@ -453,7 +386,6 @@ onMounted(() => {
   padding: 12px;
 }
 
-/* 编辑抽屉样式优化 */
 .edit-drawer-content {
   display: flex;
   flex-direction: column;
@@ -533,7 +465,6 @@ onMounted(() => {
   background: #94a3b8;
 }
 
-/* 配置项列表样式 - 简洁布局 */
 .config-list {
   display: flex;
   flex-direction: column;

@@ -27,7 +27,7 @@ const handleLogin = async () => {
   try {
     await authStore.login(form)
     ElMessage.success('登录成功')
-    router.replace((route.query.redirect as string) || '/configs')
+    router.replace((route.query.redirect as string) || '/home')
   } catch (error) {
     ElMessage.error((error as string) ?? '登录失败')
   }

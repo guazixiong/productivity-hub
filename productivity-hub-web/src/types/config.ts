@@ -4,6 +4,7 @@ export interface ConfigItem {
   key: string
   value: string
   description: string
+  createdAt: string
   updatedAt: string
   updatedBy: string
 }
