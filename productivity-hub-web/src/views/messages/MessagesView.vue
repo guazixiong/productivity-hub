@@ -34,7 +34,6 @@ const schemas: Record<MessageChannel, ChannelSchema> = {
       { key: 'recipients', label: '收件人', type: 'text', required: true },
       { key: 'subject', label: '主题', type: 'text', required: true },
       { key: 'content', label: 'HTML 内容', type: 'textarea', rows: 6, required: true },
-      { key: 'trackOpens', label: '开启打开追踪', type: 'switch' },
     ],
   },
   dingtalk: {
@@ -120,6 +119,17 @@ const handleRecipientsEnter = () => {
   recipientsQuery.value = ''
 }
 
+watch(
+  () => (form.data as Record<string, unknown>).recipients,
+  () => {
+    if (formRef.value) {
+      formRef.value.validateField('recipients').catch(() => {
+        /* ignore validation errors during typing */
+      })
+    }
+  },
+)
+
 const syncStateFromRoute = () => {
   const tabQuery = Array.isArray(route.query.tab) ? route.query.tab[0] : route.query.tab
   if (tabQuery === 'composer' || tabQuery === 'history') {
@@ -148,6 +158,8 @@ const defaultConfigs = computed(() => {
   return configs
 })
 
+const configModeAvailable = computed(() => form.channel !== 'sendgrid' && !!defaultConfigs.value[form.channel])
+
 // Markdown预览
 const markdownPreview = computed(() => {
   if (form.channel === 'dingtalk' && form.data.msgType === 'markdown' && form.data.content) {
@@ -168,6 +180,8 @@ const markdownPreviewDialog = computed(() => {
 const showMarkdownPreview = computed(() => {
   return form.channel === 'dingtalk' && form.data.msgType === 'markdown'
 })
+
+const historyPagination = computed(() => messageStore.historyPagination)
 
 const filteredHistory = computed(() => {
   return messageStore.history.filter((item) => {
@@ -196,6 +210,21 @@ const resetHistoryFilters = () => {
   historyFilters.channel = 'all'
   historyFilters.status = 'all'
   historyFilters.dateRange = null
+}
+
+const refreshHistory = () => {
+  messageStore.fetchHistory({
+    page: historyPagination.value.pageNum,
+    pageSize: historyPagination.value.pageSize,
+  })
+}
+
+const handleHistoryPageChange = (page: number) => {
+  messageStore.fetchHistory({ page })
+}
+
+const handleHistoryPageSizeChange = (size: number) => {
+  messageStore.fetchHistory({ page: 1, pageSize: size })
 }
 
 const resetFormPayload = (clearDefaultFlag = false) => {
@@ -228,6 +257,9 @@ const loadDefaultConfig = () => {
 watch(
   () => form.useDefaultConfig,
   (useDefault) => {
+    if (!configModeAvailable.value) {
+      return
+    }
     if (useDefault) {
       loadDefaultConfig()
     } else {
@@ -243,8 +275,17 @@ watch(
 watch(
   () => form.channel,
   () => {
-    // 检查是否有默认配置
-    const hasDefault = !!defaultConfigs.value[form.channel]
+    const defaults = defaultConfigs.value[form.channel]
+    const hasDefault = !!defaults
+    if (form.channel === 'sendgrid') {
+      form.useDefaultConfig = false
+      if (hasDefault) {
+        loadDefaultConfig()
+      } else {
+        resetFormPayload(true)
+      }
+      return
+    }
     form.useDefaultConfig = hasDefault
     if (hasDefault) {
       loadDefaultConfig()
@@ -269,7 +310,9 @@ const submitMessage = async () => {
     resetFormPayload()
     formRef.value.clearValidate()
   } catch (error) {
-    ElMessage.error((error as string) ?? '推送失败')
+    const errorMessage =
+      error instanceof Error ? error.message : error ? String(error) : '推送失败'
+    ElMessage.error(errorMessage || '推送失败')
   }
 }
 
@@ -301,7 +344,10 @@ watch(
   () => activeTab.value,
   (tab) => {
     if (tab === 'history' && !messageStore.history.length && !messageStore.loadingHistory) {
-      messageStore.fetchHistory()
+      messageStore.fetchHistory({
+        page: historyPagination.value.pageNum,
+        pageSize: historyPagination.value.pageSize,
+      })
     }
   },
   { immediate: true },
@@ -370,9 +416,9 @@ onMounted(async () => {
                 </template>
 
                 <el-form ref="formRef" :model="form.data" label-width="140px" class="message-form" :validate-on-rule-change="false">
-                  <el-form-item v-if="defaultConfigs[form.channel]" label="配置方式">
+                <el-form-item v-if="configModeAvailable" label="配置方式">
                     <el-radio-group v-model="form.useDefaultConfig">
-                      <el-radio-button :label="true">使用默认配置</el-radio-button>
+                      <el-radio-button :label="true">使用默认配置111</el-radio-button>
                       <el-radio-button :label="false">自定义配置</el-radio-button>
                     </el-radio-group>
                     <div v-if="form.useDefaultConfig" class="default-config-hint">
@@ -392,7 +438,7 @@ onMounted(async () => {
                       <template v-if="field.key === 'recipients'">
                         <el-input
                           v-model="recipientsQuery"
-                          placeholder="输入邮箱后回车，可添加多个收件人"
+                          placeholder="输入邮箱后回车，可添加多个收件人111"
                           class="custom-input recipients-input"
                           @keyup.enter.stop.prevent="handleRecipientsEnter"
                           @input="handleRecipientsFilter($event as string)"
@@ -509,40 +555,54 @@ onMounted(async () => {
               <el-button text type="primary" :disabled="!hasHistoryFilters" @click="resetHistoryFilters">
                 清空筛选
               </el-button>
-              <el-button text type="primary" @click="messageStore.fetchHistory()" :loading="messageStore.loadingHistory">
+              <el-button text type="primary" @click="refreshHistory" :loading="messageStore.loadingHistory">
                 刷新
               </el-button>
             </div>
           </div>
           <el-empty v-if="!messageStore.loadingHistory && !filteredHistory.length" description="暂无推送记录" />
-          <el-table v-else :data="filteredHistory" :loading="messageStore.loadingHistory" border>
-            <el-table-column prop="channel" label="渠道" width="160">
-              <template #default="{ row }">
-                <el-tag>{{ formatChannel(row.channel) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="120">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'success' ? 'success' : 'danger'">{{ row.status }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createdAt" label="时间" width="200" />
-            <el-table-column label="请求参数" min-width="220" show-overflow-tooltip>
-              <template #default="{ row }">
-                {{ stringifyPayload(row.request) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="响应内容" min-width="220" show-overflow-tooltip>
-              <template #default="{ row }">
-                {{ row.response }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="140" fixed="right">
-              <template #default="{ row }">
-                <el-button link type="primary" @click="openHistoryDetail(row)">查看详情</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <template v-else>
+            <el-table :data="filteredHistory" :loading="messageStore.loadingHistory" border>
+              <el-table-column prop="channel" label="渠道" width="160">
+                <template #default="{ row }">
+                  <el-tag>{{ formatChannel(row.channel) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" label="状态" width="120">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 'success' ? 'success' : 'danger'">{{ row.status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="createdAt" label="时间" width="200" />
+              <el-table-column label="请求参数" min-width="220" show-overflow-tooltip>
+                <template #default="{ row }">
+                  {{ stringifyPayload(row.request) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="响应内容" min-width="220" show-overflow-tooltip>
+                <template #default="{ row }">
+                  {{ row.response }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="openHistoryDetail(row)">查看详情</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="history-pagination">
+              <el-pagination
+                background
+                layout="total, sizes, prev, pager, next"
+                :current-page="historyPagination.pageNum"
+                :page-size="historyPagination.pageSize"
+                :page-sizes="[10, 20, 50]"
+                :total="historyPagination.total"
+                @current-change="handleHistoryPageChange"
+                @size-change="handleHistoryPageSizeChange"
+              />
+            </div>
+          </template>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -843,6 +903,12 @@ onMounted(async () => {
   word-break: break-all;
   font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
   font-size: 13px;
+}
+
+.history-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .default-config-hint {

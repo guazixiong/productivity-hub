@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { computed, reactive, ref, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Message, Setting, Document, User, SwitchButton, EditPen, InfoFilled } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
@@ -35,7 +35,6 @@ const schemas: Record<MessageChannel, ChannelSchema> = {
       { key: 'recipients', label: '收件人', type: 'text', required: true, placeholder: '多个收件人请用逗号分隔，例如：user1@example.com, user2@example.com' },
       { key: 'subject', label: '邮件主题', type: 'text', required: true, placeholder: '请输入邮件主题' },
       { key: 'content', label: 'HTML 内容', type: 'textarea', rows: 10, required: true, placeholder: '请输入HTML格式的邮件内容' },
-      { key: 'trackOpens', label: '开启打开追踪', type: 'switch' },
     ],
   },
   dingtalk: {
@@ -100,34 +99,54 @@ const markdownPreviewWithDefault = computed(() => {
   return marked(content)
 })
 
-const recipientTags = computed<string[]>({
-  get: () => {
-    const raw = (form.data.recipients as string) || ''
-    if (!raw) return []
-    return raw
-      .split(',')
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0)
-  },
-  set: (value) => {
-    form.data.recipients = value.join(',')
-  },
-})
+const configModeAvailable = computed(
+  () => channel.value !== 'sendgrid' && !!defaultConfigs.value[channel.value],
+)
+
+const parseRecipients = (value?: string) => {
+  if (!value) return []
+  return value
+    .split(/[,，;；\s]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+}
+const getRecipientList = () => parseRecipients(form.data.recipients as string)
+const updateRecipientList = (list: string[]) => {
+  form.data.recipients = list.join(',')
+}
+const addRecipients = (candidates: string[]) => {
+  if (!candidates.length) return
+  const list = getRecipientList()
+  let changed = false
+  candidates.forEach((item) => {
+    if (!list.includes(item)) {
+      list.push(item)
+      changed = true
+    }
+  })
+  if (changed) {
+    updateRecipientList(list)
+  }
+}
+const removeRecipient = (target: string) => {
+  const next = getRecipientList().filter((item) => item !== target)
+  updateRecipientList(next)
+}
+const recipientTags = computed<string[]>(() => getRecipientList())
 
 // 收件人输入框的当前查询，用于手动处理回车确认
 const recipientsQuery = ref('')
 const handleRecipientsFilter = (value: string) => {
   recipientsQuery.value = value
 }
-const handleRecipientsEnter = () => {
-  const value = recipientsQuery.value.trim()
-  if (!value) return
-
-  const list = [...recipientTags.value]
-  if (!list.includes(value)) {
-    recipientTags.value = [...list, value]
-  }
+const commitPendingRecipient = () => {
+  const values = parseRecipients(recipientsQuery.value)
+  if (!values.length) return
+  addRecipients(values)
   recipientsQuery.value = ''
+}
+const handleRecipientsEnter = () => {
+  commitPendingRecipient()
 }
 
 const resetFormPayload = (resetToDefault: boolean) => {
@@ -157,6 +176,9 @@ const loadDefaultConfig = () => {
 watch(
   () => form.useDefaultConfig,
   (useDefault) => {
+    if (!configModeAvailable.value) {
+      return
+    }
     if (useDefault) {
       loadDefaultConfig()
     } else {
@@ -171,7 +193,17 @@ watch(
 watch(
   () => channel.value,
   () => {
-    const hasDefault = !!defaultConfigs.value[channel.value]
+    const defaults = defaultConfigs.value[channel.value]
+    const hasDefault = !!defaults
+    if (channel.value === 'sendgrid') {
+      form.useDefaultConfig = false
+      if (hasDefault) {
+        loadDefaultConfig()
+      } else {
+        resetFormPayload(true)
+      }
+      return
+    }
     form.useDefaultConfig = hasDefault
     if (hasDefault) {
       loadDefaultConfig()
@@ -184,6 +216,9 @@ watch(
 
 const submitMessage = async () => {
   if (!formRef.value) return
+  // 确保输入框中未回车确认的收件人也会加入校验
+  commitPendingRecipient()
+  await nextTick()
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
   try {
@@ -234,12 +269,12 @@ onMounted(async () => {
 
       <el-form ref="formRef" :model="form.data" label-width="120px" class="message-form" :validate-on-rule-change="false">
         <!-- 配置方式选择 -->
-        <el-form-item v-if="defaultConfigs[channel]" label="配置方式">
+        <el-form-item v-if="configModeAvailable" label="配置方式">
           <div class="config-mode-section">
             <el-radio-group v-model="form.useDefaultConfig" class="config-radio-group">
               <el-radio-button :label="true">
                 <el-icon><Setting /></el-icon>
-                <span>使用默认配置</span>
+                <span>使用默认配置111</span>
               </el-radio-button>
               <el-radio-button :label="false">
                 <el-icon><EditPen /></el-icon>
@@ -281,7 +316,7 @@ onMounted(async () => {
                     v-for="item in recipientTags"
                     :key="item"
                     closable
-                    @close="recipientTags = recipientTags.filter(tag => tag !== item)"
+                    @close="removeRecipient(item)"
                   >
                     {{ item }}
                   </el-tag>

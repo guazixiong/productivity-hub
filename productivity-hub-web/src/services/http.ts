@@ -30,7 +30,7 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(undefined, (error) => {
   const message = error.response?.data?.message ?? error.message ?? '网络错误'
-  return Promise.reject(message)
+  return Promise.reject(new Error(message))
 })
 
 export const request = async <T = unknown>(config: AxiosRequestConfig) => {

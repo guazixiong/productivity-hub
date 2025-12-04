@@ -20,3 +20,4 @@ export interface MessageSendResult {
   detail: string
 }
 
+export type { PageResult } from './common'

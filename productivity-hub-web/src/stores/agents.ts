@@ -5,6 +5,11 @@ import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, Agent
 interface AgentState {
   agents: AgentSummary[]
   logs: AgentLogEntry[]
+  logsPagination: {
+    pageNum: number
+    pageSize: number
+    total: number
+  }
   loadingAgents: boolean
   loadingLogs: boolean
   invoking: boolean
@@ -19,6 +24,11 @@ export const useAgentStore = defineStore('agents', {
   state: (): AgentState => ({
     agents: [],
     logs: [],
+    logsPagination: {
+      pageNum: 1,
+      pageSize: 10,
+      total: 0,
+    },
     loadingAgents: false,
     loadingLogs: false,
     invoking: false,
@@ -49,10 +59,18 @@ export const useAgentStore = defineStore('agents', {
         this.loadingAgents = false
       }
     },
-    async fetchLogs() {
+    async fetchLogs(page?: number, pageSize?: number) {
       this.loadingLogs = true
+      const targetPage = page ?? this.logsPagination.pageNum ?? 1
+      const targetSize = pageSize ?? this.logsPagination.pageSize ?? 10
       try {
-        this.logs = await agentApi.logs()
+        const pageResult = await agentApi.logs({ page: targetPage, pageSize: targetSize })
+        this.logs = pageResult.items ?? []
+        this.logsPagination = {
+          pageNum: pageResult.pageNum ?? targetPage,
+          pageSize: pageResult.pageSize ?? targetSize,
+          total: pageResult.total ?? 0,
+        }
       } finally {
         this.loadingLogs = false
       }
@@ -73,7 +91,7 @@ export const useAgentStore = defineStore('agents', {
           context: payload.context,
         })
         this.lastInvocation = result
-        await this.fetchLogs()
+        await this.fetchLogs(1, this.logsPagination.pageSize)
         return result
       } finally {
         this.invoking = false

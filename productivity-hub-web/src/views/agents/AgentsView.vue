@@ -44,6 +44,8 @@ const filteredAgents = computed(() => {
 const selectedAgent = computed(() => agentStore.selectedAgent)
 const lastInvocation = computed(() => agentStore.lastInvocation)
 
+const logsPagination = computed(() => agentStore.logsPagination)
+
 const filteredLogs = computed(() => {
   const keyword = logFilters.search.trim().toLowerCase()
   return agentStore.logs.filter((log) => {
@@ -161,6 +163,14 @@ const handleCopyOutput = async () => {
 const openLogDetail = (log: typeof agentStore.logs[0]) => {
   viewingLog.value = log
   detailDrawerVisible.value = true
+}
+
+const handleLogsPageChange = (page: number) => {
+  agentStore.fetchLogs(page)
+}
+
+const handleLogsPageSizeChange = (size: number) => {
+  agentStore.fetchLogs(1, size)
 }
 
 const renderedLogOutput = computed(() => {
@@ -434,6 +444,18 @@ onMounted(async () => {
               </template>
             </el-table-column>
           </el-table>
+          <div class="logs-pagination" v-if="agentStore.logs.length">
+            <el-pagination
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="logsPagination.total"
+              :page-size="logsPagination.pageSize"
+              :current-page="logsPagination.pageNum"
+              :page-sizes="[10, 20, 50]"
+              @current-change="handleLogsPageChange"
+              @size-change="handleLogsPageSizeChange"
+            />
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -700,6 +722,12 @@ onMounted(async () => {
 .logs-search {
   max-width: 300px;
   min-width: 200px;
+}
+
+.logs-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .log-detail-descriptions {

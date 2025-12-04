@@ -41,14 +41,32 @@ Mock.mock('/api/messages/send', 'post', ({ body }) => {
       createdAt: new Date().toISOString(),
     },
     ...history,
-  ].slice(0, 20)
+  ]
 
   return { code: 0, message: 'OK', data: result }
 })
 
-Mock.mock('/api/messages/history', 'get', () => ({
-  code: 0,
-  message: 'OK',
-  data: history,
-}))
+Mock.mock(/\/api\/messages\/history.*/, 'get', ({ url }) => {
+  const search = url.split('?')[1] ?? ''
+  const params = new URLSearchParams(search)
+  const page = Number(params.get('page') ?? 1)
+  const pageSize = Number(params.get('pageSize') ?? 10)
+  const safePage = Math.max(page, 1)
+  const safeSize = Math.max(pageSize, 1)
+  const start = (safePage - 1) * safeSize
+  const sorted = [...history].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
+  const items = sorted.slice(start, start + safeSize)
+  return {
+    code: 0,
+    message: 'OK',
+    data: {
+      items,
+      total: history.length,
+      pageNum: safePage,
+      pageSize: safeSize,
+    },
+  }
+})
 

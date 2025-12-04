@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.tools.mapper.ToolStatMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.tools.domain.po.ToolStatPO">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="tool_name" property="toolName" jdbcType="VARCHAR"/>
+        <result column="clicks" property="clicks" jdbcType="INTEGER"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, tool_name, clicks, created_at, updated_at
+    </sql>
+
+    <!-- 查询所有工具统计（按点击次数降序） -->
+    <select id="selectAllOrderByClicks" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_tool_stat
+        ORDER BY clicks DESC
+    </select>
+
+    <!-- 根据工具ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_tool_stat
+        WHERE id = #{toolId}
+    </select>
+
+    <!-- 插入工具统计 -->
+    <insert id="insert">
+        INSERT INTO sys_tool_stat (id, tool_name, clicks, created_at, updated_at)
+        VALUES (#{id}, #{toolName}, #{clicks}, NOW(), NOW())
+    </insert>
+
+    <!-- 更新点击次数 -->
+    <update id="incrementClicks">
+        UPDATE sys_tool_stat
+        SET clicks = clicks + 1,
+            updated_at = NOW()
+        WHERE id = #{toolId}
+    </update>
+
+</mapper>
+

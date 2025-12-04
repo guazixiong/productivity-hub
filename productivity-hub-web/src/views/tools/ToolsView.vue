@@ -6,7 +6,7 @@ import { Search } from '@element-plus/icons-vue'
 import { useNavigationStore } from '@/stores/navigation'
 import type { ToolStat } from '@/types/tools'
 import { toolApi } from '@/services/api'
-import { toolList, type ToolMeta } from '@/data/tools'
+import { toolList, toolMetaMap, type ToolMeta } from '@/data/tools'
 
 const router = useRouter()
 const navigationStore = useNavigationStore()
@@ -17,20 +17,31 @@ const searchKeyword = ref('')
 const toolStats = ref<ToolStat[]>([])
 const isStatsLoading = ref(false)
 
+const toolStatMap = computed(() => {
+  const map = new Map<string, ToolStat>()
+  toolStats.value.forEach((stat) => map.set(stat.id, stat))
+  return map
+})
+
+const getToolClicks = (toolId: string) => toolStatMap.value.get(toolId)?.clicks ?? 0
+
+const sortedTools = computed(() => [...tools].sort((a, b) => getToolClicks(b.id) - getToolClicks(a.id)))
+
 const filteredTools = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
   if (!keyword) {
-    return tools
+    return sortedTools.value
   }
-  return tools.filter((tool) => {
+  return sortedTools.value.filter((tool) => {
     const haystack = [tool.name, tool.description, ...(tool.keywords ?? [])].join(' ').toLowerCase()
     return haystack.includes(keyword)
   })
 })
 
-const sortedStats = computed(() => [...toolStats.value].sort((a, b) => b.clicks - a.clicks))
-const hotToolList = computed(() => sortedStats.value.filter((item) => item.clicks > 0).slice(0, 3))
-const hotToolIdSet = computed(() => new Set(hotToolList.value.map((item) => item.id)))
+const hotToolIdSet = computed(() => {
+  const hotTools = sortedTools.value.filter((tool) => getToolClicks(tool.id) > 0).slice(0, 10)
+  return new Set(hotTools.map((tool) => tool.id))
+})
 
 const loadToolStats = async () => {
   isStatsLoading.value = true

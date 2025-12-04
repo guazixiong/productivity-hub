@@ -4,6 +4,7 @@ import type { ConfigItem, ConfigUpdatePayload } from '@/types/config'
 import type { BaseMessagePayload, MessageHistoryItem, MessageSendResult } from '@/types/messages'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
 import type { ToolStat } from '@/types/tools'
+import type { PageResult } from '@/types/common'
 
 export const authApi = {
   login: (payload: LoginPayload) =>
@@ -40,10 +41,11 @@ export const messageApi = {
       method: 'POST',
       data: payload,
     }),
-  history: () =>
-    request<MessageHistoryItem[]>({
+  history: (params?: { page?: number; pageSize?: number }) =>
+    request<PageResult<MessageHistoryItem>>({
       url: '/api/messages/history',
       method: 'GET',
+      params,
     }),
 }
 
@@ -59,10 +61,11 @@ export const agentApi = {
       method: 'POST',
       data: payload,
     }),
-  logs: () =>
-    request<AgentLogEntry[]>({
+  logs: (params?: { page?: number; pageSize?: number }) =>
+    request<PageResult<AgentLogEntry>>({
       url: '/api/agents/logs',
       method: 'GET',
+      params,
     }),
 }
 

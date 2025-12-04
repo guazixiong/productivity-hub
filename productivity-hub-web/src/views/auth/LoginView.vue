@@ -29,7 +29,8 @@ const handleLogin = async () => {
     ElMessage.success('登录成功')
     router.replace((route.query.redirect as string) || '/home')
   } catch (error) {
-    ElMessage.error((error as string) ?? '登录失败')
+    const errorMessage = error instanceof Error ? error.message : (error as string) || '登录失败'
+    ElMessage.error(errorMessage)
   }
 }
 </script>
@@ -38,7 +39,6 @@ const handleLogin = async () => {
   <div class="login-page">
     <el-card class="login-card" shadow="hover">
       <h1>Productivity Hub 控制台</h1>
-      <p>当前阶段使用 Mock 数据模拟接口行为</p>
 
       <el-form ref="loginFormRef" :model="form" :rules="rules" label-position="top" size="large" class="login-form">
         <el-form-item label="账号" prop="username">

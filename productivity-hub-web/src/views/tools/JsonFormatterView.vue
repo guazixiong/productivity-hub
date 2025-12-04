@@ -7,12 +7,17 @@ import isEqual from 'lodash-es/isEqual'
 
 const router = useRouter()
 
+type JsonMode = 'format' | 'diff'
+
 type DiffEntry = {
   path: string
   type: 'added' | 'removed' | 'changed'
   before?: string
   after?: string
+  beforeValue?: unknown
+  afterValue?: unknown
 }
+type DiffStats = Record<DiffEntry['type'], number>
 
 const diffTypeMap: Record<DiffEntry['type'], string> = {
   added: '新增',
@@ -20,6 +25,7 @@ const diffTypeMap: Record<DiffEntry['type'], string> = {
   changed: '变更',
 }
 
+const activeMode = ref<JsonMode>('format')
 const jsonInput = ref('')
 const jsonCompareInput = ref('')
 const jsonOutput = ref('')
@@ -28,6 +34,118 @@ const diffEntries = ref<DiffEntry[]>([])
 const diffMessage = ref('')
 
 const highlightedJson = computed(() => highlightJson(jsonOutput.value))
+const diffStats = computed<DiffStats>(() => {
+  return diffEntries.value.reduce<DiffStats>(
+    (stats, entry) => {
+      stats[entry.type] += 1
+      return stats
+    },
+    { added: 0, removed: 0, changed: 0 }
+  )
+})
+const diffSummary = computed(() => {
+  if (!diffEntries.value.length) return ''
+  const parts: string[] = []
+  if (diffStats.value.added) {
+    parts.push(`目标 JSON 比源 JSON 多 ${diffStats.value.added} 处`)
+  }
+  if (diffStats.value.removed) {
+    parts.push(`源 JSON 比目标 JSON 多 ${diffStats.value.removed} 处`)
+  }
+  if (diffStats.value.changed) {
+    parts.push(`有 ${diffStats.value.changed} 处字段值不同`)
+  }
+  return parts.join('，')
+})
+
+const removedJsonText = computed(() => buildDiffJson(diffEntries.value, 'removed', 'beforeValue'))
+const addedJsonText = computed(() => buildDiffJson(diffEntries.value, 'added', 'afterValue'))
+const changedBeforeJsonText = computed(() => buildDiffJson(diffEntries.value, 'changed', 'beforeValue'))
+const changedAfterJsonText = computed(() => buildDiffJson(diffEntries.value, 'changed', 'afterValue'))
+
+const buildDiffJson = (
+  entries: DiffEntry[],
+  type: DiffEntry['type'],
+  valueKey: 'beforeValue' | 'afterValue'
+) => {
+  const filtered = entries.filter((item) => item.type === type && item[valueKey] !== undefined)
+  if (!filtered.length) return ''
+
+  const result: any = {}
+
+  filtered.forEach((entry) => {
+    const rawPath = entry.path || ''
+    const normalizedPath = rawPath
+      .replace(/^根节点\.?/, '') // 去掉根节点前缀
+      .trim()
+
+    setValueByPath(result, normalizedPath, entry[valueKey])
+  })
+
+  return JSON.stringify(result, null, 2)
+}
+
+const setValueByPath = (target: any, path: string, value: unknown) => {
+  // 根节点直接返回原始值，调用方按需处理
+  if (!path) {
+    return value
+  }
+
+  const tokens: (string | number)[] = []
+  const regex = /([^[.\]]+)|\[(\d+)\]/g
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(path))) {
+    if (match[1]) {
+      tokens.push(match[1])
+    } else if (match[2]) {
+      tokens.push(Number(match[2]))
+    }
+  }
+
+  let current: any = target
+
+  tokens.forEach((token, index) => {
+    const isLast = index === tokens.length - 1
+
+    if (typeof token === 'number') {
+      // 当前应该是数组容器
+      if (!Array.isArray(current)) {
+        // 如果当前不是数组，则在上一层已经挂载了 current 的引用，这里只需要确保它是数组
+        // 由于 current 是引用类型，这里的修改会反映到 target 中的实际对象上
+        current.length = Math.max(current.length ?? 0, 0)
+      }
+
+      if (isLast) {
+        current[token] = value
+      } else {
+        const nextToken = tokens[index + 1]
+        if (current[token] === undefined) {
+          current[token] = typeof nextToken === 'number' ? [] : {}
+        }
+        current = current[token]
+      }
+    } else {
+      // 当前应该是普通对象容器
+      if (typeof current !== 'object' || current === null || Array.isArray(current)) {
+        // 重置为对象容器，保持引用
+        current = {}
+      }
+
+      if (isLast) {
+        current[token] = value
+      } else {
+        const nextToken = tokens[index + 1]
+        if (current[token] === undefined) {
+          current[token] = typeof nextToken === 'number' ? [] : {}
+        }
+        current = current[token]
+      }
+    }
+  })
+
+  return target
+}
 
 const formatJSON = () => {
   jsonError.value = ''
@@ -121,6 +239,7 @@ const collectDiffs = (left: unknown, right: unknown, path: string, bucket: DiffE
       path,
       type: 'added',
       after: formatValue(right),
+      afterValue: right,
     })
     return
   }
@@ -130,6 +249,7 @@ const collectDiffs = (left: unknown, right: unknown, path: string, bucket: DiffE
       path,
       type: 'removed',
       before: formatValue(left),
+      beforeValue: left,
     })
     return
   }
@@ -163,6 +283,8 @@ const collectDiffs = (left: unknown, right: unknown, path: string, bucket: DiffE
       type: 'changed',
       before: formatValue(left),
       after: formatValue(right),
+      beforeValue: left,
+      afterValue: right,
     })
   }
 }
@@ -212,87 +334,122 @@ const highlightJson = (value: string) => {
     <div class="page-header">
       <el-button text type="primary" :icon="ArrowLeft" @click="router.push('/tools')">返回工具箱</el-button>
     </div>
-    <div class="json-toolbar">
-      <el-button type="primary" @click="formatJSON">格式化</el-button>
-      <el-button @click="validateJSON">验证</el-button>
-      <el-button @click="minifyJSON">压缩</el-button>
+    <div class="mode-switch">
+      <el-radio-group v-model="activeMode" size="large">
+        <el-radio-button label="format">JSON 格式化</el-radio-button>
+        <el-radio-button label="diff">JSON 对比</el-radio-button>
+      </el-radio-group>
     </div>
-    <div class="json-editor">
-      <div class="json-section">
-        <h4>输入</h4>
-        <el-input
-          v-model="jsonInput"
-          type="textarea"
-          :rows="15"
-          placeholder="请输入JSON内容..."
-          class="json-input"
-        />
-        <div v-if="jsonError" class="json-error">{{ jsonError }}</div>
+    <template v-if="activeMode === 'format'">
+      <div class="json-toolbar">
+        <el-button type="primary" @click="formatJSON">格式化</el-button>
+        <el-button @click="validateJSON">验证</el-button>
+        <el-button @click="minifyJSON">压缩</el-button>
       </div>
-      <div class="json-section">
-        <div class="section-header">
-          <h4>输出</h4>
-          <el-button size="small" @click="navigator.clipboard.writeText(jsonOutput); ElMessage.success('已复制')">
-            复制
-          </el-button>
+      <div class="json-editor">
+        <div class="json-section">
+          <h4>输入</h4>
+          <el-input
+            v-model="jsonInput"
+            type="textarea"
+            :rows="15"
+            placeholder="请输入JSON内容..."
+            class="json-input"
+          />
+          <div v-if="jsonError" class="json-error">{{ jsonError }}</div>
         </div>
-        <pre class="json-highlight" v-html="highlightedJson" />
+        <div class="json-section">
+          <div class="section-header">
+            <h4>输出</h4>
+            <el-button size="small" @click="navigator.clipboard.writeText(jsonOutput); ElMessage.success('已复制')">
+              复制
+            </el-button>
+          </div>
+          <pre class="json-highlight" v-html="highlightedJson" />
+        </div>
       </div>
-    </div>
-    <el-divider />
-    <div class="json-compare">
-      <div class="json-section">
-        <div class="section-header">
-          <h4>对比输入</h4>
-          <el-button size="small" type="primary" plain @click="compareJSON">执行对比</el-button>
+    </template>
+    <template v-else>
+      <el-divider />
+      <div class="json-compare">
+        <div class="json-section">
+          <div class="section-header">
+            <h4>源 JSON</h4>
+            <el-button size="small" type="primary" plain @click="compareJSON">执行对比</el-button>
+          </div>
+          <el-input
+            v-model="jsonInput"
+            type="textarea"
+            :rows="12"
+            placeholder="请输入第一份JSON内容..."
+            class="json-input"
+          />
+          <p class="section-tip">填入参考JSON，将与右侧内容进行逐项比较。</p>
         </div>
-        <el-input
-          v-model="jsonCompareInput"
-          type="textarea"
-          :rows="12"
-          placeholder="请输入另一份JSON内容..."
-          class="json-input"
-        />
-        <p class="section-tip">将需要对比的JSON粘贴至此，点击执行对比即可高亮差异。</p>
-      </div>
-      <div class="json-section">
-        <div class="section-header">
-          <h4>差异高亮</h4>
-          <el-tag v-if="diffEntries.length" type="warning" effect="dark">{{ diffEntries.length }} 处差异</el-tag>
-          <el-tag v-else-if="diffMessage && diffMessage.includes('完全一致')" type="success" effect="light">
-            无差异
-          </el-tag>
+        <div class="json-section">
+          <div class="section-header">
+            <h4>目标 JSON</h4>
+          </div>
+          <el-input
+            v-model="jsonCompareInput"
+            type="textarea"
+            :rows="12"
+            placeholder="请输入另一份JSON内容..."
+            class="json-input"
+          />
+          <p class="section-tip">确保两段JSON结构正确后点击执行对比。</p>
         </div>
-        <div v-if="diffMessage" class="diff-message">{{ diffMessage }}</div>
-        <el-scrollbar class="diff-scroll">
-          <el-empty v-if="!diffEntries.length" description="暂无差异数据" />
-          <el-timeline v-else>
-            <el-timeline-item
-              v-for="(item, index) in diffEntries"
-              :key="`${item.path}-${index}`"
-              :timestamp="item.path"
-              :type="item.type === 'changed' ? 'warning' : item.type === 'added' ? 'success' : 'danger'"
-            >
-              <div class="diff-item">
-                <div class="diff-label" :class="`diff-${item.type}`">
-                  {{ diffTypeMap[item.type] }}
-                </div>
-                <div class="diff-content">
-                  <div v-if="item.before !== undefined" class="diff-value diff-before">
-                    <span>原值</span>
-                    <pre>{{ item.before }}</pre>
+        <div class="json-section diff-section">
+          <div class="section-header diff-header">
+            <h4>差异高亮</h4>
+            <div v-if="diffEntries.length" class="diff-header-count">
+              <el-tag size="small" type="success" effect="plain">+{{ diffStats.added }}</el-tag>
+              <el-tag size="small" type="danger" effect="plain">-{{ diffStats.removed }}</el-tag>
+              <el-tag size="small" type="warning" effect="plain">±{{ diffStats.changed }}</el-tag>
+            </div>
+            <el-tag v-else-if="diffMessage && diffMessage.includes('完全一致')" type="success" effect="light">
+              无差异
+            </el-tag>
+          </div>
+          <div v-if="diffMessage" class="diff-message">
+            <div>{{ diffMessage }}</div>
+            <div v-if="diffSummary" class="diff-summary">{{ diffSummary }}</div>
+          </div>
+          <div class="diff-legend">
+            <span class="legend legend-added">目标新增</span>
+            <span class="legend legend-removed">源端独有</span>
+            <span class="legend legend-changed">值不同</span>
+          </div>
+          <el-scrollbar class="diff-scroll">
+            <el-empty v-if="!diffEntries.length" description="暂无差异数据" />
+            <el-timeline v-else>
+              <el-timeline-item
+                v-for="(item, index) in diffEntries"
+                :key="`${item.path}-${index}`"
+                :timestamp="item.path"
+                :type="item.type === 'changed' ? 'warning' : item.type === 'added' ? 'success' : 'danger'"
+              >
+                <div class="diff-item">
+                  <div class="diff-label" :class="`diff-${item.type}`">
+                    {{ diffTypeMap[item.type] }}
                   </div>
-                  <div v-if="item.after !== undefined" class="diff-value diff-after">
-                    <span>新值</span>
-                    <pre>{{ item.after }}</pre>
+                  <div class="diff-content">
+                    <div v-if="item.before !== undefined" class="diff-value diff-before">
+                      <span>原值</span>
+                      <pre>{{ item.before }}</pre>
+                    </div>
+                    <div v-if="item.after !== undefined" class="diff-value diff-after">
+                      <span>新值</span>
+                      <pre>{{ item.after }}</pre>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
-        </el-scrollbar>
+              </el-timeline-item>
+            </el-timeline>
+          </el-scrollbar>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -305,6 +462,11 @@ const highlightJson = (value: string) => {
 
 .page-header {
   margin-bottom: 8px;
+}
+
+.mode-switch {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .json-toolbar {
@@ -334,6 +496,15 @@ const highlightJson = (value: string) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.diff-header {
+  gap: 8px;
+}
+
+.diff-header-count {
+  display: flex;
+  gap: 6px;
 }
 
 .json-highlight {
@@ -382,6 +553,10 @@ const highlightJson = (value: string) => {
   align-items: start;
 }
 
+.diff-section {
+  grid-column: span 2;
+}
+
 .section-tip {
   margin-top: 8px;
   font-size: 12px;
@@ -395,6 +570,47 @@ const highlightJson = (value: string) => {
   background: rgba(99, 102, 241, 0.08);
   color: #312e81;
   font-size: 13px;
+}
+
+.diff-summary {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.diff-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #475569;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-added::before {
+  background: #22c55e;
+}
+
+.legend-removed::before {
+  background: #ef4444;
+}
+
+.legend-changed::before {
+  background: #f97316;
 }
 
 .diff-scroll {
@@ -454,6 +670,39 @@ const highlightJson = (value: string) => {
   font-size: 12px;
 }
 
+.diff-before pre {
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.diff-after pre {
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.diff-json-summary {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.diff-json-block h5 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.diff-json-block pre {
+  margin: 0;
+  background: rgba(15, 23, 42, 0.04);
+  padding: 12px;
+  border-radius: 12px;
+  font-family: 'Courier New', monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 12px;
+}
+
 @media (max-width: 768px) {
   .json-editor {
     grid-template-columns: 1fr;
@@ -461,6 +710,10 @@ const highlightJson = (value: string) => {
 
   .json-compare {
     grid-template-columns: 1fr;
+  }
+
+  .diff-section {
+    grid-column: span 1;
   }
 }
 </style>

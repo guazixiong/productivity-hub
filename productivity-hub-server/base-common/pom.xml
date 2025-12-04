@@ -17,5 +17,6 @@
         <module>base-common-core</module>
         <module>base-common-id-generator</module>
         <module>base-common-websocket</module>
+        <module>base-common-web</module>
     </modules>
 </project>

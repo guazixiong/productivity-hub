@@ -1,5 +1,6 @@
 import Mock from 'mockjs'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
+import type { PageResult } from '@/types/common'
 
 const Random = Mock.Random
 
@@ -52,11 +53,26 @@ Mock.mock('/api/agents', 'get', () => ({
   data: agents,
 }))
 
-Mock.mock('/api/agents/logs', 'get', () => ({
-  code: 0,
-  message: 'OK',
-  data: logs,
-}))
+Mock.mock(/\/api\/agents\/logs.*$/, 'get', (config) => {
+  const url = new URL(config.url, 'http://localhost')
+  const page = Number(url.searchParams.get('page') ?? '1')
+  const pageSize = Number(url.searchParams.get('pageSize') ?? '10')
+  const safePage = Number.isNaN(page) ? 1 : Math.max(page, 1)
+  const safeSize = Number.isNaN(pageSize) ? 10 : Math.min(Math.max(pageSize, 1), 50)
+  const offset = (safePage - 1) * safeSize
+  const items = logs.slice(offset, offset + safeSize)
+  const data: PageResult<AgentLogEntry> = {
+    items,
+    total: logs.length,
+    pageNum: safePage,
+    pageSize: safeSize,
+  }
+  return {
+    code: 0,
+    message: 'OK',
+    data,
+  }
+})
 
 Mock.mock('/api/agents/invoke', 'post', ({ body }) => {
   const payload = JSON.parse(body) as AgentInvocationPayload

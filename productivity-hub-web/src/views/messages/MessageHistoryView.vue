@@ -15,6 +15,8 @@ const schemas: Record<MessageChannel, string> = {
   dingtalk: '钉钉 Webhook',
 }
 
+const historyPagination = computed(() => messageStore.historyPagination)
+
 const filteredHistory = computed(() => {
   let result = [...messageStore.history]
 
@@ -48,8 +50,23 @@ const openHistoryDetail = (entry: MessageHistoryItem) => {
   historyDetailVisible.value = true
 }
 
+const refreshHistory = () => {
+  messageStore.fetchHistory({
+    page: historyPagination.value.pageNum,
+    pageSize: historyPagination.value.pageSize,
+  })
+}
+
+const handleHistoryPageChange = (page: number) => {
+  messageStore.fetchHistory({ page })
+}
+
+const handleHistoryPageSizeChange = (size: number) => {
+  messageStore.fetchHistory({ page: 1, pageSize: size })
+}
+
 onMounted(() => {
-  messageStore.fetchHistory()
+  refreshHistory()
 })
 
 const resetFilters = () => {
@@ -69,7 +86,7 @@ const hasActiveFilters = computed(() => channelFilter.value !== 'all' || statusF
         <p>按渠道、状态与时间聚合的推送记录，便于回溯排查。</p>
       </div>
       <div class="header-actions">
-        <el-button :loading="messageStore.loadingHistory" @click="messageStore.fetchHistory()">刷新数据</el-button>
+        <el-button :loading="messageStore.loadingHistory" @click="refreshHistory">刷新数据</el-button>
         <el-button text type="primary" v-if="hasActiveFilters" @click="resetFilters">重置筛选</el-button>
       </div>
     </div>
@@ -125,6 +142,18 @@ const hasActiveFilters = computed(() => channelFilter.value !== 'all' || statusF
           </template>
         </el-table-column>
       </el-table>
+      <div class="table-pagination">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next"
+          :total="historyPagination.total"
+          :page-size="historyPagination.pageSize"
+          :current-page="historyPagination.pageNum"
+          :page-sizes="[10, 20, 50]"
+          @current-change="handleHistoryPageChange"
+          @size-change="handleHistoryPageSizeChange"
+        />
+      </div>
     </el-card>
 
     <el-drawer v-model="historyDetailVisible" title="推送详情" size="40%">
@@ -238,6 +267,12 @@ const hasActiveFilters = computed(() => channelFilter.value !== 'all' || statusF
   word-break: break-all;
   font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
   font-size: 13px;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 </style>
 
