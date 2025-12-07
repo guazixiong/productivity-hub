@@ -43,7 +43,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         // 检查是否在排除路径中
         String requestURI = request.getRequestURI();
         for (String excludePath : excludePaths) {
-            if (requestURI.startsWith(excludePath)) {
+            if (matchesExcludePath(requestURI, excludePath)) {
                 return true;
             }
         }
@@ -73,6 +73,17 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         request.setAttribute("username", username);
 
         return true;
+    }
+
+    /**
+     * 支持前缀匹配（配置以 /** 结尾）和精确匹配.
+     */
+    private boolean matchesExcludePath(String requestURI, String excludePath) {
+        if (excludePath.endsWith("/**")) {
+            String prefix = excludePath.substring(0, excludePath.length() - 3);
+            return requestURI.startsWith(prefix);
+        }
+        return requestURI.startsWith(excludePath);
     }
 }
 

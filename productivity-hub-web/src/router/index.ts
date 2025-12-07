@@ -99,6 +99,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/tools/WorkdayCalculatorView.vue'),
       },
       {
+        path: 'tools/cursor-shop',
+        name: 'CursorShopInventory',
+        meta: { title: 'Cursor小店库存' },
+        component: () => import('@/views/tools/CursorShopInventoryView.vue'),
+      },
+      {
         path: 'messages',
         name: 'Messages',
         meta: { title: '消息推送' },

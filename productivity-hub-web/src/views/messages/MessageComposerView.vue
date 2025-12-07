@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, onMounted, nextTick } from 'vue'
+import { computed, reactive, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Message, Setting, Document, User, SwitchButton, EditPen, InfoFilled } from '@element-plus/icons-vue'
+import { ArrowLeft, Message, Document, User, SwitchButton, InfoFilled } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { useMessageStore } from '@/stores/messages'
-import { useConfigStore } from '@/stores/config'
 import type { MessageChannel } from '@/types/messages'
 
 marked.setOptions({ gfm: true, breaks: true })
@@ -62,7 +61,6 @@ const schemas: Record<MessageChannel, ChannelSchema> = {
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const messageStore = useMessageStore()
-const configStore = useConfigStore()
 const markdownPreviewVisible = ref(false)
 
 const channel = computed(() => {
@@ -71,25 +69,10 @@ const channel = computed(() => {
 })
 
 const form = reactive({
-  useDefaultConfig: false,
   data: {} as Record<string, unknown>,
 })
 
 const activeSchema = computed(() => schemas[channel.value])
-
-const defaultConfigs = computed(() => {
-  const configs: Record<string, Record<string, string>> = {}
-  configStore.configs.forEach((item) => {
-    if (item.module === 'sendgrid' && item.key.startsWith('sendgrid.')) {
-      if (!configs.sendgrid) configs.sendgrid = {}
-      configs.sendgrid[item.key.replace('sendgrid.', '')] = item.value
-    } else if (item.module === 'dingtalk' && item.key.startsWith('dingtalk.')) {
-      if (!configs.dingtalk) configs.dingtalk = {}
-      configs.dingtalk[item.key.replace('dingtalk.', '')] = item.value
-    }
-  })
-  return configs
-})
 
 const showMarkdownPreview = computed(() => channel.value === 'dingtalk' && form.data.msgType === 'markdown')
 
@@ -98,10 +81,6 @@ const markdownPreviewWithDefault = computed(() => {
   if (!content) return ''
   return marked(content)
 })
-
-const configModeAvailable = computed(
-  () => channel.value !== 'sendgrid' && !!defaultConfigs.value[channel.value],
-)
 
 const parseRecipients = (value?: string) => {
   if (!value) return []
@@ -149,66 +128,18 @@ const handleRecipientsEnter = () => {
   commitPendingRecipient()
 }
 
-const resetFormPayload = (resetToDefault: boolean) => {
+const resetFormPayload = () => {
   activeSchema.value.fields.forEach((field) => {
-    if (resetToDefault && defaultConfigs.value[channel.value]?.[field.key]) {
-      form.data[field.key] = defaultConfigs.value[channel.value][field.key]
-    } else {
-      form.data[field.key] = field.type === 'switch' ? false : ''
-    }
+    form.data[field.key] = field.type === 'switch' ? false : ''
   })
 }
-
-const loadDefaultConfig = () => {
-  const defaults = defaultConfigs.value[channel.value]
-  if (!defaults) return
-  
-  resetFormPayload(false)
-  
-  // 直接按默认配置填充所有字段（包括收件人）
-  Object.keys(defaults).forEach((key) => {
-    if (form.data.hasOwnProperty(key)) {
-      form.data[key] = defaults[key]
-    }
-  })
-}
-
-watch(
-  () => form.useDefaultConfig,
-  (useDefault) => {
-    if (!configModeAvailable.value) {
-      return
-    }
-    if (useDefault) {
-      loadDefaultConfig()
-    } else {
-      resetFormPayload(false)
-      if (formRef.value) {
-        formRef.value.clearValidate()
-      }
-    }
-  },
-)
 
 watch(
   () => channel.value,
   () => {
-    const defaults = defaultConfigs.value[channel.value]
-    const hasDefault = !!defaults
-    if (channel.value === 'sendgrid') {
-      form.useDefaultConfig = false
-      if (hasDefault) {
-        loadDefaultConfig()
-      } else {
-        resetFormPayload(true)
-      }
-      return
-    }
-    form.useDefaultConfig = hasDefault
-    if (hasDefault) {
-      loadDefaultConfig()
-    } else {
-      resetFormPayload(true)
+    resetFormPayload()
+    if (formRef.value) {
+      formRef.value.clearValidate()
     }
   },
   { immediate: true },
@@ -228,7 +159,7 @@ const submitMessage = async () => {
     })
     ElMessage.success('推送成功，已写入历史')
     // 发送成功后重置表单，避免新邮件在上一次的基础上继续追加收件人等信息
-    resetFormPayload(form.useDefaultConfig)
+    resetFormPayload()
     formRef.value.clearValidate()
     router.push('/messages/history')
   } catch (error) {
@@ -236,9 +167,6 @@ const submitMessage = async () => {
   }
 }
 
-onMounted(async () => {
-  await configStore.fetchConfigs()
-})
 </script>
 
 <template>
@@ -268,29 +196,6 @@ onMounted(async () => {
       </template>
 
       <el-form ref="formRef" :model="form.data" label-width="120px" class="message-form" :validate-on-rule-change="false">
-        <!-- 配置方式选择 -->
-        <el-form-item v-if="configModeAvailable" label="配置方式">
-          <div class="config-mode-section">
-            <el-radio-group v-model="form.useDefaultConfig" class="config-radio-group">
-              <el-radio-button :label="true">
-                <el-icon><Setting /></el-icon>
-                <span>使用默认配置111</span>
-              </el-radio-button>
-              <el-radio-button :label="false">
-                <el-icon><EditPen /></el-icon>
-                <span>自定义配置</span>
-              </el-radio-button>
-            </el-radio-group>
-            <div v-if="form.useDefaultConfig" class="default-config-hint">
-              <el-alert type="info" :closable="false" show-icon>
-                <template #title>
-                  <span>已载入全局默认配置，仍可在此基础上修改字段</span>
-                </template>
-              </el-alert>
-            </div>
-          </div>
-        </el-form-item>
-
         <!-- 表单字段 -->
         <template v-for="field in activeSchema.fields" :key="field.key">
           <el-form-item
@@ -520,33 +425,6 @@ onMounted(async () => {
 /* 表单样式 */
 .message-form {
   max-width: 100%;
-}
-
-.config-mode-section {
-  width: 100%;
-}
-
-.config-radio-group {
-  width: 100%;
-}
-
-.config-radio-group :deep(.el-radio-button) {
-  flex: 1;
-}
-
-.config-radio-group :deep(.el-radio-button__inner) {
-  width: 100%;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  border-radius: 8px;
-}
-
-.default-config-hint {
-  margin-top: 16px;
 }
 
 .form-field-item {

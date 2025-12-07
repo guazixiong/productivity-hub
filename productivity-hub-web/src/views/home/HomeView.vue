@@ -11,11 +11,13 @@ import {
   Tools,
   Setting,
   MagicStick,
-  Money
+  Money,
+  TrendCharts
 } from '@element-plus/icons-vue'
-import { toolApi } from '@/services/api'
+import { toolApi, scheduleApi } from '@/services/api'
 import type { ToolStat } from '@/types/tools'
 import { toolList, toolMetaMap, type ToolMeta } from '@/data/tools'
+import type { HotSection } from '@/types/hotSections'
 
 const router = useRouter()
 const configStore = useConfigStore()
@@ -99,6 +101,62 @@ const toolStats = ref<ToolStat[]>([])
 const quickToolsLoading = ref(false)
 const MAX_QUICK_TOOLS = 5
 const REQUIRED_QUICK_TOOL_IDS = ['blueprint']
+
+// 热点数据
+const hotSections = ref<HotSection[]>([])
+const hotSectionsLoading = ref(false)
+const activeTab = ref<string>('')
+
+// 加载热点数据
+const loadHotSections = async () => {
+  hotSectionsLoading.value = true
+  try {
+    const sections = await scheduleApi.getHotSections()
+    hotSections.value = sections
+    // 设置默认激活的标签页
+    if (sections.length > 0 && !activeTab.value) {
+      activeTab.value = sections[0].name
+    }
+  } catch (error) {
+    ElMessage.error((error as Error)?.message ?? '热点数据加载失败')
+  } finally {
+    hotSectionsLoading.value = false
+  }
+}
+
+// 标签页切换处理
+const handleTabChange = (name: string) => {
+  activeTab.value = name
+}
+
+// 基于字符串动态生成颜色（确保相同名称总是得到相同颜色）
+const getTagColor = (name: string): string => {
+  // 使用柔和的灰色系 palette，更统一协调
+  const colorPalette = [
+    '#f1f5f9', // slate-100
+    '#e2e8f0', // slate-200
+    '#cbd5e1', // slate-300
+    '#f8fafc', // slate-50
+    '#e0e7ff', // indigo-100
+    '#dbeafe', // blue-100
+    '#e0f2fe', // cyan-100
+    '#f0f9ff', // sky-100
+    '#f5f3ff', // violet-100
+    '#faf5ff', // purple-100
+    '#fdf4ff', // fuchsia-100
+    '#fef2f2', // red-100
+  ]
+  
+  // 简单的字符串哈希函数
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  
+  // 使用哈希值选择颜色
+  const index = Math.abs(hash) % colorPalette.length
+  return colorPalette[index]
+}
 
 const ensureQuickToolPresence = (tools: ToolMeta[]) => {
   const ensured = [...tools]
@@ -464,6 +522,11 @@ const isWeekend = (date: Date): boolean => {
   return day === 0 || day === 6
 }
 
+// 判断今天是否是周末
+const isTodayWeekend = computed(() => {
+  return isWeekend(new Date())
+})
+
 // 判断是否为节假日
 const isHoliday = (date: Date): boolean => {
   return holidays.includes(formatDateStr(date))
@@ -616,6 +679,7 @@ onMounted(async () => {
   await fetchLocation()
   await fetchWeather()
   await fetchDailyFortune()
+  await loadHotSections()
   calculateCountdown()
   calculateLunchCountdown()
   updateSalaryDates()
@@ -717,6 +781,10 @@ onUnmounted(() => {
             {{ salaryBubbleText }}
           </div>
         </transition>
+        <!-- 周末加班提示 -->
+        <div v-if="isTodayWeekend" class="weekend-overtime-tip">
+          加班辛苦了 💪
+        </div>
         <div class="combined-countdown-content">
           <!-- 午休倒计时（超过午休时间后不再显示） -->
           <div v-if="showLunchCountdown" class="countdown-block lunch-block">
@@ -779,6 +847,68 @@ onUnmounted(() => {
         </div>
       </el-card>
     </div>
+
+    <!-- 热点数据卡片 -->
+    <el-card class="hot-sections-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <el-icon><TrendCharts /></el-icon>
+          <span>热点速览</span>
+        </div>
+      </template>
+      <el-skeleton :loading="hotSectionsLoading" :rows="5" animated>
+        <template #default>
+          <el-tabs
+            v-if="hotSections.length > 0"
+            v-model="activeTab"
+            type="card"
+            class="hot-tabs"
+            @tab-change="handleTabChange"
+          >
+            <el-tab-pane
+              v-for="section in hotSections"
+              :key="section.name"
+              :name="section.name"
+            >
+              <template #label>
+                <span class="tab-label">
+                  <el-tag
+                    effect="plain"
+                    size="small"
+                    class="tab-tag"
+                  >
+                    {{ section.name }}
+                  </el-tag>
+                </span>
+              </template>
+              <div class="hot-items-list">
+                <a
+                  v-for="(item, index) in section.items"
+                  :key="index"
+                  :href="item.link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hot-item"
+                >
+                  <div class="hot-item-content">
+                    <div class="hot-item-title">
+                      <span class="hot-item-index">{{ index + 1 }}</span>
+                      <span class="hot-item-text">{{ item.title }}</span>
+                    </div>
+                    <div v-if="item.heat" class="hot-item-heat">{{ item.heat }}</div>
+                  </div>
+                  <div v-if="item.desc" class="hot-item-desc">{{ item.desc }}</div>
+                </a>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+          <div v-else class="hot-sections-empty">
+            <el-icon><TrendCharts /></el-icon>
+            <span>暂无热点数据</span>
+          </div>
+        </template>
+      </el-skeleton>
+    </el-card>
 
     <!-- 快捷工具入口 -->
     <el-card class="tools-card" shadow="hover">
@@ -1200,6 +1330,31 @@ onUnmounted(() => {
   transform: translateY(-10px) scale(0.95);
 }
 
+.weekend-overtime-tip {
+  text-align: center;
+  padding: 12px 20px;
+  margin: 12px 0;
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(249, 115, 22, 0.12) 100%);
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ea580c;
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.15);
+  animation: weekend-tip-pulse 2s ease-in-out infinite;
+}
+
+@keyframes weekend-tip-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
 .salary-dates-section {
   margin-top: 8px;
   padding-top: 8px;
@@ -1392,6 +1547,195 @@ onUnmounted(() => {
   text-align: center;
 }
 
+.hot-sections-card {
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.1), transparent 55%),
+    rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+
+.hot-tabs {
+  margin-top: -8px;
+}
+
+.hot-tabs :deep(.el-tabs__header) {
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(148, 163, 184, 0.15);
+}
+
+.hot-tabs :deep(.el-tabs__nav-wrap) {
+  margin-bottom: 0;
+}
+
+.hot-tabs :deep(.el-tabs__item) {
+  height: 44px;
+  line-height: 44px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hot-tabs :deep(.el-tabs__item:hover) {
+  color: #475569;
+}
+
+.hot-tabs :deep(.el-tabs__item.is-active) {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.hot-tabs :deep(.el-tabs__active-bar) {
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-tag {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  transition: all 0.2s ease;
+  color: #64748b;
+  background-color: #f1f5f9;
+}
+
+.tab-tag :deep(.el-tag__content) {
+  color: inherit;
+}
+
+.hot-tabs :deep(.el-tabs__item.is-active .tab-tag) {
+  background-color: #6366f1;
+  color: #ffffff !important;
+  border-color: #6366f1;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+.hot-tabs :deep(.el-tabs__item.is-active .tab-tag .el-tag__content) {
+  color: #ffffff !important;
+}
+
+.hot-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hot-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.hot-item:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.hot-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.hot-item-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hot-item-index {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hot-item-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.hot-item-heat {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #f97316;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hot-item-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-top: 4px;
+  padding-left: 28px;
+}
+
+.hot-sections-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.hot-sections-empty .el-icon {
+  font-size: 48px;
+  color: #cbd5e1;
+}
+
 @media (max-width: 768px) {
   .info-cards {
     grid-template-columns: 1fr;
@@ -1399,6 +1743,11 @@ onUnmounted(() => {
 
   .tools-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .hot-tabs :deep(.el-tabs__item) {
+    padding: 0 12px;
+    font-size: 13px;
   }
 }
 </style>

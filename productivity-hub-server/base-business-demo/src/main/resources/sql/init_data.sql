@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
 -- 配置项表
 CREATE TABLE IF NOT EXISTS `sys_config` (
   `id` VARCHAR(64) NOT NULL COMMENT '配置ID',
-  `module` VARCHAR(50) NOT NULL COMMENT '所属模块（auth, sendgrid, dingtalk, agents, home）',
+  `module` VARCHAR(50) NOT NULL COMMENT '所属模块（auth, sendgrid, dingtalk, resend, agents, home）',
   `config_key` VARCHAR(100) NOT NULL COMMENT '配置键名（支持点号分隔）',
   `config_value` TEXT DEFAULT NULL COMMENT '配置值',
   `description` VARCHAR(500) DEFAULT NULL COMMENT '配置描述',
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS `sys_config` (
 -- 消息推送历史表
 CREATE TABLE IF NOT EXISTS `sys_message_history` (
   `id` VARCHAR(64) NOT NULL COMMENT '历史记录ID',
-  `channel` VARCHAR(20) NOT NULL COMMENT '推送渠道（sendgrid, dingtalk）',
+  `channel` VARCHAR(20) NOT NULL COMMENT '推送渠道（sendgrid, dingtalk, resend）',
   `request_data` TEXT DEFAULT NULL COMMENT '原始请求参数（JSON）',
   `status` VARCHAR(20) NOT NULL COMMENT '发送状态（success, failed）',
   `response_data` TEXT DEFAULT NULL COMMENT '第三方服务响应内容',
@@ -88,14 +88,21 @@ INSERT INTO `sys_user` (`id`, `username`, `password`, `name`, `email`, `roles`) 
 ON DUPLICATE KEY UPDATE `username`=`username`;
 
 -- 初始化配置项数据
-INSERT INTO `sys_config` (`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES
-('cfg_1', 'auth', 'token.expireDays', '7', '登录态 Token 过期时间（单位：天）', '2025-11-20 09:00', '2025-11-28 10:00', '系统'),
-('cfg_6', 'sendgrid', 'sendgrid.apiKey', '', 'SendGrid API Key（请在此填写真实的 API Key，勿提交到代码仓库）', '2025-11-20 09:00', '2025-11-20 09:00', '系统'),
-('cfg_7', 'sendgrid', 'sendgrid.fromEmail', 'pbad0606@163.com', 'SendGrid 发件人邮箱地址', '2025-11-20 09:00', '2025-11-20 09:00', '系统'),
-('cfg_3', 'dingtalk', 'webhook', 'https://oapi.dingtalk.com/robot/send?access_token=xxx', '钉钉 Webhook 地址', '2025-11-20 09:00', '2025-11-20 09:00', '系统'),
-('cfg_4', 'home', 'offWorkTime', '18:00', '下班时间', '2025-11-20 09:00', '2025-11-20 09:00', '系统'),
-('cfg_5', 'home', 'lunchBreakTime', '12:00', '午休时间', '2025-11-20 09:00', '2025-11-20 09:00', '系统')
-ON DUPLICATE KEY UPDATE `config_value`=`config_value`;
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_1', 'auth', 'token.expireDays', '7', '登录态 Token 过期时间（单位：天）', '2025-11-20 09:00', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_2', 'auth', '_module.description', '权限相关', '模块描述', '2025-12-05 11:05', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_3', 'dingtalk', 'dingtalk.webhook', 'https://oapi.dingtalk.com/robot/send?access_token=e806006cafe10887a82d66543ff4cb3d4dbc82deb12cd4f7cf81fad1e3e7a931', '钉钉 Webhook 地址', '2025-11-20 09:00', '2025-12-05 15:21', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_4', 'dingtalk', '_module.description', '钉钉消息推送\n', '模块描述', '2025-12-05 11:05', '2025-12-05 15:21', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_5', 'dingtalk', 'dingtalk.sign', 'SEC4aa9f657ac9a32a69645b6a7cde94c3b45bd7252ff87725383c5a741c092166a', '钉钉加签秘钥（为空则不启用签名）', '2025-11-20 09:00', '2025-12-05 15:21', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_6', 'home', 'offWorkTime', '18:00', '下班时间', '2025-11-20 09:00', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_7', 'home', 'lunchBreakTime', '11:30', '午休时间', '2025-11-20 09:00', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_8', 'home', '_module.description', '首页模块', '模块描述', '2025-12-05 11:05', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_9', 'resend', 'resend.apiKey', 're_UQSg8xzv_3Q5q94H9w6w4JAjXxx9e9xJP', 'Resend API Key（对应唯一的收件人邮箱）', '2025-11-20 09:00', '2025-12-05 14:54', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_10', 'resend', 'resend.fromEmail', 'onboarding@resend.dev', 'Resend 发件人邮箱地址（Resend平台）', '2025-11-20 09:00', '2025-12-05 14:54', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_11', 'resend', 'resend.toEmail', 'pbad0606@163.com', 'Resend 收件人邮箱地址（与 apiKey 对应，仅作展示）', '2025-11-20 09:00', '2025-12-05 14:54', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_12', 'resend', '_module.description', 'Resend邮件配置', '模块描述', '2025-12-05 11:05', '2025-12-05 14:54', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_13', 'sendgrid', 'sendgrid.apiKey', '123456789', 'SendGrid API Key（请在此填写真实的 API Key，勿提交到代码仓库）', '2025-11-20 09:00', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_14', 'sendgrid', 'sendgrid.fromEmail', 'pbad0606@163.com', 'SendGrid 发件人邮箱地址', '2025-11-20 09:00', '2025-12-05 11:05', 'admin');
+INSERT INTO `productivity_hub`.`sys_config`(`id`, `module`, `config_key`, `config_value`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES ('cfg_15', 'sendgrid', '_module.description', 'Sendgrid邮件配置\n', '模块描述', '2025-12-05 11:05', '2025-12-05 11:05', 'admin');
 
 -- 初始化智能体数据
 INSERT INTO `sys_agent` (`id`, `name`, `description`, `version`, `tags`, `latency_ms`, `owner`) VALUES

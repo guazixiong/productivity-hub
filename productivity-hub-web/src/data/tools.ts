@@ -9,6 +9,7 @@ import {
   EditPen,
   Operation,
   Calendar,
+  ShoppingCartFull,
 } from '@element-plus/icons-vue'
 
 export interface ToolMeta {
@@ -100,6 +101,14 @@ export const toolList: ToolMeta[] = [
     icon: Calendar,
     path: '/tools/workday',
     keywords: ['日历', '工作日'],
+  },
+  {
+    id: 'cursor-shop',
+    name: 'Cursor 邮箱自助小店库存',
+    description: '查看自助小店实时库存',
+    icon: ShoppingCartFull,
+    path: '/tools/cursor-shop',
+    keywords: ['库存', 'Cursor', '小店'],
   },
 ]
 

@@ -1,5 +1,6 @@
 package com.pbad.config.service;
 
+import com.pbad.config.domain.dto.ConfigCreateOrUpdateDTO;
 import com.pbad.config.domain.dto.ConfigUpdateDTO;
 import com.pbad.config.domain.vo.ConfigItemVO;
 
@@ -29,6 +30,15 @@ public interface ConfigService {
      * @return 更新后的配置项
      */
     ConfigItemVO updateConfig(ConfigUpdateDTO updateDTO, String updatedBy);
+
+    /**
+     * 创建或更新配置项（通过 module 和 key）
+     *
+     * @param createOrUpdateDTO 创建或更新请求
+     * @param updatedBy 更新人
+     * @return 创建或更新后的配置项
+     */
+    ConfigItemVO createOrUpdateConfig(ConfigCreateOrUpdateDTO createOrUpdateDTO, String updatedBy);
 
     /**
      * 根据模块与配置键获取配置值

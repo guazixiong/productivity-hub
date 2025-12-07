@@ -155,6 +155,14 @@
                 <artifactId>jjwt</artifactId>
                 <version>${jwt.version}</version>
             </dependency>
+
+            <!-- OkHttp 4.x 版本管理，确保所有模块使用统一版本 -->
+            <!-- 升级到 4.x 以兼容 resend-java 2.0.0 -->
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>4.12.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

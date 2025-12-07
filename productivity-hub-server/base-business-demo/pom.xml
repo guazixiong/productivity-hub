@@ -20,6 +20,13 @@
             <version>4.9.3</version>
         </dependency>
 
+        <!-- Resend 邮件 SDK -->
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>4.11.0</version>
+        </dependency>
+
         <dependency>
             <groupId>com.pbad</groupId>
             <artifactId>base-common-core</artifactId>
@@ -39,6 +46,12 @@
             <groupId>com.pbad</groupId>
             <artifactId>base-common-id-generator</artifactId>
             <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Apache HttpClient for WeChat service -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
         </dependency>
     </dependencies>
 

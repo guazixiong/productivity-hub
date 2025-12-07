@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { useRoute } from 'vue-router'
-import { useMessageStore } from '@/stores/messages'
 import { useConfigStore } from '@/stores/config'
+import { useMessageStore } from '@/stores/messages'
 import type { MessageChannel, MessageHistoryItem } from '@/types/messages'
 
 marked.setOptions({ gfm: true, breaks: true })
@@ -27,20 +27,10 @@ type ChannelSchema = {
 }
 
 const schemas: Record<MessageChannel, ChannelSchema> = {
-  sendgrid: {
-    label: 'SendGrid 邮件',
-    description: '支持多收件人与富文本正文，发送结果实时返回',
-    fields: [
-      { key: 'recipients', label: '收件人', type: 'text', required: true },
-      { key: 'subject', label: '主题', type: 'text', required: true },
-      { key: 'content', label: 'HTML 内容', type: 'textarea', rows: 6, required: true },
-    ],
-  },
   dingtalk: {
     label: '钉钉 Webhook',
     description: '机器人签名与消息类型支持文本、Markdown、链接',
     fields: [
-      { key: 'webhook', label: 'Webhook 地址', type: 'text', required: true },
       {
         key: 'msgType',
         label: '消息类型',
@@ -56,11 +46,29 @@ const schemas: Record<MessageChannel, ChannelSchema> = {
       { key: 'atMobiles', label: '@手机号（逗号分隔）', type: 'text' },
     ],
   },
+  resend: {
+    label: 'Resend 邮件',
+    description: '支持HTML邮件内容',
+    fields: [
+      { key: 'recipients', label: '收件人', type: 'text' },
+      { key: 'title', label: '邮件标题', type: 'text', required: true },
+      { key: 'html', label: 'HTML 内容', type: 'textarea', rows: 8, required: true },
+    ],
+  },
+  sendgrid: {
+    label: 'SendGrid 邮件',
+    description: '支持多收件人与富文本正文，发送结果实时返回',
+    fields: [
+      { key: 'recipients', label: '收件人', type: 'text', required: true },
+      { key: 'subject', label: '主题', type: 'text', required: true },
+      { key: 'content', label: 'HTML 内容', type: 'textarea', rows: 6, required: true },
+    ],
+  },
 }
 
 const formRef = ref<FormInstance>()
-const messageStore = useMessageStore()
 const configStore = useConfigStore()
+const messageStore = useMessageStore()
 const route = useRoute()
 type HistoryFilterState = {
   channel: 'all' | MessageChannel
@@ -80,8 +88,7 @@ const selectedHistory = ref<MessageHistoryItem | null>(null)
 const markdownPreviewVisible = ref(false)
 
 const form = reactive({
-  channel: 'sendgrid' as MessageChannel,
-  useDefaultConfig: false,
+  channel: 'dingtalk' as MessageChannel,
   data: {} as Record<string, unknown>,
 })
 
@@ -143,22 +150,6 @@ const syncStateFromRoute = () => {
   }
 }
 
-// 获取默认配置
-const defaultConfigs = computed(() => {
-  const configs: Record<string, Record<string, string>> = {}
-  configStore.configs.forEach((item) => {
-    if (item.module === 'sendgrid' && item.key.startsWith('sendgrid.')) {
-      if (!configs.sendgrid) configs.sendgrid = {}
-      configs.sendgrid[item.key.replace('sendgrid.', '')] = item.value
-    } else if (item.module === 'dingtalk' && item.key.startsWith('dingtalk.')) {
-      if (!configs.dingtalk) configs.dingtalk = {}
-      configs.dingtalk[item.key.replace('dingtalk.', '')] = item.value
-    }
-  })
-  return configs
-})
-
-const configModeAvailable = computed(() => form.channel !== 'sendgrid' && !!defaultConfigs.value[form.channel])
 
 // Markdown预览
 const markdownPreview = computed(() => {
@@ -227,71 +218,17 @@ const handleHistoryPageSizeChange = (size: number) => {
   messageStore.fetchHistory({ page: 1, pageSize: size })
 }
 
-const resetFormPayload = (clearDefaultFlag = false) => {
+const resetFormPayload = () => {
   Object.keys(form.data).forEach((key) => delete form.data[key])
-  if (clearDefaultFlag) {
-    form.useDefaultConfig = false
-  }
   activeSchema.value.fields.forEach((field) => {
     form.data[field.key] = field.type === 'switch' ? false : ''
   })
 }
 
-// 加载默认配置
-const loadDefaultConfig = () => {
-  const defaults = defaultConfigs.value[form.channel]
-  if (!defaults) return
-  
-  // 先重置表单
-  resetFormPayload(false)
-  
-  // 然后填充默认值（包括收件人）
-  Object.keys(defaults).forEach((key) => {
-    if (form.data.hasOwnProperty(key)) {
-      form.data[key] = defaults[key]
-    }
-  })
-}
-
-// 切换配置模式
-watch(
-  () => form.useDefaultConfig,
-  (useDefault) => {
-    if (!configModeAvailable.value) {
-      return
-    }
-    if (useDefault) {
-      loadDefaultConfig()
-    } else {
-      resetFormPayload(false)
-      // 清除表单验证状态
-      if (formRef.value) {
-        formRef.value.clearValidate()
-      }
-    }
-  },
-)
-
 watch(
   () => form.channel,
   () => {
-    const defaults = defaultConfigs.value[form.channel]
-    const hasDefault = !!defaults
-    if (form.channel === 'sendgrid') {
-      form.useDefaultConfig = false
-      if (hasDefault) {
-        loadDefaultConfig()
-      } else {
-        resetFormPayload(true)
-      }
-      return
-    }
-    form.useDefaultConfig = hasDefault
-    if (hasDefault) {
-      loadDefaultConfig()
-    } else {
-      resetFormPayload(true)
-    }
+    resetFormPayload()
   },
   { immediate: true },
 )
@@ -325,12 +262,30 @@ const backToChannelList = () => {
   composerView.value = 'channels'
 }
 const stringifyPayload = (payload?: Record<string, unknown>) => JSON.stringify(payload ?? {}, null, 2)
-const refreshConfigs = () => configStore.fetchConfigs(true)
 
 const openHistoryDetail = (entry: MessageHistoryItem) => {
   selectedHistory.value = entry
   historyDetailVisible.value = true
 }
+
+const resendRecipients = computed(() => {
+  const entry = configStore.configs.find((item) => item.module === 'resend' && item.key === 'resend.toEmail')
+  return entry?.value ?? ''
+})
+
+watch(
+  [resendRecipients, () => form.channel],
+  ([recipientsValue, channel]) => {
+    if (channel === 'resend') {
+      ;(form.data as Record<string, unknown>).recipients = recipientsValue
+    }
+  },
+  { immediate: true },
+)
+
+onMounted(() => {
+  configStore.fetchConfigs()
+})
 
 watch(
   () => route.fullPath,
@@ -353,9 +308,6 @@ watch(
   { immediate: true },
 )
 
-onMounted(async () => {
-  await configStore.fetchConfigs()
-})
 </script>
 
 <template>
@@ -370,14 +322,6 @@ onMounted(async () => {
                   <h3>推送渠道</h3>
                   <p>当前可用 {{ schemaEntries.length }} 个渠道</p>
                 </div>
-                <el-button
-                  text
-                  type="primary"
-                  :loading="configStore.loading"
-                  @click="refreshConfigs"
-                >
-                  刷新配置
-                </el-button>
               </div>
               <div class="channel-grid">
                 <div
@@ -416,19 +360,6 @@ onMounted(async () => {
                 </template>
 
                 <el-form ref="formRef" :model="form.data" label-width="140px" class="message-form" :validate-on-rule-change="false">
-                <el-form-item v-if="configModeAvailable" label="配置方式">
-                    <el-radio-group v-model="form.useDefaultConfig">
-                      <el-radio-button :label="true">使用默认配置111</el-radio-button>
-                      <el-radio-button :label="false">自定义配置</el-radio-button>
-                    </el-radio-group>
-                    <div v-if="form.useDefaultConfig" class="default-config-hint">
-                      <el-alert type="info" :closable="false" show-icon>
-                        <template #title>
-                          <span>已根据全局默认参数完成预填，你可以在此基础上继续编辑。</span>
-                        </template>
-                      </el-alert>
-                    </div>
-                  </el-form-item>
                   <template v-for="field in activeSchema.fields" :key="field.key">
                     <el-form-item
                       :label="field.label"
@@ -436,23 +367,33 @@ onMounted(async () => {
                       :rules="field.required ? [{ required: true, message: `请输入${field.label}` }] : []"
                     >
                       <template v-if="field.key === 'recipients'">
-                        <el-input
-                          v-model="recipientsQuery"
-                          placeholder="输入邮箱后回车，可添加多个收件人111"
-                          class="custom-input recipients-input"
-                          @keyup.enter.stop.prevent="handleRecipientsEnter"
-                          @input="handleRecipientsFilter($event as string)"
-                        />
-                        <div v-if="recipientsList.length" class="recipients-tags">
-                          <el-tag
-                            v-for="item in recipientsList"
-                            :key="item"
-                            closable
-                            @close="recipientsList = recipientsList.filter(tag => tag !== item)"
-                          >
-                            {{ item }}
-                          </el-tag>
-                        </div>
+                        <template v-if="form.channel === 'resend'">
+                          <el-input
+                            :model-value="resendRecipients"
+                            placeholder="从全局参数配置读取 resend.toEmail"
+                            class="custom-input recipients-input"
+                            disabled
+                          />
+                        </template>
+                        <template v-else>
+                          <el-input
+                            v-model="recipientsQuery"
+                            placeholder="输入邮箱后回车，可添加多个收件人"
+                            class="custom-input recipients-input"
+                            @keyup.enter.stop.prevent="handleRecipientsEnter"
+                            @input="handleRecipientsFilter($event as string)"
+                          />
+                          <div v-if="recipientsList.length" class="recipients-tags">
+                            <el-tag
+                              v-for="item in recipientsList"
+                              :key="item"
+                              closable
+                              @close="recipientsList = recipientsList.filter(tag => tag !== item)"
+                            >
+                              {{ item }}
+                            </el-tag>
+                          </div>
+                        </template>
                       </template>
                       <el-input
                         v-else-if="field.type === 'text'"
@@ -709,28 +650,31 @@ onMounted(async () => {
 .channel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  gap: 20px;
   margin-top: 16px;
 }
 
 .channel-card {
-  border: 1px solid transparent;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 16px;
-  background: #f8fafc;
+  background: #ffffff;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .channel-card:hover {
   border-color: #c7d2fe;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .channel-card.active {
   border-color: #6366f1;
+  border-width: 2px;
   background: #eef2ff;
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.18);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2), 0 2px 8px rgba(99, 102, 241, 0.15);
 }
 
 .channel-card__title {
@@ -911,9 +855,6 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
-.default-config-hint {
-  margin-top: 8px;
-}
 
 .textarea-wrapper {
   width: 100%;

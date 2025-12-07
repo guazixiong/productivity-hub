@@ -15,3 +15,10 @@ export interface ConfigUpdatePayload {
   description?: string
 }
 
+export interface ConfigCreateOrUpdatePayload {
+  module: string
+  key: string
+  value: string
+  description?: string
+}
+

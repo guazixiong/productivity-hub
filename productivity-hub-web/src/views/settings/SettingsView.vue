@@ -52,7 +52,8 @@ const moduleList = computed(() => {
     const latestUpdate = new Date(Math.max(...dates))
     const earliestCreate = new Date(Math.min(...createdDates))
     
-    const description = configStore.getModuleDescription(module) || `${configs.length} 个配置项`
+    // 获取模块描述，与编辑模块信息中的保持一致
+    const description = configStore.getModuleDescription(module) || ''
     
     modules.push({
       module,
@@ -113,8 +114,9 @@ const handleEditSubmit = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
   try {
+    // 保存模块描述（作为配置项保存）
     if (editingModule.value) {
-      configStore.updateModuleDescription(editingModule.value, editingModuleDescription.value)
+      await configStore.updateModuleDescription(editingModule.value, editingModuleDescription.value)
     }
     const updates = Object.entries(editingConfigs).map(([id, data]) => ({
       id,
@@ -132,18 +134,6 @@ const handleEditSubmit = async () => {
 
 onMounted(() => {
   configStore.fetchConfigs()
-  const defaultDescriptions: Record<string, string> = {
-    auth: '认证模块：管理登录态、Token 等认证相关配置',
-    sendgrid: 'SendGrid 模块：管理 SendGrid 邮件发送相关配置',
-    dingtalk: '钉钉模块：管理钉钉 Webhook 消息推送相关配置',
-    agents: '智能体模块：管理 Dify 等智能体相关配置',
-    home: '首页模块：管理首页相关配置，如下班时间、快捷工具等',
-  }
-  Object.entries(defaultDescriptions).forEach(([module, desc]) => {
-    if (!configStore.getModuleDescription(module)) {
-      configStore.updateModuleDescription(module, desc)
-    }
-  })
 })
 </script>
 

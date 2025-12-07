@@ -1,5 +1,6 @@
 package com.pbad.config.controller;
 
+import com.pbad.config.domain.dto.ConfigCreateOrUpdateDTO;
 import com.pbad.config.domain.dto.ConfigUpdateDTO;
 import com.pbad.config.domain.vo.ConfigItemVO;
 import com.pbad.config.service.ConfigService;
@@ -61,6 +62,34 @@ public class ConfigController {
         }
 
         ConfigItemVO configItem = configService.updateConfig(updateDTO, username);
+        return ApiResponse.ok("保存成功", configItem);
+    }
+
+    /**
+     * 创建或更新配置项（通过 module 和 key）
+     *
+     * @param createOrUpdateDTO 创建或更新请求
+     * @param request          HTTP 请求
+     * @return 创建或更新后的配置项
+     */
+    @PostMapping("/create-or-update")
+    public ApiResponse<ConfigItemVO> createOrUpdateConfig(@RequestBody ConfigCreateOrUpdateDTO createOrUpdateDTO,
+                                                           HttpServletRequest request) {
+        // 从请求头获取 Token
+        String authHeader = request.getHeader("Authorization");
+        String token = JwtUtil.extractTokenFromHeader(authHeader);
+
+        if (token == null || !JwtUtil.validateToken(token)) {
+            return ApiResponse.unauthorized("Token 无效或过期");
+        }
+
+        // 从 Token 中获取用户名
+        String username = JwtUtil.getUsernameFromToken(token);
+        if (username == null) {
+            username = "系统";
+        }
+
+        ConfigItemVO configItem = configService.createOrUpdateConfig(createOrUpdateDTO, username);
         return ApiResponse.ok("保存成功", configItem);
     }
 }

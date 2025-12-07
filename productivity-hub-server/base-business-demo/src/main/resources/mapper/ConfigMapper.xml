@@ -54,5 +54,14 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 插入配置项 -->
+    <insert id="insertConfig">
+        INSERT INTO sys_config (id, module, config_key, config_value, description, created_at, updated_at, updated_by)
+        VALUES (#{id}, #{module}, #{configKey}, #{configValue}, #{description}, 
+                DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i'), 
+                DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i'), 
+                #{updatedBy})
+    </insert>
+
 </mapper>
 

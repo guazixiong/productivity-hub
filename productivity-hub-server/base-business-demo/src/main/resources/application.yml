@@ -31,6 +31,11 @@ pagehelper:
   support-methods-arguments: true
   params: count=countSql
 
+# 开放无需鉴权的接口路径，逗号分隔
+common:
+  web:
+    exclude-paths: /api/auth/login,/api/schedule/**
+
 logging:
   level.org.springframework.boot.autoconfigure: error
   config: classpath:logback.xml

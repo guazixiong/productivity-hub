@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 启动类
@@ -22,6 +23,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableCaching
 // 开启异步支持
 @EnableAsync
+// 开启定时任务
+@EnableScheduling
 public class BaseDemoApplication {
 
     public static void main(String[] args) {

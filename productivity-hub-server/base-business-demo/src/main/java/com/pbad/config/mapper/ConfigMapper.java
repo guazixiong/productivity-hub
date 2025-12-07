@@ -45,5 +45,13 @@ public interface ConfigMapper {
      * @return 更新行数
      */
     int updateConfig(ConfigItemPO configItem);
+
+    /**
+     * 插入配置项
+     *
+     * @param configItem 配置项
+     * @return 插入行数
+     */
+    int insertConfig(ConfigItemPO configItem);
 }
 

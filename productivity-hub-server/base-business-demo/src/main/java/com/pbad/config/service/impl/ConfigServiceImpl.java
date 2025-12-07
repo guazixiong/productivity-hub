@@ -1,10 +1,12 @@
 package com.pbad.config.service.impl;
 
+import com.pbad.config.domain.dto.ConfigCreateOrUpdateDTO;
 import com.pbad.config.domain.dto.ConfigUpdateDTO;
 import com.pbad.config.domain.po.ConfigItemPO;
 import com.pbad.config.domain.vo.ConfigItemVO;
 import com.pbad.config.mapper.ConfigMapper;
 import com.pbad.config.service.ConfigService;
+import com.pbad.generator.api.IdGeneratorApi;
 import common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 public class ConfigServiceImpl implements ConfigService {
 
     private final ConfigMapper configMapper;
+    private final IdGeneratorApi idGeneratorApi;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,6 +66,49 @@ public class ConfigServiceImpl implements ConfigService {
         // 重新查询更新后的数据
         ConfigItemPO updatedPO = configMapper.selectById(updateDTO.getId());
         return convertToVO(updatedPO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ConfigItemVO createOrUpdateConfig(ConfigCreateOrUpdateDTO createOrUpdateDTO, String updatedBy) {
+        // 参数校验
+        if (createOrUpdateDTO == null || createOrUpdateDTO.getModule() == null || createOrUpdateDTO.getModule().isEmpty()
+                || createOrUpdateDTO.getKey() == null || createOrUpdateDTO.getKey().isEmpty()) {
+            throw new BusinessException("400", "模块名和配置键不能为空");
+        }
+
+        // 查询是否已存在
+        ConfigItemPO existingPO = configMapper.selectByModuleAndKey(createOrUpdateDTO.getModule(), createOrUpdateDTO.getKey());
+
+        if (existingPO != null) {
+            // 存在则更新
+            existingPO.setConfigValue(createOrUpdateDTO.getValue());
+            if (createOrUpdateDTO.getDescription() != null && !createOrUpdateDTO.getDescription().isEmpty()) {
+                existingPO.setDescription(createOrUpdateDTO.getDescription());
+            }
+            existingPO.setUpdatedBy(updatedBy);
+            int updateCount = configMapper.updateConfig(existingPO);
+            if (updateCount <= 0) {
+                throw new BusinessException("500", "更新配置失败");
+            }
+            ConfigItemPO updatedPO = configMapper.selectById(existingPO.getId());
+            return convertToVO(updatedPO);
+        } else {
+            // 不存在则创建
+            ConfigItemPO newPO = new ConfigItemPO();
+            newPO.setId(idGeneratorApi.generateId());
+            newPO.setModule(createOrUpdateDTO.getModule());
+            newPO.setConfigKey(createOrUpdateDTO.getKey());
+            newPO.setConfigValue(createOrUpdateDTO.getValue());
+            newPO.setDescription(createOrUpdateDTO.getDescription());
+            newPO.setUpdatedBy(updatedBy);
+            int insertCount = configMapper.insertConfig(newPO);
+            if (insertCount <= 0) {
+                throw new BusinessException("500", "创建配置失败");
+            }
+            ConfigItemPO insertedPO = configMapper.selectById(newPO.getId());
+            return convertToVO(insertedPO);
+        }
     }
 
     @Override

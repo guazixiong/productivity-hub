@@ -1,10 +1,12 @@
 import { request } from './http'
 import type { LoginPayload, AuthResponse } from '@/types/auth'
-import type { ConfigItem, ConfigUpdatePayload } from '@/types/config'
+import type { ConfigItem, ConfigUpdatePayload, ConfigCreateOrUpdatePayload } from '@/types/config'
 import type { BaseMessagePayload, MessageHistoryItem, MessageSendResult } from '@/types/messages'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
 import type { ToolStat } from '@/types/tools'
+import type { CursorCommodity } from '@/types/cursorShop'
 import type { PageResult } from '@/types/common'
+import type { HotSection } from '@/types/hotSections'
 
 export const authApi = {
   login: (payload: LoginPayload) =>
@@ -30,6 +32,12 @@ export const configApi = {
     request<ConfigItem>({
       url: '/api/config',
       method: 'PUT',
+      data: payload,
+    }),
+  createOrUpdate: (payload: ConfigCreateOrUpdatePayload) =>
+    request<ConfigItem>({
+      url: '/api/config/create-or-update',
+      method: 'POST',
       data: payload,
     }),
 }
@@ -80,6 +88,22 @@ export const toolApi = {
       url: '/api/tools/track',
       method: 'POST',
       data: { toolId },
+    }),
+}
+
+export const cursorShopApi = {
+  commodities: () =>
+    request<CursorCommodity[]>({
+      url: '/api/tools/cursor-shop/commodities',
+      method: 'GET',
+    }),
+}
+
+export const scheduleApi = {
+  getHotSections: () =>
+    request<HotSection[]>({
+      url: '/api/home/hot-sections',
+      method: 'GET',
     }),
 }
 
