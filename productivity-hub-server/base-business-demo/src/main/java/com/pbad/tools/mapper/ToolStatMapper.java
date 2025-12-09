@@ -44,5 +44,13 @@ public interface ToolStatMapper {
      * @return 更新行数
      */
     int incrementClicks(@Param("toolId") String toolId);
+
+    /**
+     * 批量更新或插入工具统计
+     *
+     * @param toolStats 工具统计列表
+     * @return 更新行数
+     */
+    int batchUpsert(@Param("list") List<ToolStatPO> toolStats);
 }
 

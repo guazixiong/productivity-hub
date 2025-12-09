@@ -48,7 +48,8 @@ public class DingTalkDigestTask {
         log.info("开始执行每日热点新闻任务（钉钉消息）");
         try {
             DigestData dingTalkData = buildDigestDataForDingTalk();
-            WeatherInfo weatherInfo = ThirdPartyApiUtil.getWeatherInfo("郑州");
+            // 使用郑州经纬度获取天气信息（Open-Meteo API）
+            WeatherInfo weatherInfo = ThirdPartyApiUtil.getZhengzhouWeatherInfo();
             DailyQuote dailyQuote = ThirdPartyApiUtil.getDailyQuote();
             String markdown = renderDingTalkMarkdown(dingTalkData, weatherInfo, dailyQuote);
             Map<String, Object> dingTalkPayload = new HashMap<>();

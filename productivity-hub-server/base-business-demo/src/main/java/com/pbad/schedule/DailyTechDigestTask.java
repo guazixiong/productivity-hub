@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ public class DailyTechDigestTask {
     private static final String REBANG_BAIDU_TIEBA_URL = "https://api.rebang.today/v1/items?tab=baidu-tieba&sub_tab=topic&page=1&version=1";
 
     private static final int LIMIT = 5;
+    private static final int MAX_LIMIT = 100; // 提高限制，支持加载更多数据
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -96,19 +98,83 @@ public class DailyTechDigestTask {
     }
 
     /**
-     * 获取热点数据（供 API 调用）
+     * 获取所有热点标签列表
+     *
+     * @return 热点标签名称列表
+     */
+    public List<String> getHotSectionNames() {
+        return Arrays.asList(
+            "综合热榜",
+            "知乎热搜",
+            "微博热搜",
+            "虎扑热帖",
+            "小红书热帖",
+            "哔哩哔哩热榜",
+            "抖音热榜",
+            "百度贴吧热帖"
+        );
+    }
+
+    /**
+     * 获取指定标签的热点数据（供 API 调用）
+     *
+     * @param sectionName 标签名称
+     * @param limit 数据条数
+     * @return 热点板块数据
+     */
+    public HotSectionVO getHotSectionByName(String sectionName, Integer limit) {
+        int finalLimit = normalizeLimit(limit);
+        log.info("getHotSectionByName 接收到的sectionName: {}, limit: {}, 规范化后的finalLimit: {}", 
+                sectionName, limit, finalLimit);
+
+        List<HotItem> items = fetchHotListBySectionName(sectionName, finalLimit);
+        return convertToSectionVO(sectionName, items);
+    }
+
+    /**
+     * 根据标签名称获取热点列表
+     */
+    private List<HotItem> fetchHotListBySectionName(String sectionName, int limit) {
+        switch (sectionName) {
+            case "综合热榜":
+                return fetchHotList("综合热榜", REBANG_TOP_URL, limit);
+            case "知乎热搜":
+                return fetchHotList("知乎热搜", REBANG_ZHIHU_URL, limit);
+            case "微博热搜":
+                return fetchHotList("微博热搜", REBANG_WEIBO_URL, limit);
+            case "虎扑热帖":
+                return fetchHotList("虎扑热帖", REBANG_HUPU_URL, limit);
+            case "小红书热帖":
+                return fetchHotList("小红书热帖", REBANG_XIAOHONGSHU_URL, limit);
+            case "哔哩哔哩热榜":
+                return fetchHotList("哔哩哔哩热榜", REBANG_BILIBILI_URL, limit);
+            case "抖音热榜":
+                return fetchHotList("抖音热榜", REBANG_DOUYIN_URL, limit);
+            case "百度贴吧热帖":
+                return fetchHotList("百度贴吧热帖", REBANG_BAIDU_TIEBA_URL, limit);
+            default:
+                log.warn("未知的标签名称: {}", sectionName);
+                return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 获取热点数据（供 API 调用，兼容旧接口）
      *
      * @return 热点板块列表
      */
-    public List<HotSectionVO> getHotSections() {
-        List<HotItem> top = fetchHotList("综合热榜", REBANG_TOP_URL, LIMIT);
-        List<HotItem> zhihu = fetchHotList("知乎热搜", REBANG_ZHIHU_URL, LIMIT);
-        List<HotItem> weibo = fetchHotList("微博热搜", REBANG_WEIBO_URL, LIMIT);
-        List<HotItem> hupu = fetchHotList("虎扑热帖", REBANG_HUPU_URL, LIMIT);
-        List<HotItem> xiaohongshu = fetchHotList("小红书热帖", REBANG_XIAOHONGSHU_URL, LIMIT);
-        List<HotItem> bilibili = fetchHotList("哔哩哔哩热榜", REBANG_BILIBILI_URL, LIMIT);
-        List<HotItem> douyin = fetchHotList("抖音热榜", REBANG_DOUYIN_URL, LIMIT);
-        List<HotItem> baiduTieba = fetchHotList("百度贴吧热帖", REBANG_BAIDU_TIEBA_URL, LIMIT);
+    public List<HotSectionVO> getHotSections(Integer limit) {
+        int finalLimit = normalizeLimit(limit);
+        log.info("getHotSections 接收到的limit: {}, 规范化后的finalLimit: {}", limit, finalLimit);
+
+        List<HotItem> top = fetchHotList("综合热榜", REBANG_TOP_URL, finalLimit);
+        List<HotItem> zhihu = fetchHotList("知乎热搜", REBANG_ZHIHU_URL, finalLimit);
+        List<HotItem> weibo = fetchHotList("微博热搜", REBANG_WEIBO_URL, finalLimit);
+        List<HotItem> hupu = fetchHotList("虎扑热帖", REBANG_HUPU_URL, finalLimit);
+        List<HotItem> xiaohongshu = fetchHotList("小红书热帖", REBANG_XIAOHONGSHU_URL, finalLimit);
+        List<HotItem> bilibili = fetchHotList("哔哩哔哩热榜", REBANG_BILIBILI_URL, finalLimit);
+        List<HotItem> douyin = fetchHotList("抖音热榜", REBANG_DOUYIN_URL, finalLimit);
+        List<HotItem> baiduTieba = fetchHotList("百度贴吧热帖", REBANG_BAIDU_TIEBA_URL, finalLimit);
         
         List<HotSectionVO> sections = new ArrayList<>();
         sections.add(convertToSectionVO("综合热榜", top));
@@ -140,6 +206,13 @@ public class DailyTechDigestTask {
         return sectionVO;
     }
 
+    private int normalizeLimit(Integer limit) {
+        if (limit == null || limit <= 0) {
+            return LIMIT;
+        }
+        return Math.min(limit, MAX_LIMIT);
+    }
+
     private List<HotItem> fetchHotList(String source, String url, int limit) {
         try {
             String body = HttpUtil.get(url, 5000);
@@ -160,6 +233,7 @@ public class DailyTechDigestTask {
                 return fallback(source, limit);
             }
             List<HotItem> items = new ArrayList<>();
+            // 循环直到获取到足够的数据或遍历完所有数据
             for (int i = 0; i < array.size() && items.size() < limit; i++) {
                 JSONObject item = array.getJSONObject(i);
                 String title = item.getString("title");
@@ -192,16 +266,23 @@ public class DailyTechDigestTask {
                         item.getString("label_str"));
                 String desc = firstNonBlank(item.getString("desc"), item.getString("describe"));
                 if (isBlank(title) || isBlank(link)) {
-                    continue;
+                    continue; // 跳过无效数据，继续处理下一个
                 }
                 items.add(new HotItem(title, link, heat, desc));
             }
+            // 如果获取的数据少于 limit，记录警告
+            if (items.size() < limit && items.size() < array.size()) {
+                log.warn("获取 {} 数据不足，期望 {} 条，实际返回 {} 条，API 返回 {} 条", 
+                        source, limit, items.size(), array.size());
+            }
             if (!items.isEmpty()) {
+                log.debug("获取 {} 成功，返回 {} 条数据（limit: {}）", source, items.size(), limit);
                 return items;
             }
         } catch (Exception e) {
             log.warn("获取 {} 失败，使用备用数据: {}", source, e.getMessage());
         }
+        log.debug("获取 {} 失败，返回备用数据（limit: {}）", source, limit);
         return fallback(source, limit);
     }
 

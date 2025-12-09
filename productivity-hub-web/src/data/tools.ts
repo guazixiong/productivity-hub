@@ -10,6 +10,9 @@ import {
   Operation,
   Calendar,
   ShoppingCartFull,
+  Picture,
+  Connection,
+  Switch,
 } from '@element-plus/icons-vue'
 
 export interface ToolMeta {
@@ -29,6 +32,14 @@ export const toolList: ToolMeta[] = [
     icon: Document,
     path: '/tools/blueprint',
     keywords: ['蓝图', 'AI', '成长'],
+  },
+  {
+    id: 'git-toolbox',
+    name: 'Git工具箱速查',
+    description: '提交规范与不同阶段常用命令',
+    icon: Document,
+    path: '/tools/git-toolbox',
+    keywords: ['git', '提交规范', '命令', '工具箱'],
   },
   {
     id: 'food',
@@ -57,7 +68,7 @@ export const toolList: ToolMeta[] = [
   {
     id: 'screen-clock',
     name: '屏幕时钟',
-    description: '全屏数码时钟，会议/直播/倒计时必备',
+    description: '全屏数码时钟，会议直播/倒计时必备',
     icon: Timer,
     path: '/tools/clock',
     keywords: ['时钟', '倒计时'],
@@ -110,8 +121,30 @@ export const toolList: ToolMeta[] = [
     path: '/tools/cursor-shop',
     keywords: ['库存', 'Cursor', '小店'],
   },
+  {
+    id: 'image-base64',
+    name: '图片Base64编码',
+    description: '将图片转换为Base64编码字符串',
+    icon: Picture,
+    path: '/tools/image-base64',
+    keywords: ['图片', 'base64', '编码', '转换'],
+  },
+  {
+    id: 'sql-formatter',
+    name: 'SQL格式化',
+    description: '格式化、压缩SQL语句，支持关键字大小写转换',
+    icon: Connection,
+    path: '/tools/sql-formatter',
+    keywords: ['sql', '格式化', '数据库'],
+  },
+  {
+    id: 'unit-converter',
+    name: '单位换算',
+    description: '支持长度、面积、体积、时间、角度、速度、温度、压力、热量、功率等单位换算',
+    icon: Switch,
+    path: '/tools/unit-converter',
+    keywords: ['单位', '换算', '转换', '长度', '面积', '体积', '温度'],
+  },
 ]
 
 export const toolMetaMap = new Map(toolList.map((tool) => [tool.id, tool]))
-
-

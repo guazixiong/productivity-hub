@@ -5,8 +5,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 
-// 变更结果类
-class ChangeResult {
+/**
+ * 变更结果类.
+ *
+ * @author: pangdi
+ * @date: 2025-11-27 18:25:59
+ * @version: 1.0
+ */
+public class ChangeResult {
     @JsonProperty("changeBeforeFieldList")
     private List<FieldChangeInfo> changeBeforeFieldList;
     

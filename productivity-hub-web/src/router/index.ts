@@ -21,6 +21,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/home/HomeView.vue'),
       },
       {
+        path: 'hot-sections',
+        name: 'HotSections',
+        meta: { title: '热点速览' },
+        component: () => import('@/views/hot-sections/HotSectionsView.vue'),
+      },
+      {
         path: 'config',
         name: 'Config',
         meta: { title: '全局参数配置' },
@@ -43,6 +49,12 @@ const routes: RouteRecordRaw[] = [
         name: 'BlueprintRoadmap',
         meta: { title: 'AI成长蓝图' },
         component: () => import('@/views/tools/BlueprintRoadmapView.vue'),
+      },
+      {
+        path: 'tools/git-toolbox',
+        name: 'GitToolbox',
+        meta: { title: 'Git工具箱速查' },
+        component: () => import('@/views/tools/GitToolboxView.vue'),
       },
       {
         path: 'tools/food',
@@ -103,6 +115,30 @@ const routes: RouteRecordRaw[] = [
         name: 'CursorShopInventory',
         meta: { title: 'Cursor小店库存' },
         component: () => import('@/views/tools/CursorShopInventoryView.vue'),
+      },
+      {
+        path: 'tools/image-base64',
+        name: 'ImageBase64',
+        meta: { title: '图片Base64编码' },
+        component: () => import('@/views/tools/ImageBase64View.vue'),
+      },
+      {
+        path: 'tools/sql-formatter',
+        name: 'SqlFormatter',
+        meta: { title: 'SQL格式化' },
+        component: () => import('@/views/tools/SqlFormatterView.vue'),
+      },
+      {
+        path: 'tools/unit-converter',
+        name: 'UnitConverter',
+        meta: { title: '单位换算' },
+        component: () => import('@/views/tools/UnitConverterView.vue'),
+      },
+      {
+        path: 'code-generator',
+        name: 'CodeGenerator',
+        meta: { title: '低代码生成' },
+        component: () => import('@/views/tools/CodeGeneratorView.vue'),
       },
       {
         path: 'messages',

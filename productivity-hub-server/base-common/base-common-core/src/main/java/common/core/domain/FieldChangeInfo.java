@@ -7,7 +7,7 @@ package common.core.domain;
  * @date: 2025-11-27 18:25:59
  * @version: 1.0
  */
-class FieldChangeInfo {
+public class FieldChangeInfo {
     private String name;    // 字段中文名称
     private Object value;   // 字段值
     private String field;   // 字段英文名称

@@ -109,6 +109,7 @@ public class CursorShopServiceImpl implements CursorShopService {
             case 1:
                 return "紧张";
             case 2:
+            case 3:
                 return "充足";
             default:
                 return String.valueOf(stockState);

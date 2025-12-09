@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, markRaw, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '@/stores/config'
 import { useNavigationStore } from '@/stores/navigation'
@@ -12,12 +12,11 @@ import {
   Setting,
   MagicStick,
   Money,
-  TrendCharts
+  RefreshRight
 } from '@element-plus/icons-vue'
-import { toolApi, scheduleApi } from '@/services/api'
+import { toolApi, homeApi } from '@/services/api'
 import type { ToolStat } from '@/types/tools'
 import { toolList, toolMetaMap, type ToolMeta } from '@/data/tools'
-import type { HotSection } from '@/types/hotSections'
 
 const router = useRouter()
 const configStore = useConfigStore()
@@ -31,10 +30,12 @@ const location = ref<{ city?: string; province?: string; address?: string }>({
 const loadingLocation = ref(false)
 
 // 天气信息（默认郑州）
-const weather = ref<{ temp?: number; type?: string; desc?: string }>({
+const weather = ref<{ temp?: number; type?: string; desc?: string; wind?: string; humidity?: string }>({
   temp: 26,
   type: 'Clear',
   desc: '晴朗',
+  wind: '未知',
+  humidity: '未知',
 })
 const loadingWeather = ref(false)
 
@@ -66,6 +67,7 @@ interface SalaryDate {
   isToday: boolean
 }
 const salaryDates = ref<SalaryDate[]>([])
+const salaryPayDay = ref<number>(15) // 薪资发放日（每月的第几天，默认15号）
 const weekdaysCN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 // 中国法定节假日（2024-2025年）
@@ -93,41 +95,14 @@ const salaryBubbleVisible = ref(false)
 const salaryBubbleTimer = ref<number | null>(null)
 const salaryBubbleCooldownTimer = ref<number | null>(null)
 const salaryBubbleLocked = ref(false)
-const salaryBubbleText = '薪资+1'
+const salaryBubbleText = '薪资 +1'
 
 // 快捷工具列表（热门工具 Top5）
+const MAX_QUICK_TOOLS = 5
+const REQUIRED_QUICK_TOOL_IDS = ['blueprint']
 const quickTools = ref<ToolMeta[]>([])
 const toolStats = ref<ToolStat[]>([])
 const quickToolsLoading = ref(false)
-const MAX_QUICK_TOOLS = 5
-const REQUIRED_QUICK_TOOL_IDS = ['blueprint']
-
-// 热点数据
-const hotSections = ref<HotSection[]>([])
-const hotSectionsLoading = ref(false)
-const activeTab = ref<string>('')
-
-// 加载热点数据
-const loadHotSections = async () => {
-  hotSectionsLoading.value = true
-  try {
-    const sections = await scheduleApi.getHotSections()
-    hotSections.value = sections
-    // 设置默认激活的标签页
-    if (sections.length > 0 && !activeTab.value) {
-      activeTab.value = sections[0].name
-    }
-  } catch (error) {
-    ElMessage.error((error as Error)?.message ?? '热点数据加载失败')
-  } finally {
-    hotSectionsLoading.value = false
-  }
-}
-
-// 标签页切换处理
-const handleTabChange = (name: string) => {
-  activeTab.value = name
-}
 
 // 基于字符串动态生成颜色（确保相同名称总是得到相同颜色）
 const getTagColor = (name: string): string => {
@@ -165,7 +140,8 @@ const ensureQuickToolPresence = (tools: ToolMeta[]) => {
     if (!seen.has(id)) {
       const meta = toolMetaMap.get(id)
       if (meta) {
-        ensured.unshift(meta)
+        // 标记图标组件为 raw，避免响应式警告
+        ensured.unshift({ ...meta, icon: markRaw(meta.icon) })
         seen.add(id)
       }
     }
@@ -193,17 +169,57 @@ const getLunchBreakTime = () => {
   }
 }
 
-const updateQuickToolsFromStats = (stats: ToolStat[]) => {
-  const next: ToolMeta[] = []
-  for (const stat of stats) {
-    const meta = toolMetaMap.get(stat.id)
-    if (meta) {
-      next.push(meta)
+// 获取薪资发放日配置
+const getSalaryPayDay = () => {
+  const config = configStore.configs.find(
+    (c) => c.module === 'home' && c.key === 'salaryPayDay'
+  )
+  if (config) {
+    const day = parseInt(config.value, 10)
+    if (!isNaN(day) && day >= 1 && day <= 31) {
+      salaryPayDay.value = day
     }
+  }
+  // 配置更新后重新计算薪资发放日期
+  updateSalaryDates()
+}
+
+const updateQuickToolsFromStats = (stats: ToolStat[]) => {
+  // 过滤出热门工具（点击量>0），并按点击量降序排序
+  const hotStats = stats
+    .filter((stat) => stat.clicks > 0)
+    .sort((a, b) => b.clicks - a.clicks)
+  
+  const next: ToolMeta[] = []
+  const usedIds = new Set<string>()
+  
+  // 先添加热门工具
+  for (const stat of hotStats) {
     if (next.length >= MAX_QUICK_TOOLS) {
       break
     }
+    const meta = toolMetaMap.get(stat.id)
+    if (meta && !usedIds.has(meta.id)) {
+      // 标记图标组件为 raw，避免响应式警告
+      next.push({ ...meta, icon: markRaw(meta.icon) })
+      usedIds.add(meta.id)
+    }
   }
+  
+  // 如果热门工具不足，用默认工具补充
+  if (next.length < MAX_QUICK_TOOLS) {
+    for (const tool of toolList) {
+    if (next.length >= MAX_QUICK_TOOLS) {
+      break
+    }
+      if (!usedIds.has(tool.id)) {
+        // 标记图标组件为 raw，避免响应式警告
+        next.push({ ...tool, icon: markRaw(tool.icon) })
+        usedIds.add(tool.id)
+  }
+    }
+  }
+  
   quickTools.value = ensureQuickToolPresence(next)
 }
 
@@ -215,168 +231,109 @@ const loadHotToolStats = async () => {
     updateQuickToolsFromStats(stats)
   } catch (error) {
     ElMessage.error((error as Error)?.message ?? '热门工具加载失败')
-    quickTools.value = ensureQuickToolPresence(toolList.slice(0, MAX_QUICK_TOOLS))
+    const fallbackTools = toolList.slice(0, MAX_QUICK_TOOLS).map(tool => ({
+      ...tool,
+      icon: markRaw(tool.icon)
+    }))
+    quickTools.value = ensureQuickToolPresence(fallbackTools)
   } finally {
     quickToolsLoading.value = false
   }
 }
 
-// 获取地理位置
-const fetchLocation = async () => {
-  loadingLocation.value = true
-  try {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords
-          // 使用逆地理编码API获取地址（这里使用免费的API，实际项目中可能需要使用付费服务）
-          try {
-            const response = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`
-            )
-            if (response.ok) {
-              const data = await response.json()
-              location.value = {
-                city: data.city || data.locality || data.principalSubdivision || location.value.city || '郑州',
-                province: data.principalSubdivision || data.countryName || location.value.province || '河南省',
-                address: data.localityInfo?.administrative?.[0]?.name || data.countryName || location.value.address || '郑州市',
-              }
-            } else {
-              // 如果API失败，保持当前（默认郑州）地址
-              location.value = {
-                city: location.value.city || '郑州',
-                province: location.value.province || '河南省',
-                address: location.value.address || '郑州市',
-              }
-            }
-          } catch (error) {
-            // 如果API失败，保持当前（默认郑州）地址
-            location.value = {
-              city: location.value.city || '郑州',
-              province: location.value.province || '河南省',
-              address: location.value.address || '郑州市',
-            }
-          }
-          loadingLocation.value = false
-        },
-        (error) => {
-          // 定位失败，保留默认郑州地址
-          location.value = {
-            city: location.value.city || '郑州',
-            province: location.value.province || '河南省',
-            address: location.value.address || '郑州市',
-          }
-          loadingLocation.value = false
-        },
-        {
-          timeout: 10000,
-          enableHighAccuracy: false,
-        }
-      )
-    } else {
-      // 浏览器不支持定位，保留默认郑州地址
-      location.value = {
-        city: location.value.city || '郑州',
-        province: location.value.province || '河南省',
-        address: location.value.address || '郑州市',
-      }
-      loadingLocation.value = false
-    }
-  } catch (error) {
-    // 发生异常时保留默认郑州地址
-    location.value = {
-      city: location.value.city || '郑州',
-      province: location.value.province || '河南省',
-      address: location.value.address || '郑州市',
-    }
-    loadingLocation.value = false
-  }
-}
-
-// 通过IP获取位置（备用方案）
-const fetchLocationByIP = async () => {
-  try {
-    const response = await fetch('https://api.ipapi.com/json/?access_key=free')
-    if (response.ok) {
-      const data = await response.json()
-      location.value = {
-        city: data.city || location.value.city || '郑州',
-        province: data.region_name || data.country_name || location.value.province || '河南省',
-        address: data.country_name || location.value.address || '郑州市',
-      }
-    } else {
-      // 使用另一个免费IP定位API
-      const response2 = await fetch('https://ipapi.co/json/')
-      if (response2.ok) {
-        const data = await response2.json()
-        location.value = {
-          city: data.city || location.value.city || '郑州',
-          province: data.region || data.country_name || location.value.province || '河南省',
-          address: data.country_name || location.value.address || '郑州市',
-        }
-      } else {
-        // 保留默认郑州地址
-        location.value = {
-          city: location.value.city || '郑州',
-          province: location.value.province || '河南省',
-          address: location.value.address || '郑州市',
-        }
-      }
-    }
-  } catch {
-    // 保留默认郑州地址
-    location.value = {
-      city: location.value.city || '郑州',
-      province: location.value.province || '河南省',
-      address: location.value.address || '郑州市',
-    }
-  } finally {
-    loadingLocation.value = false
-  }
-}
-
-// 获取天气信息
+// 获取位置和天气信息（统一使用后端接口）
 const fetchWeather = async () => {
-  // 没有城市信息时默认使用郑州
-  if (!location.value.city || location.value.city === '未知') {
-    location.value.city = '郑州'
-    location.value.province = location.value.province || '河南省'
-  }
+  loadingLocation.value = true
   loadingWeather.value = true
   try {
-    // 这里使用免费的天气API，实际项目中可能需要使用付费服务
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${location.value.city}&appid=demo&units=metric&lang=zh_cn`
-    )
-    if (response.ok) {
-      const data = await response.json()
+    // 尝试从浏览器获取当前位置的经纬度
+    let latitude: number | undefined
+    let longitude: number | undefined
+    
+    if (navigator.geolocation) {
+      try {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              latitude = position.coords.latitude
+              longitude = position.coords.longitude
+              resolve()
+            },
+            () => {
+              // 定位失败，使用默认值（郑州）
+              resolve()
+            },
+            { timeout: 5000, enableHighAccuracy: false }
+          )
+        })
+      } catch {
+        // 定位失败，使用默认值
+      }
+    }
+    
+    // 调用后端天气接口（后端会根据经纬度自动获取位置和天气信息）
+    // 只传递有效的经纬度值，避免传递undefined
+    const params: { latitude?: number; longitude?: number } = {}
+    if (latitude !== undefined && longitude !== undefined) {
+      params.latitude = latitude
+      params.longitude = longitude
+    }
+    const weatherData = await homeApi.getWeather(params)
+    
+    if (weatherData) {
+      // 更新位置信息
+      location.value = {
+        city: weatherData.city || '郑州',
+        province: weatherData.province || '河南省',
+        address: weatherData.address || weatherData.city || '郑州市',
+      }
+      
+      // 更新天气信息
       weather.value = {
-        temp: Math.round(data.main.temp),
-        type: data.weather[0].main,
-        desc: data.weather[0].description,
+        temp: parseFloat(weatherData.temp) || 26,
+        type: weatherData.weather || '未知',
+        desc: weatherData.weather || '晴朗',
+        wind: weatherData.wind || '未知',
+        humidity: weatherData.humidity || '未知',
       }
     } else {
-      // 如果API失败，使用模拟数据
+      // 如果API失败，使用默认值
+      location.value = {
+        city: '郑州',
+        province: '河南省',
+        address: '郑州市',
+      }
       weather.value = {
-        temp: 36.5,
+        temp: 26,
         type: 'Clear',
         desc: '晴朗',
+        wind: '未知',
+        humidity: '未知',
       }
     }
-  } catch {
-    // 使用模拟数据
+  } catch (error) {
+    console.error('获取位置和天气信息失败:', error)
+    // 使用默认值
+    location.value = {
+      city: '郑州',
+      province: '河南省',
+      address: '郑州市',
+    }
     weather.value = {
-      temp: 36.5,
+      temp: 26,
       type: 'Clear',
       desc: '晴朗',
+      wind: '未知',
+      humidity: '未知',
     }
   } finally {
+    loadingLocation.value = false
     loadingWeather.value = false
   }
 }
 
 // 获取每日一签（带缓存，每天一换）
-const fetchDailyFortune = async () => {
+const fetchDailyFortune = async (forceRefresh = false) => {
   loadingFortune.value = true
   try {
     // 检查缓存
@@ -386,8 +343,8 @@ const fetchDailyFortune = async () => {
     const cachedDate = localStorage.getItem(cacheDateKey)
     const cachedFortune = localStorage.getItem(cacheKey)
     
-    // 如果缓存存在且是今天的，直接使用
-    if (cachedDate === today && cachedFortune) {
+    // 如果不强制刷新，且缓存存在且是今天的，直接使用
+    if (!forceRefresh && cachedDate === today && cachedFortune) {
       try {
         fortune.value = JSON.parse(cachedFortune)
         loadingFortune.value = false
@@ -397,29 +354,42 @@ const fetchDailyFortune = async () => {
       }
     }
     
-    // 使用免费的API获取每日一签
+    // 使用免费的API获取每日一签（带超时处理）
     const dateStr = today.replace(/-/g, '')
-    const response = await fetch(`https://api.vvhan.com/api/fortune?date=${dateStr}`)
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success && data.data) {
-        const fortuneData = {
-          name: data.data.name || '未知',
-          description: data.data.description || '今日运势良好',
-          advice: data.data.advice || '保持积极心态',
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5秒超时
+    
+    try {
+      const response = await fetch(`https://api.vvhan.com/api/fortune?date=${dateStr}`, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          const fortuneData = {
+            name: data.data.name || '未知',
+            description: data.data.description || '今日运势良好',
+            advice: data.data.advice || '保持积极心态',
+          }
+          fortune.value = fortuneData
+          // 保存到缓存
+          localStorage.setItem(cacheKey, JSON.stringify(fortuneData))
+          localStorage.setItem(cacheDateKey, today)
+          return
         }
-        fortune.value = fortuneData
-        // 保存到缓存
-        localStorage.setItem(cacheKey, JSON.stringify(fortuneData))
-        localStorage.setItem(cacheDateKey, today)
-      } else {
-        // 备用卦签数据
-        generateFallbackFortune()
       }
-    } else {
-      generateFallbackFortune()
+    } catch (error) {
+      clearTimeout(timeoutId)
+      // 静默处理错误，不输出到控制台
+      // 网络错误、超时等都会在这里被捕获
     }
-  } catch {
+    
+    // API 失败时使用备用方案
+    generateFallbackFortune()
+  } catch (error) {
+    // 静默处理所有错误，使用备用方案
     generateFallbackFortune()
   } finally {
     loadingFortune.value = false
@@ -449,6 +419,11 @@ const generateFallbackFortune = () => {
   const cacheDateKey = 'daily_fortune_date'
   localStorage.setItem(cacheKey, JSON.stringify(fortuneData))
   localStorage.setItem(cacheDateKey, today)
+}
+
+// 刷新每日一签
+const handleRefreshFortune = async () => {
+  await fetchDailyFortune(true)
 }
 
 // 格式化倒计时显示
@@ -547,12 +522,13 @@ const getNextWorkday = (date: Date): Date => {
   return next
 }
 
-// 计算薪资发放日期（每月15号，遇节假日顺延）
+// 计算薪资发放日期（使用配置的日期，遇节假日顺延）
 const calculateSalaryDate = (year: number, month: number): Date => {
-  // 创建当月15号的日期
-  const salaryDate = new Date(year, month - 1, 15)
+  // 创建当月配置日期的日期
+  const day = salaryPayDay.value
+  const salaryDate = new Date(year, month - 1, day)
   
-  // 如果15号不是工作日，顺延到下一个工作日
+  // 如果配置日期不是工作日，顺延到下一个工作日
   if (!isWorkday(salaryDate)) {
     return getNextWorkday(salaryDate)
   }
@@ -660,6 +636,11 @@ watch(lunchCountdown, (newVal, oldVal) => {
   void triggerSalaryBubble()
 })
 
+// 监听配置变化，更新薪资发放日
+watch(() => configStore.configs, () => {
+  getSalaryPayDay()
+}, { deep: true })
+
 // 天气图标（Element Plus可能没有专门的天气图标，统一使用Sunny）
 const weatherIcon = computed(() => Sunny)
 
@@ -672,14 +653,21 @@ const navigateToTool = (path: string) => {
 }
 
 onMounted(async () => {
+  // 配置加载失败不影响页面显示
   await configStore.fetchConfigs()
   getOffWorkTime()
   getLunchBreakTime()
+  getSalaryPayDay()
+  // 先设置默认工具，确保页面有内容显示
+  const defaultTools = toolList.slice(0, MAX_QUICK_TOOLS).map(tool => ({
+    ...tool,
+    icon: markRaw(tool.icon)
+  }))
+  quickTools.value = ensureQuickToolPresence(defaultTools)
+  // 然后加载热门工具并更新
   void loadHotToolStats()
-  await fetchLocation()
   await fetchWeather()
   await fetchDailyFortune()
-  await loadHotSections()
   calculateCountdown()
   calculateLunchCountdown()
   updateSalaryDates()
@@ -713,74 +701,98 @@ onUnmounted(() => {
   <div class="home-container">
     <!-- 顶部信息卡片 -->
     <div class="info-cards">
-      <!-- 当前位置 & 天气综合卡片 -->
-      <el-card class="info-card location-weather-card" shadow="hover">
-        <template #header>
-          <div class="card-header">
-            <el-icon><Location /></el-icon>
-            <span>当前位置 & 天气</span>
-          </div>
-        </template>
-        <el-skeleton :loading="loadingLocation || loadingWeather" animated>
-          <template #default>
-            <div class="location-weather-content">
-              <!-- 左侧：位置 -->
-              <div class="location-block">
-                <div class="sub-label">当前城市</div>
-                <div class="location-main">
-                  {{ location.city || '郑州' }}
-                  <span class="location-province">{{ location.province || '河南省' }}</span>
-                </div>
-                <div class="location-detail">{{ location.address || '郑州市' }}</div>
-              </div>
-              <!-- 右侧：天气 -->
-              <div class="weather-block">
-                <div class="sub-label sub-label-right">实时天气</div>
-                <div class="weather-top">
-                  <el-icon class="weather-icon">
-                    <component :is="weatherIcon" />
-                  </el-icon>
-                  <div class="weather-temp">{{ weather.temp ?? 26 }}°C</div>
-                </div>
-                <div class="weather-desc">{{ weather.desc || '晴朗' }}</div>
-              </div>
+      <div class="info-left-column">
+        <!-- 当前位置 & 天气综合卡片 -->
+        <el-card class="info-card location-weather-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <el-icon><Location /></el-icon>
+              <span>当前位置 & 天气</span>
             </div>
           </template>
-        </el-skeleton>
-      </el-card>
+          <el-skeleton :loading="loadingLocation || loadingWeather" animated>
+            <template #default>
+              <div class="location-weather-content">
+                <!-- 左侧：位置 -->
+                <div class="location-block">
+                  <div class="sub-label">当前城市</div>
+                  <div class="location-main">
+                    {{ location.city || '郑州' }}
+                    <span class="location-province">{{ location.province || '河南省' }}</span>
+                  </div>
+                  <div class="location-detail">{{ location.address || '郑州市' }}</div>
+                </div>
+                <!-- 右侧：天气 -->
+                <div class="weather-block">
+                  <div class="sub-label sub-label-right">实时天气</div>
+                  <div class="weather-top">
+                    <el-icon class="weather-icon">
+                      <component :is="weatherIcon" />
+                    </el-icon>
+                    <div class="weather-temp">{{ weather.temp ?? 26 }}°C</div>
+                  </div>
+                  <div class="weather-desc">{{ weather.desc || '晴朗' }}</div>
+                  <div class="weather-details">
+                    <div class="weather-detail-item">
+                      <span class="weather-detail-label">风力</span>
+                      <span class="weather-detail-value">{{ weather.wind || '未知' }}</span>
+                    </div>
+                    <div class="weather-detail-item">
+                      <span class="weather-detail-label">湿度</span>
+                      <span class="weather-detail-value">{{ weather.humidity || '未知' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </el-skeleton>
+        </el-card>
 
-      <!-- 每日一签卡片 -->
-      <el-card class="info-card fortune-card" shadow="hover">
-        <template #header>
-          <div class="card-header">
-            <el-icon><MagicStick /></el-icon>
-            <span>每日一签</span>
-          </div>
-        </template>
-        <el-skeleton :loading="loadingFortune" animated>
-          <template #default>
-            <div class="fortune-content">
-              <div class="fortune-name">{{ fortune.name || '加载中...' }}</div>
-              <div class="fortune-description">{{ fortune.description || '' }}</div>
-              <div class="fortune-advice">{{ fortune.advice || '' }}</div>
+        <!-- 每日一签卡片 -->
+        <el-card class="info-card fortune-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <div class="card-header-left">
+                <el-icon><MagicStick /></el-icon>
+                <span>每日一签</span>
+              </div>
+              <el-button
+                class="refresh-btn"
+                :icon="RefreshRight"
+                circle
+                size="small"
+                :loading="loadingFortune"
+                @click="handleRefreshFortune"
+              />
             </div>
           </template>
-        </el-skeleton>
-      </el-card>
+          <el-skeleton :loading="loadingFortune" animated>
+            <template #default>
+              <div class="fortune-content">
+                <div class="fortune-name">{{ fortune.name || '加载中...' }}</div>
+                <div class="fortune-description">{{ fortune.description || '' }}</div>
+                <div class="fortune-advice">{{ fortune.advice || '' }}</div>
+              </div>
+            </template>
+          </el-skeleton>
+        </el-card>
+      </div>
 
       <!-- 午休 & 下班时间模块 -->
       <el-card class="info-card countdown-card combined-countdown-card" shadow="hover">
         <template #header>
-          <div class="card-header">
-            <el-icon><Clock /></el-icon>
-            <span>时间助手</span>
+          <div class="card-header countdown-header">
+            <div class="card-header-left">
+              <el-icon><Clock /></el-icon>
+              <span>时间助手</span>
+            </div>
+            <transition name="salary-bubble">
+              <div v-if="salaryBubbleVisible" class="salary-bubble">
+                {{ salaryBubbleText }}
+              </div>
+            </transition>
           </div>
         </template>
-        <transition name="salary-bubble">
-          <div v-if="salaryBubbleVisible" class="salary-bubble">
-            {{ salaryBubbleText }}
-          </div>
-        </transition>
         <!-- 周末加班提示 -->
         <div v-if="isTodayWeekend" class="weekend-overtime-tip">
           加班辛苦了 💪
@@ -845,105 +857,45 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+
+        <!-- 快捷工具入口（迁移到时间助手卡片内） -->
+        <div class="quick-tools-section">
+          <el-divider />
+          <div class="quick-tools-header">
+            <div class="card-header-left">
+              <el-icon><Tools /></el-icon>
+              <span>快捷工具</span>
+            </div>
+          </div>
+          <div v-if="quickToolsLoading">
+            <el-skeleton :rows="2" animated />
+          </div>
+          <div v-else-if="quickTools.length" class="tools-grid">
+            <div
+              v-for="tool in quickTools"
+              :key="tool.path"
+              class="tool-item"
+              @click="navigateToTool(tool.path)"
+            >
+              <el-icon class="tool-icon">
+                <component :is="tool.icon" />
+              </el-icon>
+              <span class="tool-name">{{ tool.name }}</span>
+            </div>
+          </div>
+          <div
+            v-else
+            class="tool-empty"
+            @click="router.push('/tools')"
+          >
+            <el-icon><Setting /></el-icon>
+            <span>暂无热门工具，前往工具广场看看</span>
+            <div class="tool-empty-hint">当前暂无热门数据，请稍后再试</div>
+          </div>
+        </div>
       </el-card>
     </div>
 
-    <!-- 热点数据卡片 -->
-    <el-card class="hot-sections-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <el-icon><TrendCharts /></el-icon>
-          <span>热点速览</span>
-        </div>
-      </template>
-      <el-skeleton :loading="hotSectionsLoading" :rows="5" animated>
-        <template #default>
-          <el-tabs
-            v-if="hotSections.length > 0"
-            v-model="activeTab"
-            type="card"
-            class="hot-tabs"
-            @tab-change="handleTabChange"
-          >
-            <el-tab-pane
-              v-for="section in hotSections"
-              :key="section.name"
-              :name="section.name"
-            >
-              <template #label>
-                <span class="tab-label">
-                  <el-tag
-                    effect="plain"
-                    size="small"
-                    class="tab-tag"
-                  >
-                    {{ section.name }}
-                  </el-tag>
-                </span>
-              </template>
-              <div class="hot-items-list">
-                <a
-                  v-for="(item, index) in section.items"
-                  :key="index"
-                  :href="item.link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="hot-item"
-                >
-                  <div class="hot-item-content">
-                    <div class="hot-item-title">
-                      <span class="hot-item-index">{{ index + 1 }}</span>
-                      <span class="hot-item-text">{{ item.title }}</span>
-                    </div>
-                    <div v-if="item.heat" class="hot-item-heat">{{ item.heat }}</div>
-                  </div>
-                  <div v-if="item.desc" class="hot-item-desc">{{ item.desc }}</div>
-                </a>
-              </div>
-            </el-tab-pane>
-          </el-tabs>
-          <div v-else class="hot-sections-empty">
-            <el-icon><TrendCharts /></el-icon>
-            <span>暂无热点数据</span>
-          </div>
-        </template>
-      </el-skeleton>
-    </el-card>
-
-    <!-- 快捷工具入口 -->
-    <el-card class="tools-card" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <el-icon><Tools /></el-icon>
-          <span>快捷工具</span>
-        </div>
-      </template>
-      <template v-if="quickToolsLoading">
-        <el-skeleton :rows="2" animated />
-      </template>
-      <div v-else-if="quickTools.length" class="tools-grid">
-        <div
-          v-for="tool in quickTools"
-          :key="tool.path"
-          class="tool-item"
-          @click="navigateToTool(tool.path)"
-        >
-          <el-icon class="tool-icon">
-            <component :is="tool.icon" />
-          </el-icon>
-            <span class="tool-name">{{ tool.name }}</span>
-        </div>
-      </div>
-      <div
-        v-else
-        class="tool-empty"
-        @click="router.push('/tools')"
-      >
-        <el-icon><Setting /></el-icon>
-        <span>暂无热门工具，前往工具广场看看</span>
-        <div class="tool-empty-hint">当前暂无热门数据，请稍后再试</div>
-      </div>
-    </el-card>
   </div>
 </template>
 
@@ -964,6 +916,29 @@ onUnmounted(() => {
   display: flex;
   gap: 24px;
   align-items: stretch;
+  flex-wrap: nowrap;
+}
+
+.info-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 0 0 360px;
+  min-width: 320px;
+}
+
+.combined-countdown-card {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 1200px) {
+  .info-cards {
+    flex-direction: column;
+  }
+
+  .info-left-column {
+    flex: 1 1 auto;
+  }
 }
 
 .info-card {
@@ -983,13 +958,37 @@ onUnmounted(() => {
 .card-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   font-weight: 600;
   color: #1e1b4b;
 }
 
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .card-header .el-icon {
   font-size: 18px;
+}
+
+.refresh-btn {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.refresh-btn:active {
+  transform: rotate(180deg);
 }
 
 .location-content {
@@ -1016,8 +1015,8 @@ onUnmounted(() => {
 
 .location-weather-card {
   position: relative;
-  overflow: hidden;
-  flex: 0 0 280px;
+  overflow: visible;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
@@ -1043,72 +1042,78 @@ onUnmounted(() => {
 
 .location-weather-content {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: stretch;
-  justify-content: space-between;
-  gap: 24px;
+  gap: 28px;
   padding-top: 4px;
 }
 
 .location-block {
-  flex: 1.4;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+  width: 100%;
+  padding-bottom: 4px;
 }
 
 .location-main {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
   color: #0f172a;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 12px;
+  line-height: 1.3;
 }
 
 .location-province {
-  font-size: 14px;
-  color: #4b5563;
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .location-detail {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-top: 4px;
 }
 
 .sub-label {
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #6b7280;
-  margin-bottom: 4px;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .sub-label-right {
-  text-align: right;
+  text-align: left;
 }
 
 .weather-block {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 6px;
-  padding-left: 16px;
-  border-left: 1px dashed rgba(148, 163, 184, 0.6);
+  align-items: flex-start;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  width: 100%;
 }
 
 .weather-top {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 2px;
 }
 
 .weather-icon {
-  font-size: 24px;
+  font-size: 28px;
   color: #f59e0b;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2));
 }
 
 .weather-content {
@@ -1118,36 +1123,74 @@ onUnmounted(() => {
 }
 
 .weather-temp {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   color: #6366f1;
   background: linear-gradient(135deg, #4f46e5 0%, #2563eb 40%, #f97316 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1;
+  letter-spacing: -0.5px;
 }
 
 .weather-desc {
-  font-size: 16px;
-  color: #374151;
+  font-size: 15px;
+  color: #475569;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.weather-details {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  width: 100%;
+}
+
+.weather-detail-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.weather-detail-label {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.weather-detail-value {
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {
   .location-weather-content {
-    flex-direction: column;
-    gap: 12px;
+    gap: 24px;
+  }
+
+  .location-main {
+    font-size: 28px;
   }
 
   .weather-block {
-    align-items: flex-start;
-    border-left: none;
-    border-top: 1px dashed rgba(148, 163, 184, 0.6);
-    padding-left: 0;
-    padding-top: 12px;
+    padding-top: 20px;
   }
 
-  .sub-label-right {
-    text-align: left;
+  .weather-details {
+    flex-direction: column;
+    gap: 12px;
   }
 }
 
@@ -1276,6 +1319,19 @@ onUnmounted(() => {
   color: #475569;
 }
 
+.countdown-header {
+  position: relative;
+  min-height: 32px;
+}
+
+.countdown-header .salary-bubble {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 .lunch-block .countdown-time {
   background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
   -webkit-background-clip: text;
@@ -1289,8 +1345,6 @@ onUnmounted(() => {
 
 .salary-bubble {
   position: absolute;
-  top: 18px;
-  right: 24px;
   background: rgba(99, 102, 241, 0.18);
   color: #312e81;
   border-radius: 999px;
@@ -1327,7 +1381,7 @@ onUnmounted(() => {
 .salary-bubble-enter-from,
 .salary-bubble-leave-to {
   opacity: 0;
-  transform: translateY(-10px) scale(0.95);
+  transform: translateY(calc(-50% - 10px)) scale(0.95);
 }
 
 .weekend-overtime-tip {
@@ -1471,29 +1525,30 @@ onUnmounted(() => {
   }
 }
 
-.tools-card {
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.16), transparent 55%),
-    rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+.quick-tools-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.quick-tools-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }
 
 .tool-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 20px;
+  gap: 12px;
+  padding: 14px 16px;
   border-radius: 12px;
   border: 1px solid rgba(99, 102, 241, 0.12);
   cursor: pointer;
@@ -1508,7 +1563,7 @@ onUnmounted(() => {
 }
 
 .tool-icon {
-  font-size: 32px;
+  font-size: 28px;
   color: #6366f1;
 }
 
@@ -1547,207 +1602,9 @@ onUnmounted(() => {
   text-align: center;
 }
 
-.hot-sections-card {
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.1), transparent 55%),
-    rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
-}
-
-.hot-tabs {
-  margin-top: -8px;
-}
-
-.hot-tabs :deep(.el-tabs__header) {
-  margin-bottom: 20px;
-  border-bottom: 2px solid rgba(148, 163, 184, 0.15);
-}
-
-.hot-tabs :deep(.el-tabs__nav-wrap) {
-  margin-bottom: 0;
-}
-
-.hot-tabs :deep(.el-tabs__item) {
-  height: 44px;
-  line-height: 44px;
-  padding: 0 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  border: none;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.hot-tabs :deep(.el-tabs__item:hover) {
-  color: #475569;
-}
-
-.hot-tabs :deep(.el-tabs__item.is-active) {
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.hot-tabs :deep(.el-tabs__active-bar) {
-  height: 3px;
-  border-radius: 2px 2px 0 0;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-}
-
-.tab-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tab-tag {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  transition: all 0.2s ease;
-  color: #64748b;
-  background-color: #f1f5f9;
-}
-
-.tab-tag :deep(.el-tag__content) {
-  color: inherit;
-}
-
-.hot-tabs :deep(.el-tabs__item.is-active .tab-tag) {
-  background-color: #6366f1;
-  color: #ffffff !important;
-  border-color: #6366f1;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
-}
-
-.hot-tabs :deep(.el-tabs__item.is-active .tab-tag .el-tag__content) {
-  color: #ffffff !important;
-}
-
-.hot-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.hot-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  background: rgba(255, 255, 255, 0.6);
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.hot-item:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.3);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-}
-
-.hot-item-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.hot-item-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.hot-item-index {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.hot-item-text {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-  color: #0f172a;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.hot-item-heat {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: #f97316;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.hot-item-desc {
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  margin-top: 4px;
-  padding-left: 28px;
-}
-
-.hot-sections-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px 20px;
-  color: #64748b;
-}
-
-.hot-sections-empty .el-icon {
-  font-size: 48px;
-  color: #cbd5e1;
-}
-
 @media (max-width: 768px) {
   .info-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .tools-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  }
-
-  .hot-tabs :deep(.el-tabs__item) {
-    padding: 0 12px;
-    font-size: 13px;
+    flex-direction: column;
   }
 }
 </style>

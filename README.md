@@ -16,15 +16,16 @@
 ## ✨ 功能特性
 
 ### 🏠 首页
-- **时间助手**：实时倒计时、薪资计算、周末加班提示
-- **天气信息**：基于地理位置显示当前天气
-- **每日运势**：个性化运势展示
-- **热点速览**：技术热点数据聚合展示
-- **快捷工具**：常用工具快速访问（Top 5）
+- **时间助手**：下班/午休倒计时、薪资日提醒、周末加班提示
+- **天气信息**：基于地理位置显示实时天气
+- **每日运势**：个性化运势与建议
+- **热点速览**：技术/资讯热点分组展示，可按标签切换
+- **快捷工具**：热门工具 Top5 一键直达
 
 ### 🛠️ 工具箱
 提供多种实用工具，包括：
 - **AI成长蓝图**：AI架构师成长路线可视化
+- **Git 工具箱速查**：提交规范与常用命令速览
 - **今天吃什么**：美食转盘决策工具
 - **JSON格式化**：格式化、验证、压缩JSON数据
 - **时间转换**：时间戳与日期时间相互转换
@@ -35,6 +36,10 @@
 - **YAML格式检查**：校验YAML并提示错误位置
 - **工作日计算**：计算工作日、节假日判断
 - **Cursor商店库存**：Cursor商店商品库存查询
+- **图片 Base64 编码**：图片转 Base64 字符串
+- **SQL 格式化**：格式化/压缩 SQL，关键字大小写切换
+- **单位换算**：长度、面积、体积、时间、角度、速度、温度、压力、能量、功率等换算
+- **低代码生成器**：多数据源表解析、模板管理，一键生成代码/ZIP
 
 ### 🤖 智能体管理
 - 智能体列表展示
@@ -285,12 +290,16 @@ common:
 
 ### 首页相关
 
+- `GET /api/home/weather` - 获取天气信息
 - `GET /api/home/hot-sections` - 获取热点数据
+- `GET /api/home/hot-sections/names` - 获取热点标签列表
+- `GET /api/home/hot-sections/section` - 获取指定标签热点
 
 ### 工具相关
 
 - `GET /api/tools/stats` - 获取工具使用统计
 - `POST /api/tools/track` - 记录工具使用
+- `GET /api/tools/cursor-shop/commodities` - 获取商品库存
 
 ### 智能体相关
 
@@ -312,13 +321,26 @@ common:
 
 ### Cursor商店相关
 
-- `GET /api/cursor-shop/inventory` - 获取商品库存
+- `GET /api/tools/cursor-shop/commodities` - 获取商品库存
+
+### 低代码生成相关
+
+- `GET /api/code-generator/templates` - 查询模板列表
+- `POST /api/code-generator/templates` - 新增/更新模板
+- `DELETE /api/code-generator/templates/{id}` - 删除模板
+- `GET /api/code-generator/database-configs` - 查询数据库配置列表
+- `POST /api/code-generator/database-configs` - 新增/更新数据库配置
+- `DELETE /api/code-generator/database-configs/{id}` - 删除数据库配置
+- `POST /api/code-generator/parse-table` - 解析表结构
+- `POST /api/code-generator/generate` - 生成代码（返回文件列表）
+- `POST /api/code-generator/generate/zip` - 生成代码压缩包
 
 ## 🛠️ 工具列表
 
 | 工具名称 | 路径 | 描述 |
 |---------|------|------|
 | AI成长蓝图 | `/tools/blueprint` | AI架构师成长路线可视化 |
+| Git 工具箱速查 | `/tools/git-toolbox` | 提交规范与常用命令 |
 | 今天吃什么 | `/tools/food` | 美食转盘决策工具 |
 | JSON格式化 | `/tools/json` | 格式化、验证、压缩JSON数据 |
 | 时间转换 | `/tools/time` | 时间戳与日期时间相互转换 |
@@ -329,6 +351,10 @@ common:
 | YAML格式检查 | `/tools/yaml` | YAML格式校验 |
 | 工作日计算 | `/tools/workday` | 工作日和节假日计算 |
 | Cursor商店库存 | `/tools/cursor-shop` | Cursor商店商品查询 |
+| 图片 Base64 编码 | `/tools/image-base64` | 图片转 Base64 字符串 |
+| SQL 格式化 | `/tools/sql-formatter` | SQL 格式化/压缩与关键字大小写切换 |
+| 单位换算 | `/tools/unit-converter` | 常用物理量单位换算 |
+| 低代码生成器 | `/code-generator` | 数据库解析、模板管理、代码一键生成 |
 
 ## 🤝 贡献
 

@@ -110,4 +110,38 @@ public class RedisUtil {
     public void refreshExpiration(String key, long timeout, TimeUnit timeUnit) {
         redisTemplate.expire(key, timeout, timeUnit);
     }
+
+    /**
+     * 递增操作（原子操作）
+     *
+     * @param key 键值
+     * @return 递增后的值
+     */
+    public Long increment(String key) {
+        return redisTemplate.opsForValue().increment(key);
+    }
+
+    /**
+     * 递增操作（原子操作），并设置过期时间
+     *
+     * @param key 键值
+     * @param timeout 过期时间
+     * @param timeUnit 时间单位
+     * @return 递增后的值
+     */
+    public Long increment(String key, long timeout, TimeUnit timeUnit) {
+        Long value = redisTemplate.opsForValue().increment(key);
+        redisTemplate.expire(key, timeout, timeUnit);
+        return value;
+    }
+
+    /**
+     * 获取所有匹配的key
+     *
+     * @param pattern 匹配模式
+     * @return key集合
+     */
+    public java.util.Set<String> keys(String pattern) {
+        return redisTemplate.keys(pattern);
+    }
 }

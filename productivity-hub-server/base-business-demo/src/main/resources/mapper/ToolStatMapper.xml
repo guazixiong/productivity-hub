@@ -44,5 +44,17 @@
         WHERE id = #{toolId}
     </update>
 
+    <!-- 批量更新或插入工具统计 -->
+    <insert id="batchUpsert">
+        INSERT INTO sys_tool_stat (id, tool_name, clicks, created_at, updated_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.toolName}, #{item.clicks}, NOW(), NOW())
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            clicks = VALUES(clicks),
+            updated_at = NOW()
+    </insert>
+
 </mapper>
 

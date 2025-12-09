@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNavigationStore } from '@/stores/navigation'
-import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft } from '@element-plus/icons-vue'
+import { useTabsStore } from '@/stores/tabs'
+import TabsView from '@/components/TabsView.vue'
+import ChatWidget from '@/components/ChatWidget.vue'
+import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import logoIcon from '@/assets/logo.svg'
 
@@ -11,13 +14,16 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const navigationStore = useNavigationStore()
+const tabsStore = useTabsStore()
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/home')) return '/home'
+  if (route.path.startsWith('/hot-sections')) return '/hot-sections'
   if (route.path.startsWith('/config')) return '/config'
   if (route.path.startsWith('/messages')) return '/messages'
   if (route.path.startsWith('/tools')) return '/tools'
   if (route.path.startsWith('/agents')) return '/agents'
+  if (route.path.startsWith('/code-generator')) return '/code-generator'
   return route.path
 })
 
@@ -31,8 +37,14 @@ const defaultOpenMenus = computed(() => {
   return openeds
 })
 
+// 左上角 Logo 点击返回首页
+const handleLogoClick = () => {
+  router.push('/home')
+}
+
 const handleLogout = () => {
   authStore.logout()
+  tabsStore.clearTabs()
   router.replace({ name: 'Login' })
 }
 
@@ -86,6 +98,16 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
+  // 一级菜单：低代码生成
+  if (path === '/code-generator') {
+    return true
+  }
+  
+  // 一级菜单：热点速览
+  if (path === '/hot-sections') {
+    return true
+  }
+  
   // 二级菜单项：消息推送下的页面
   if (path === '/messages' || path.startsWith('/messages/')) {
     return true
@@ -109,12 +131,52 @@ const showBackButton = computed(() => {
   return !isSubMenuPage(route.path)
 })
 
+// 监听路由变化，自动添加标签页
+watch(
+  () => route.fullPath,
+  (newPath, oldPath) => {
+    // 排除登录页和404页
+    if (!route.meta?.public && route.name !== 'NotFound') {
+      tabsStore.addTab(route)
+    }
+  },
+  { immediate: true }
+)
+
+// 组件挂载时，如果当前路由不是登录页，添加标签页
+onMounted(() => {
+  if (!route.meta?.public && route.name !== 'NotFound') {
+    tabsStore.addTab(route)
+  }
+})
+
+// 获取需要缓存的组件名称列表
+// 注意：keep-alive 的 include 需要匹配组件的 name 选项
+// 对于使用 <script setup> 的组件，如果没有显式设置 name，Vue 会使用文件名
+// 这里我们使用路由的 name，需要确保路由的 name 与组件的 name 一致
+// 如果组件没有 name，keep-alive 可能无法正确缓存，所以这里我们缓存所有标签页
+const cachedViews = computed(() => {
+  // 返回所有标签页的路由名称，用于 keep-alive 的 include
+  // 如果路由没有 name，则尝试从路径推断组件名
+  return tabsStore.tabs
+    .filter(tab => tab.meta?.keepAlive !== false)
+    .map(tab => {
+      if (tab.name) {
+        return tab.name
+      }
+      // 如果没有 name，尝试从路径推断（例如 /tools/json -> JsonFormatter）
+      // 但这种方式不可靠，最好确保路由都有 name
+      return tab.path.split('/').filter(Boolean).join('-') || 'default'
+    })
+    .filter(Boolean) as string[]
+})
+
 </script>
 
 <template>
   <el-container class="layout-shell">
     <el-aside width="228px" class="layout-aside">
-      <div class="logo">
+      <div class="logo" @click="handleLogoClick">
         <img :src="logoIcon" alt="工作台" class="logo-icon" />
         <span>工作台</span>
       </div>
@@ -131,6 +193,10 @@ const showBackButton = computed(() => {
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
+        <el-menu-item index="/hot-sections">
+          <el-icon><TrendCharts /></el-icon>
+          <span>热点速览</span>
+        </el-menu-item>
         <el-menu-item index="/messages">
           <el-icon><Message /></el-icon>
           <span>消息推送</span>
@@ -142,6 +208,10 @@ const showBackButton = computed(() => {
         <el-menu-item index="/agents">
           <el-icon><Cpu /></el-icon>
           <span>智能体调用</span>
+        </el-menu-item>
+        <el-menu-item index="/code-generator">
+          <el-icon><Document /></el-icon>
+          <span>低代码生成</span>
         </el-menu-item>
         <el-sub-menu index="/settings">
           <template #title>
@@ -193,10 +263,21 @@ const showBackButton = computed(() => {
           </el-dropdown>
         </div>
       </el-header>
+      <TabsView />
       <el-main class="layout-main">
-        <RouterView />
+        <router-view v-slot="{ Component, route: currentRoute }">
+          <keep-alive>
+            <component 
+              :is="Component" 
+              :key="currentRoute.fullPath"
+              v-if="Component"
+            />
+          </keep-alive>
+        </router-view>
       </el-main>
     </el-container>
+    <!-- 全局聊天组件 -->
+    <ChatWidget />
   </el-container>
 </template>
 
@@ -227,6 +308,7 @@ const showBackButton = computed(() => {
   font-size: 20px;
   padding: 28px 24px 20px;
   letter-spacing: 0.3px;
+  cursor: pointer;
 }
 
 .logo-icon {
