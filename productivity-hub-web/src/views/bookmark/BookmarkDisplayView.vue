@@ -208,28 +208,9 @@ onMounted(() => {
 
 <style scoped>
 .bookmark-display-view {
-  padding: 32px;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
-    linear-gradient(135deg, #fafbfc 0%, #f5f7fa 50%, #f0f4f8 100%);
-  min-height: calc(100vh - 64px);
-  position: relative;
-  overflow: hidden;
-}
-
-.bookmark-display-view::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(99, 102, 241, 0.02) 2px, rgba(99, 102, 241, 0.02) 4px);
-  pointer-events: none;
-  opacity: 0.5;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .main-card {

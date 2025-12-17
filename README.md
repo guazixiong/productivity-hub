@@ -302,24 +302,16 @@ npm run build
 
 ### v1.0（规划 & TODO）
 
-- [ ] **服务拆分**
-  - [ ] 基本服务
-  - [ ] 三方服务
-  - [ ] AI 服务
-
-- [ ] **全局 API 暴露（v1.0）**
-  - [ ] 消息推送
-  - [ ] 智能体调用
-  - [ ] ……（后续能力补充）
-
 - [ ] **TODO 任务（v1.0）**
   - [ ] 基本管理：支持 Markdown
+- [ ] 消息中心界面
 
 #### 中台能力（v1.0）
 
 - [ ] **热点速览**
+  
   - 生活区与技术区两类数据源，按需加载，切换标签后再拉取数据
-
+  
   | 区域 | 数据源   | 请求示例                                                     |
   | ---- | -------- | ------------------------------------------------------------ |
   | 生活 | 吾爱破解 | `GET https://api.rebang.today/v1/items?tab=52pojie&sub_tab=today&date_type=now&page=1&version=1` |
@@ -329,66 +321,71 @@ npm run build
   | 技术 | GitHub   | `GET https://api.rebang.today/v1/items?tab=github&sub_tab=all&date_type=daily&chinese=false&page=1&version=1` |
   | 技术 | CSDN     | `GET https://api.rebang.today/v1/items?tab=csdn&sub_tab=blog&page=1&version=1` |
   | 技术 | V2EX     | `GET https://api.rebang.today/v1/items?tab=top&sub_tab=lasthour&page=1&version=1` |
-
+  
   示例返回（首条截取，更多见接口返回）：
-
+  
   - 吾爱破解
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"2270aa39f8f94291a64bc3cfdbf9435c\",\"title\":\"图像透视矫正 v1.0\"}]"}}
   ```
-
+  
   - 技术期刊
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"40eeef15024fc3a47edc42a0bf0a9a6d\",\"title\":\"“我曾想付钱给 Google 去工作”—— Russ Cox 深度访谈\"}]"}}
   ```
-
+  
   - 掘金
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"3f588dccffb8c2085779fc71202a4304\",\"title\":\"vue也支持声明式UI了\"}]"}}
   ```
-
+  
   - infoQ
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"3d01a3faa3951edc07edd0bfcd4f2630\",\"title\":\"1122人干出“国产GPU”第一股\"}]"}}
   ```
-
+  
   - GitHub
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"045b6eeb6c84c0ae0dc13f52264f07cd\",\"title\":\"kaiju\"}]"}}
   ```
-
+  
   - CSDN
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"9614e8f1d5928378e753527701ed2769\",\"title\":\"【中草药识别系统】Python+TensorFlow+Django...\"}]"}}
   ```
-
+  
   - V2EX
-
+  
   ```json
   {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"2459573d61fdab6e9e7938540ae8256e\",\"title\":\"如何看待「BBA 车主最后的体面被一份盒饭击溃」的说法？\"}]"}}
   ```
-
+  
 - [ ] **热点速览优化**
   - 进入页面后仅加载当前标签数据，切换时再请求
   - 点击后弹出 iframe 弹窗展示 URL 内容，避免新标签页跳转
 
 - [ ] **消息通知**
+  
   - 前端：头像旁新增小铃铛消息提示
-  - 通信：前后端使用 WebSocket
-  - 触发：Cursor 邮箱自助小店库存定时任务；库存 < 10 时自动推送
-  - 交互：点击通知跳转至库存工具查看详情
-
+  - 通信：前后端使用 WebSocket进行消息通信.
+  
 - [ ] **安全**
+  
   - 全局敏感信息加密
-
+  
 - [ ] **权限认证**
   - 全局接口使用 `userId` 入参，可直接获取当前请求用户
+  
+- [ ] 定时任务管理
+
+  - [ ] 开关
+
 
 ### v2.0（规划 & TODO）
 

@@ -330,13 +330,13 @@ watch(
 .chat-toggle-button {
   width: 56px;
   height: 56px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
   transition: all 0.3s ease;
 }
 
 .chat-toggle-button:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
 }
 
 .chat-window {
@@ -346,14 +346,14 @@ watch(
   flex-direction: column;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.6);
 }
 
 .chat-window :deep(.el-card__header) {
   padding: 16px 20px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .chat-window :deep(.el-card__body) {
@@ -383,7 +383,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--brand-gradient);
   border-radius: 10px;
   color: white;
 }
@@ -553,7 +553,7 @@ watch(
 }
 
 .chat-message-user .message-text {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
   color: white;
   border-bottom-right-radius: 4px;
 }

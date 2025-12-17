@@ -151,125 +151,88 @@
             <div v-if="urlGroups.length === 0" class="empty-state">
               <el-empty description="暂无网址，点击上方按钮添加" />
             </div>
-            <div v-else>
+            <div v-else class="main-content-layout">
+              <!-- 左侧：网址卡片网格 -->
+              <div class="url-content-area">
+                <div v-if="currentGroup" class="group-header">
+                  <h3>{{ currentGroup.parentTag.name }}</h3>
+                  <span class="group-count">共 {{ getGroupUrlCount(currentGroup) }} 个网址</span>
+                </div>
+                <div v-if="!currentGroup" class="empty-state">
+                  <el-empty description="请从左侧选择一个标签查看网址" />
+                </div>
+                <div v-else class="url-grid">
+                  <div
+                    v-for="url in getDisplayUrls()"
+                    :key="url.id"
+                    class="url-card"
+                    @click="handleUrlClick(url.url)"
+                  >
+                    <div class="url-icon">
+                      <img v-if="url.iconUrl" :src="url.iconUrl" :alt="url.title" />
+                      <el-icon v-else><Link /></el-icon>
+                    </div>
+                    <div class="url-info">
+                      <div class="url-title">{{ url.title }}</div>
+                      <div class="url-description">{{ url.description }}</div>
+                      <div class="url-tags" v-if="url.tags && url.tags.length > 0">
+                        <el-tag
+                          v-for="tag in url.tags"
+                          :key="tag.id"
+                          size="small"
+                          class="url-tag"
+                          :effect="tag.id === selectedTagId ? 'dark' : 'plain'"
+                          @click.stop="handleTagClickFromCard(tag)"
+                        >
+                          {{ tag.name }}
+                        </el-tag>
+                      </div>
+                    </div>
+                    <div class="url-actions">
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click.stop="handleEditUrl(url)"
+                      >
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click.stop="handleDeleteUrl(url.id)"
+                      >
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 右侧：二级标签列表 -->
               <div
-                v-for="group in filteredUrlGroups"
-                :key="group.parentTag.id"
-                class="url-group"
-                v-show="shouldShowGroup(group)"
+                class="subtags-sidebar"
+                v-if="currentGroup && (currentGroup.subGroups.length > 0 || currentGroup.uncategorizedUrls.length > 0)"
               >
-                <div class="group-header">
-                  <h3>{{ group.parentTag.name }}</h3>
-                  <span class="group-count">共 {{ getGroupUrlCount(group) }} 个网址</span>
-                </div>
-
-                <!-- 二级标签分组 -->
-                <div
-                  v-for="subGroup in group.subGroups"
-                  :key="subGroup.tag.id"
-                  class="sub-group"
-                >
-                  <div class="sub-group-header">
-                    <h4>{{ subGroup.tag.name }}</h4>
-                    <span class="sub-group-count">({{ subGroup.urls.length }})</span>
+                <div class="subtags-header">二级标签</div>
+                <div class="subtags-list">
+                  <div
+                    v-for="subGroup in currentGroup.subGroups"
+                    :key="subGroup.tag.id"
+                    class="sub-tag-item"
+                    :class="{ 'is-selected': selectedTagId === subGroup.tag.id }"
+                    @click="handleSubTagClick(subGroup.tag)"
+                  >
+                    <span class="sub-tag-name">{{ subGroup.tag.name }}</span>
+                    <span class="sub-tag-count">{{ subGroup.urls.length }}</span>
                   </div>
-                  <div class="url-grid">
-                    <div
-                      v-for="url in subGroup.urls"
-                      :key="url.id"
-                      class="url-card"
-                      @click="handleUrlClick(url.url)"
-                    >
-                      <div class="url-icon">
-                        <img v-if="url.iconUrl" :src="url.iconUrl" :alt="url.title" />
-                        <el-icon v-else><Link /></el-icon>
-                      </div>
-                      <div class="url-info">
-                        <div class="url-title">{{ url.title }}</div>
-                        <div class="url-description">{{ url.description }}</div>
-                        <div class="url-tags" v-if="url.tags && url.tags.length > 0">
-                          <el-tag
-                            v-for="tag in url.tags"
-                            :key="tag.id"
-                            size="small"
-                            class="url-tag"
-                            :effect="tag.id === selectedTagId ? 'dark' : 'plain'"
-                            @click.stop="handleTagClickFromCard(tag)"
-                          >
-                            {{ tag.name }}
-                          </el-tag>
-                        </div>
-                      </div>
-                      <div class="url-actions">
-                        <el-button
-                          type="text"
-                          size="small"
-                          @click.stop="handleEditUrl(url)"
-                        >
-                          <el-icon><Edit /></el-icon>
-                        </el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          @click.stop="handleDeleteUrl(url.id)"
-                        >
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 未分类网址 -->
-                <div v-if="group.uncategorizedUrls.length > 0" class="sub-group">
-                  <div class="sub-group-header">
-                    <h4>未分类</h4>
-                    <span class="sub-group-count">({{ group.uncategorizedUrls.length }})</span>
-                  </div>
-                  <div class="url-grid">
-                    <div
-                      v-for="url in group.uncategorizedUrls"
-                      :key="url.id"
-                      class="url-card"
-                      @click="handleUrlClick(url.url)"
-                    >
-                      <div class="url-icon">
-                        <img v-if="url.iconUrl" :src="url.iconUrl" :alt="url.title" />
-                        <el-icon v-else><Link /></el-icon>
-                      </div>
-                      <div class="url-info">
-                        <div class="url-title">{{ url.title }}</div>
-                        <div class="url-description">{{ url.description }}</div>
-                        <div class="url-tags" v-if="url.tags && url.tags.length > 0">
-                          <el-tag
-                            v-for="tag in url.tags"
-                            :key="tag.id"
-                            size="small"
-                            class="url-tag"
-                            :effect="tag.id === selectedTagId ? 'dark' : 'plain'"
-                            @click.stop="handleTagClickFromCard(tag)"
-                          >
-                            {{ tag.name }}
-                          </el-tag>
-                        </div>
-                      </div>
-                      <div class="url-actions">
-                        <el-button
-                          type="text"
-                          size="small"
-                          @click.stop="handleEditUrl(url)"
-                        >
-                          <el-icon><Edit /></el-icon>
-                        </el-button>
-                        <el-button
-                          type="text"
-                          size="small"
-                          @click.stop="handleDeleteUrl(url.id)"
-                        >
-                          <el-icon><Delete /></el-icon>
-                        </el-button>
-                      </div>
-                    </div>
+                  <div
+                    v-if="currentGroup.uncategorizedUrls.length > 0"
+                    class="sub-tag-item uncategorized"
+                    :class="{ 'is-selected': selectedSubTagId === 'uncategorized' }"
+                    @click="handleUncategorizedClick"
+                  >
+                    <span class="sub-tag-name">未分类</span>
+                    <span class="sub-tag-count">{{ currentGroup.uncategorizedUrls.length }}</span>
                   </div>
                 </div>
               </div>
@@ -331,6 +294,7 @@ const searchKeyword = ref('')
 const searchResults = ref<BookmarkUrl[]>([])
 const searchMode = computed(() => searchKeyword.value.trim().length > 0)
 const selectedTagId = ref<string | null>(null)
+const selectedSubTagId = ref<string | 'uncategorized' | null>(null)
 const expandedKeys = ref<string[]>([])
 
 const showTagDialog = ref(false)
@@ -369,10 +333,6 @@ const handleSearch = async () => {
   const keyword = searchKeyword.value.trim()
   if (!keyword) {
     searchResults.value = []
-    // 如果清空搜索，恢复标签筛选
-    if (selectedTagId.value) {
-      filterUrlsByTag(selectedTagId.value)
-    }
     return
   }
   try {
@@ -382,9 +342,74 @@ const handleSearch = async () => {
   }
 }
 
+// 获取当前选中的一级标签对应的分组
+const currentGroup = computed(() => {
+  if (!selectedTagId.value) {
+    return null
+  }
+  
+  // 检查选中的是否是一级标签
+  const parentTag = tagTree.value.find(t => t.id === selectedTagId.value)
+  if (parentTag && parentTag.level === 1) {
+    return urlGroups.value.find(g => g.parentTag.id === selectedTagId.value) || null
+  }
+  
+  // 如果是二级标签，找到其父标签对应的分组
+  const parentTagForSub = tagTree.value.find(t => 
+    t.children?.some(c => c.id === selectedTagId.value)
+  )
+  if (parentTagForSub) {
+    return urlGroups.value.find(g => g.parentTag.id === parentTagForSub.id) || null
+  }
+  
+  return null
+})
+
+// 获取要显示的网址列表
+const getDisplayUrls = (): BookmarkUrl[] => {
+  if (!currentGroup.value) {
+    return []
+  }
+  
+  // 如果选中了二级标签，只显示该二级标签的网址
+  if (selectedSubTagId.value === 'uncategorized') {
+    return currentGroup.value.uncategorizedUrls
+  }
+  
+  if (selectedSubTagId.value) {
+    const subGroup = currentGroup.value.subGroups.find(
+      sg => sg.tag.id === selectedSubTagId.value
+    )
+    return subGroup ? subGroup.urls : []
+  }
+  
+  // 如果只选中了一级标签，显示该一级标签下的所有网址
+  return getAllUrlsInGroup(currentGroup.value)
+}
+
 // 点击标签树节点
 const handleTagClick = (tag: BookmarkTag) => {
-  selectedTagId.value = tag.id
+  // 判断是一级标签还是二级标签
+  const isLevel1 = tag.level === 1
+  
+  if (isLevel1) {
+    // 一级标签：选中该标签，清空二级标签选择
+    selectedTagId.value = tag.id
+    selectedSubTagId.value = null
+  } else {
+    // 二级标签：找到父标签，并选中该二级标签
+    const parentTag = tagTree.value.find(t => 
+      t.children?.some(c => c.id === tag.id)
+    )
+    if (parentTag) {
+      selectedTagId.value = parentTag.id
+      selectedSubTagId.value = tag.id
+    } else {
+      selectedTagId.value = tag.id
+      selectedSubTagId.value = null
+    }
+  }
+  
   // 清空搜索关键词
   searchKeyword.value = ''
   searchResults.value = []
@@ -396,7 +421,26 @@ const handleTagClick = (tag: BookmarkTag) => {
 
 // 从卡片点击标签
 const handleTagClickFromCard = (tag: BookmarkTag) => {
-  selectedTagId.value = tag.id
+  // 判断是一级标签还是二级标签
+  const isLevel1 = tag.level === 1
+  
+  if (isLevel1) {
+    selectedTagId.value = tag.id
+    selectedSubTagId.value = null
+  } else {
+    // 二级标签：找到父标签
+    const parentTag = tagTree.value.find(t => 
+      t.children?.some(c => c.id === tag.id)
+    )
+    if (parentTag) {
+      selectedTagId.value = parentTag.id
+      selectedSubTagId.value = tag.id
+    } else {
+      selectedTagId.value = tag.id
+      selectedSubTagId.value = null
+    }
+  }
+  
   // 清空搜索关键词
   searchKeyword.value = ''
   searchResults.value = []
@@ -414,6 +458,7 @@ const handleTagClickFromCard = (tag: BookmarkTag) => {
 // 清除筛选
 const handleClearFilter = () => {
   selectedTagId.value = null
+  selectedSubTagId.value = null
   searchKeyword.value = ''
   searchResults.value = []
   if (tagTreeRef.value) {
@@ -430,55 +475,40 @@ const getGroupUrlCount = (group: BookmarkGroup) => {
   return count
 }
 
-// 过滤后的网址分组（根据选中的标签）
-const filteredUrlGroups = computed(() => {
-  if (!selectedTagId.value) {
-    return urlGroups.value
-  }
-  
-  return urlGroups.value.map(group => {
-    // 如果选中的是一级标签，只显示该分组
-    if (group.parentTag.id === selectedTagId.value) {
-      return group
-    }
-    
-    // 如果选中的是二级标签，只显示包含该标签的子分组
-    const filteredSubGroups = group.subGroups.filter(subGroup => 
-      subGroup.tag.id === selectedTagId.value
-    )
-    
-    // 检查未分类网址是否包含该标签
-    const filteredUncategorized = group.uncategorizedUrls.filter(url =>
-      url.tags?.some(tag => tag.id === selectedTagId.value)
-    )
-    
-    // 如果该分组有匹配的内容，返回过滤后的分组
-    if (filteredSubGroups.length > 0 || filteredUncategorized.length > 0) {
-      return {
-        ...group,
-        subGroups: filteredSubGroups,
-        uncategorizedUrls: filteredUncategorized
-      }
-    }
-    
-    return null
-  }).filter(group => group !== null) as BookmarkGroup[]
-})
-
-// 判断是否应该显示该分组
-const shouldShowGroup = (group: BookmarkGroup) => {
-  if (!selectedTagId.value) {
-    return true
-  }
-  
-  // 如果是一级标签匹配
-  if (group.parentTag.id === selectedTagId.value) {
-    return true
-  }
-  
-  // 如果有匹配的子分组或未分类网址
-  return group.subGroups.length > 0 || group.uncategorizedUrls.length > 0
+// 获取某个一级标签下的所有网址（用于左侧内容区域）
+const getAllUrlsInGroup = (group: BookmarkGroup) => {
+  const urls: BookmarkUrl[] = []
+  group.subGroups.forEach((subGroup) => {
+    urls.push(...subGroup.urls)
+  })
+  urls.push(...group.uncategorizedUrls)
+  return urls
 }
+
+// 点击右侧二级标签条目
+const handleSubTagClick = (tag: BookmarkTag) => {
+  if (currentGroup.value) {
+    selectedSubTagId.value = tag.id
+    // 清空搜索关键词
+    searchKeyword.value = ''
+    searchResults.value = []
+    // 同步标签树选中状态
+    if (tagTreeRef.value) {
+      tagTreeRef.value.setCurrentKey(tag.id)
+    }
+  }
+}
+
+// 点击未分类
+const handleUncategorizedClick = () => {
+  if (currentGroup.value) {
+    selectedSubTagId.value = 'uncategorized'
+    // 清空搜索关键词
+    searchKeyword.value = ''
+    searchResults.value = []
+  }
+}
+
 
 // 点击网址
 const handleUrlClick = (url: string) => {
@@ -607,40 +637,19 @@ onMounted(() => {
 
 <style scoped>
 .bookmark-view {
-  padding: 32px;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
-    linear-gradient(135deg, #fafbfc 0%, #f5f7fa 50%, #f0f4f8 100%);
-  min-height: calc(100vh - 64px);
-  position: relative;
-  overflow: hidden;
-}
-
-.bookmark-view::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(99, 102, 241, 0.02) 2px, rgba(99, 102, 241, 0.02) 4px);
-  pointer-events: none;
-  opacity: 0.5;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .main-card {
-  min-height: calc(100vh - 128px);
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 
-    0 20px 60px rgba(15, 23, 42, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset,
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
-  backdrop-filter: blur(40px) saturate(180%);
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 520px;
+  border-radius: 20px;
+  border: 1px solid var(--ph-border-subtle);
+  box-shadow: var(--surface-shadow);
+  background: var(--surface-color);
   position: relative;
   overflow: hidden;
 }
@@ -652,12 +661,14 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.3) 20%, 
-    rgba(139, 92, 246, 0.3) 50%, 
-    rgba(236, 72, 153, 0.3) 80%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.25) 20%,
+    rgba(139, 92, 246, 0.25) 50%,
+    rgba(236, 72, 153, 0.25) 80%,
+    transparent 100%
+  );
 }
 
 .card-header {
@@ -704,41 +715,37 @@ onMounted(() => {
 }
 
 .header-actions :deep(.el-button) {
-  border-radius: 12px;
-  font-weight: 600;
-  padding: 10px 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  font-weight: 500;
+  padding: 8px 18px;
+  transition: all 0.2s ease;
+  box-shadow: none;
 }
 
 .header-actions :deep(.el-button--primary) {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--primary-color);
   border: none;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .header-actions :deep(.el-button--primary:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
 }
 
 .header-actions :deep(.el-button:not(.el-button--primary)) {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  backdrop-filter: blur(10px);
+  background: #f9fafb;
+  border: 1px solid rgba(148, 163, 184, 0.4);
 }
 
 .header-actions :deep(.el-button:not(.el-button--primary):hover) {
-  background: rgba(255, 255, 255, 1);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.6);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .content-wrapper {
   display: flex;
   gap: 24px;
-  min-height: 600px;
+  min-height: 480px;
 }
 
 .tag-sidebar {
@@ -1019,82 +1026,32 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.url-group {
-  margin-bottom: 56px;
-  padding: 32px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
-  border-radius: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
+.main-content-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
 }
 
-.url-group::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.3) 20%, 
-    rgba(139, 92, 246, 0.3) 50%, 
-    rgba(236, 72, 153, 0.3) 80%, 
-    transparent 100%);
-  opacity: 0.5;
-}
-
-.url-group:last-child {
-  margin-bottom: 0;
+.url-content-area {
+  flex: 1;
+  min-width: 0;
 }
 
 .group-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
   border-bottom: 2px solid;
-  border-image: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.1), transparent) 1;
-  position: relative;
-}
-
-.group-header::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 80px;
-  height: 2px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  border-radius: 1px;
+  border-image: linear-gradient(90deg, rgba(99, 102, 241, 0.2), transparent) 1;
 }
 
 .group-header h3 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  position: relative;
-  padding-left: 16px;
-}
-
-.group-header h3::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 20px;
-  background: linear-gradient(180deg, #6366f1, #8b5cf6);
-  border-radius: 2px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .group-count {
@@ -1109,53 +1066,88 @@ onMounted(() => {
   letter-spacing: 0.3px;
 }
 
-.sub-group {
-  margin-bottom: 36px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.08);
-  transition: all 0.3s ease;
+.subtags-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-left: 1px solid rgba(148, 163, 184, 0.2);
+  padding-left: 24px;
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
-.sub-group:hover {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(99, 102, 241, 0.15);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+.subtags-sidebar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.sub-group:last-child {
-  margin-bottom: 0;
+.subtags-sidebar::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+  border-radius: 3px;
 }
 
-.sub-group-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 8px 0 8px 16px;
-  border-left: 3px solid;
-  border-image: linear-gradient(180deg, #6366f1, #8b5cf6) 1;
-  position: relative;
-  background: linear-gradient(90deg, rgba(99, 102, 241, 0.05), transparent);
-  border-radius: 0 8px 8px 0;
+.subtags-sidebar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  border-radius: 3px;
 }
 
-.sub-group-header h4 {
-  margin: 0;
-  font-size: 17px;
+.subtags-header {
+  font-size: 16px;
   font-weight: 700;
-  color: #475569;
-  letter-spacing: 0.2px;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid;
+  border-image: linear-gradient(90deg, rgba(99, 102, 241, 0.2), transparent) 1;
 }
 
-.sub-group-count {
-  color: #94a3b8;
+.subtags-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sub-tag-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sub-tag-item:hover {
+  background: #f9fafb;
+  border-color: rgba(148, 163, 184, 0.9);
+  transform: translateX(2px);
+}
+
+.sub-tag-item.is-selected {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(139, 92, 246, 0.12));
+  border-color: rgba(99, 102, 241, 0.6);
+  color: #1e293b;
+}
+
+.sub-tag-item.uncategorized {
+  opacity: 0.8;
+}
+
+.sub-tag-name {
   font-weight: 600;
-  padding: 3px 10px;
-  background: rgba(148, 163, 184, 0.1);
-  border-radius: 12px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub-tag-count {
+  font-weight: 600;
+  color: #6366f1;
 }
 
 .url-grid {
@@ -1216,6 +1208,21 @@ onMounted(() => {
   .header-actions {
     flex-wrap: wrap;
   }
+
+  .main-content-layout {
+    flex-direction: column;
+  }
+
+  .subtags-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    padding-left: 0;
+    padding-top: 20px;
+    margin-top: 24px;
+    position: static;
+    max-height: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1224,7 +1231,7 @@ onMounted(() => {
   }
   
   .main-card {
-    border-radius: 20px;
+    border-radius: 18px;
   }
   
   .url-grid {

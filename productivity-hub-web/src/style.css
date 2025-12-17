@@ -4,35 +4,48 @@
   line-height: 1.6;
   font-weight: 400;
   color: #0f172a;
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* 颜色系统 */
-  --surface-color: #ffffff;
-  --surface-border: rgba(148, 163, 184, 0.2);
-  --surface-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
-  --surface-shadow-hover: 0 24px 60px rgba(99, 102, 241, 0.15);
+  /* 亮色 B2B SaaS · 工具感主题 */
+  --ph-bg-body: #f1f5f9;
+  --ph-bg-elevated: rgba(255, 255, 255, 0.92);
+  --ph-bg-surface: rgba(255, 255, 255, 0.9);
+  --ph-bg-card: rgba(255, 255, 255, 0.88);
+  --ph-bg-card-subtle: rgba(255, 255, 255, 0.7);
+  --ph-border-subtle: rgba(148, 163, 184, 0.4);
+  --ph-border-strong: rgba(100, 116, 139, 0.9);
+  --ph-shadow-soft: 0 22px 55px rgba(15, 23, 42, 0.12);
   
-  /* 品牌渐变色 */
-  --brand-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  --brand-gradient-subtle: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  /* 主色与强调色（电蓝 / 青色渐变） */
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: rgba(37, 99, 235, 0.16);
+  --accent-success: #16a34a;
+  --accent-warning: #f97316;
+  --accent-danger: #ef4444;
   
-  /* 主色调 */
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-light: rgba(99, 102, 241, 0.1);
-  
-  /* 文字颜色 */
+  /* 文字颜色层级（亮底深字） */
   --text-primary: #0f172a;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-tertiary: #64748b;
-  --text-disabled: #94a3b8;
+  --text-disabled: #cbd5f5;
   
-  /* 背景渐变 */
-  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f0f9ff 100%);
-  --bg-gradient-dark: linear-gradient(135deg, #1e293b 0%, #312e81 50%, #1e1b4b 100%);
+  /* 卡片表面（毛玻璃感） */
+  --surface-color: rgba(255, 255, 255, 0.86);
+  --surface-border: rgba(148, 163, 184, 0.65);
+  --surface-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --surface-shadow-hover: 0 26px 70px rgba(15, 23, 42, 0.18);
+  
+  /* 品牌渐变（电蓝 + 青色，用于高光 / 数据） */
+  --brand-gradient: linear-gradient(135deg, #2563eb 0%, #22d3ee 45%, #38bdf8 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(56, 189, 248, 0.08) 100%);
+  
+  /* 背景渐变（浅色科技面板） */
+  --bg-gradient: radial-gradient(circle at 0% 0%, #e5f0ff 0, #f8fafc 45%, #eef2ff 100%);
+  --bg-gradient-dark: linear-gradient(135deg, #e5f0ff 0%, #f8fafc 40%, #eef2ff 100%);
 }
 
 *,
@@ -49,7 +62,7 @@ body {
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--text-primary);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
@@ -64,16 +77,20 @@ a {
 
 /* 卡片样式增强 */
 .el-card {
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--surface-color);
   border: 1px solid var(--surface-border);
   box-shadow: var(--surface-shadow);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-primary);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.1s ease-out;
+  backdrop-filter: blur(16px);
   overflow: hidden;
 }
 
 .el-card:hover {
   box-shadow: var(--surface-shadow-hover);
+  border-color: var(--ph-border-strong);
+  transform: translateY(-1px);
 }
 
 /* 按钮样式优化 */
@@ -114,7 +131,7 @@ a {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
+  background: rgba(226, 232, 240, 0.7);
   border-radius: 4px;
 }
 

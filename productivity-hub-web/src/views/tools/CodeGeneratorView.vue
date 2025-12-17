@@ -20,10 +20,10 @@ const router = useRouter()
 // 当前步骤
 const activeStep = ref(0)
 const steps = [
-  { title: '数据库配置', icon: Connection },
-  { title: '表结构解析', icon: Document },
-  { title: '模板配置', icon: Setting },
-  { title: '代码生成', icon: Download },
+  { title: '数据库配置', icon: Connection, description: '连接并保存数据源，支持多种常见数据库类型' },
+  { title: '表结构解析', icon: Document, description: '自动或手动解析表结构，配置 Java 类名与字段映射' },
+  { title: '模板配置', icon: Setting, description: '选择或编辑公司级代码模板，控制要生成的文件类型' },
+  { title: '代码生成', icon: Download, description: '一键生成并预览代码，可单个或批量下载' },
 ]
 
 const defaultTemplatePreset: CompanyTemplate = {
@@ -440,6 +440,20 @@ const goNextStep = () => {
   if (activeStep.value < steps.length - 1) {
     activeStep.value += 1
   }
+}
+
+const handleStepClick = (index: number) => {
+  // 同一步骤不处理
+  if (index === activeStep.value) return
+
+  // 允许回退到已完成的步骤
+  if (index < activeStep.value) {
+    activeStep.value = index
+    return
+  }
+
+  // 禁止跳跃到未来步骤，提示按顺序执行
+  ElMessage.info('请使用右下角“下一步”按钮，按顺序完成每一步')
 }
 
 // 连接数据库并解析表结构
@@ -953,23 +967,56 @@ onMounted(async () => {
       <h1>低代码生成</h1>
     </div>
 
-    <el-steps :active="activeStep" class="steps">
-      <el-step
-        v-for="(step, index) in steps"
-        :key="index"
-        :title="step.title"
-        :icon="step.icon"
-        @click="activeStep = index"
-        style="cursor: pointer"
-      />
-    </el-steps>
+    <div class="steps-wrapper">
+      <div class="steps-header-bar">
+        <div class="steps-header-text">
+          <div class="steps-title">生成流程</div>
+          <div class="steps-subtitle">
+            {{ steps[activeStep]?.title }} · 第 {{ activeStep + 1 }} 步 / 共 {{ steps.length }} 步
+          </div>
+        </div>
+        <div class="steps-progress-pill">
+          {{ activeStep + 1 }} / {{ steps.length }}
+        </div>
+      </div>
+
+      <el-steps
+        :active="activeStep"
+        class="steps"
+        process-status="process"
+        finish-status="success"
+      >
+        <el-step
+          v-for="(step, index) in steps"
+          :key="index"
+          :icon="step.icon"
+          :class="{ 'step-disabled': index > activeStep }"
+          @click="handleStepClick(index)"
+        >
+          <template #title>
+            <div class="step-title">
+              <span class="step-index">0{{ index + 1 }}</span>
+              <span class="step-title-text">{{ step.title }}</span>
+            </div>
+          </template>
+          <template #description>
+            <div class="step-description">
+              {{ step.description }}
+            </div>
+          </template>
+        </el-step>
+      </el-steps>
+    </div>
 
     <div class="content">
       <!-- 步骤1: 数据库配置 -->
       <div v-show="activeStep === 0" class="step-content">
         <div class="section-header">
           <h2>数据库配置</h2>
-          <el-button type="primary" :icon="Plus" @click="openDbConfigDialog()">新增配置</el-button>
+          <div class="section-actions">
+            <el-button :icon="Plus" @click="openDbConfigDialog()">新增配置</el-button>
+            <el-button type="primary" @click="goNextStep">下一步</el-button>
+          </div>
         </div>
 
         <el-alert
@@ -1049,89 +1096,118 @@ onMounted(async () => {
           </template>
         </el-dialog>
 
-        <div class="step-actions">
-          <el-button type="primary" @click="goNextStep">下一步</el-button>
-        </div>
       </div>
 
       <!-- 步骤2: 表结构解析 -->
       <div v-show="activeStep === 1" class="step-content">
         <div class="section-header">
           <h2>表结构解析</h2>
-          <div>
-            <el-button :icon="Refresh" @click="parseTableStructure" :loading="isParsingTable">解析表结构</el-button>
+          <div class="section-actions">
+            <el-button :icon="Refresh" @click="parseTableStructure" :loading="isParsingTable">
+              解析表结构
+            </el-button>
             <el-button :icon="Plus" @click="openManualTableDialog">手动配置</el-button>
+            <el-button type="primary" @click="goNextStep">下一步</el-button>
           </div>
         </div>
 
         <div v-if="tables.length > 0" class="table-config">
-          <el-form inline class="table-select-row">
-            <el-form-item label="选择表">
-              <el-select
-                v-model="selectedTableName"
-                placeholder="请选择表名"
-                style="width: 320px"
-                @change="selectTableByName"
-              >
-                <el-option
-                  v-for="table in tables"
-                  :key="table.name"
-                  :label="table.comment ? `${table.name} - ${table.comment}` : table.name"
-                  :value="table.name"
-                />
-              </el-select>
-            </el-form-item>
-          </el-form>
+          <div class="table-step-layout">
+            <!-- 左侧：表选择 + 基础信息 -->
+            <div class="table-step-left">
+              <el-card shadow="hover" class="table-base-card">
+                <div class="table-select-row">
+                  <el-form inline>
+                    <el-form-item label="选择表">
+                      <el-select
+                        v-model="selectedTableName"
+                        placeholder="请选择表名"
+                        style="width: 260px"
+                        @change="selectTableByName"
+                      >
+                        <el-option
+                          v-for="table in tables"
+                          :key="table.name"
+                          :label="table.comment ? `${table.name} - ${table.comment}` : table.name"
+                          :value="table.name"
+                        />
+                      </el-select>
+                    </el-form-item>
+                  </el-form>
+                </div>
 
-          <div v-if="selectedTable" class="table-details">
-            <el-descriptions title="表配置" :column="3" border size="small" style="margin-bottom: 12px">
-              <el-descriptions-item label="表名">{{ selectedTable.name }}</el-descriptions-item>
-              <el-descriptions-item label="表注释">{{ selectedTable.comment || '—' }}</el-descriptions-item>
-              <el-descriptions-item label="字段数">{{ selectedTable.columns.length }}</el-descriptions-item>
-            </el-descriptions>
+                <div v-if="selectedTable" class="table-meta">
+                  <el-descriptions :column="1" size="small" border>
+                    <el-descriptions-item label="表名">{{ selectedTable.name }}</el-descriptions-item>
+                    <el-descriptions-item label="表注释">{{ selectedTable.comment || '—' }}</el-descriptions-item>
+                    <el-descriptions-item label="字段数">{{ selectedTable.columns.length }}</el-descriptions-item>
+                  </el-descriptions>
 
-            <div class="table-base-config">
-              <el-form-item label="Java类名">
-                <el-input
-                  v-model="generationConfig.tableInfo.javaClassName"
-                  placeholder="自动生成"
-                  style="width: 300px"
-                />
-              </el-form-item>
-              <el-form-item label="包名">
-                <el-input
-                  v-model="generationConfig.tableInfo.javaPackage"
-                  placeholder="com.example.entity"
-                  style="width: 300px"
-                />
-              </el-form-item>
+                  <div class="table-base-config">
+                    <el-form label-width="80px" label-position="left" size="small">
+                      <el-form-item label="Java类名">
+                        <el-input
+                          v-model="generationConfig.tableInfo.javaClassName"
+                          placeholder="自动生成"
+                        />
+                      </el-form-item>
+                      <el-form-item label="包名">
+                        <el-input
+                          v-model="generationConfig.tableInfo.javaPackage"
+                          placeholder="com.example.entity"
+                        />
+                      </el-form-item>
+                    </el-form>
+                  </div>
+                </div>
+                <el-empty v-else description="请选择左上角的表进行配置" />
+              </el-card>
             </div>
 
-            <h3>字段映射</h3>
-            <el-table :data="tableColumns" style="width: 100%">
-              <el-table-column prop="name" label="字段名" />
-              <el-table-column prop="type" label="类型" />
-              <el-table-column prop="nullable" label="可空">
-                <template #default="{ row }">
-                  <el-tag :type="row.nullable ? 'info' : 'success'">{{ row.nullable ? '是' : '否' }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="primaryKey" label="主键">
-                <template #default="{ row }">
-                  <el-tag v-if="row.primaryKey" type="danger">是</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="comment" label="注释" />
-              <el-table-column label="Java字段名" width="180">
-                <template #default="{ row }">
-                  <el-input
-                    v-model="fieldMappings[row.name]"
-                    size="small"
-                    placeholder="下划线自动转驼峰"
-                  />
-                </template>
-              </el-table-column>
-            </el-table>
+            <!-- 右侧：字段映射 -->
+            <div class="table-step-right" v-if="selectedTable">
+              <el-card shadow="never" class="field-mapping-card">
+                <div class="field-mapping-header">
+                  <div>
+                    <div class="field-mapping-title">字段映射</div>
+                    <div class="field-mapping-subtitle">
+                      为每个数据库字段设置对应的 Java 字段名，默认已按下划线转驼峰预填。
+                    </div>
+                  </div>
+                  <el-tag type="info" size="small">
+                    共 {{ tableColumns.length }} 个字段
+                  </el-tag>
+                </div>
+                <el-scrollbar height="420px" class="field-mapping-scroll">
+                  <el-table :data="tableColumns" style="width: 100%" size="small">
+                    <el-table-column prop="name" label="字段名" min-width="120" />
+                    <el-table-column prop="type" label="类型" width="90" />
+                    <el-table-column prop="nullable" label="可空" width="80">
+                      <template #default="{ row }">
+                        <el-tag :type="row.nullable ? 'info' : 'success'" size="small">
+                          {{ row.nullable ? '是' : '否' }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="primaryKey" label="主键" width="80">
+                      <template #default="{ row }">
+                        <el-tag v-if="row.primaryKey" type="danger" size="small">是</el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="comment" label="注释" min-width="120" show-overflow-tooltip />
+                    <el-table-column label="Java字段名" width="200">
+                      <template #default="{ row }">
+                        <el-input
+                          v-model="fieldMappings[row.name]"
+                          size="small"
+                          placeholder="下划线自动转驼峰"
+                        />
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-scrollbar>
+              </el-card>
+            </div>
           </div>
         </div>
 
@@ -1235,38 +1311,79 @@ onMounted(async () => {
           </template>
         </el-dialog>
 
-        <div class="step-actions">
-          <el-button type="primary" @click="goNextStep">下一步</el-button>
-        </div>
       </div>
 
       <!-- 步骤3: 模板配置 -->
       <div v-show="activeStep === 2" class="step-content">
         <div class="section-header">
           <h2>代码模板配置</h2>
-          <el-button type="primary" :icon="Plus" @click="openTemplateDialog()">新增模板</el-button>
+          <div class="section-actions">
+            <el-button :icon="Plus" @click="openTemplateDialog()">新增模板</el-button>
+            <el-button type="primary" @click="goNextStep">下一步</el-button>
+          </div>
         </div>
 
         <div class="templates-container">
           <div class="templates-list">
-            <el-card
-              v-for="template in companyTemplates"
-              :key="template.id"
-              :class="{ active: currentTemplate?.id === template.id }"
-              @click="selectTemplate(template)"
-              style="cursor: pointer; margin-bottom: 12px"
-            >
-              <div>
-                <strong>{{ template.name }}</strong>
-                <p v-if="template.description" style="color: #666; margin: 8px 0 0 0">{{ template.description }}</p>
-                <div style="margin-top: 8px">
-                  <el-tag size="small">基础包: {{ template.basePackage }}</el-tag>
+            <div class="templates-list-header">
+              <div class="templates-list-title">公司模板列表</div>
+              <div class="templates-list-subtitle">
+                从左侧选择一个公司模板，右侧配置该模板下要生成的文件类型
+              </div>
+            </div>
+
+            <el-scrollbar height="420px">
+              <el-card
+                v-for="template in companyTemplates"
+                :key="template.id"
+                class="template-card"
+                :class="{ active: currentTemplate?.id === template.id }"
+                @click="selectTemplate(template)"
+              >
+                <div class="template-card-main">
+                  <div class="template-card-title-row">
+                    <span class="template-card-name">{{ template.name }}</span>
+                    <el-tag
+                      v-if="currentTemplate?.id === template.id"
+                      size="small"
+                      type="success"
+                      effect="plain"
+                    >
+                      当前
+                    </el-tag>
+                  </div>
+                  <div
+                    v-if="template.description"
+                    class="template-card-desc"
+                  >
+                    {{ template.description }}
+                  </div>
+                  <div class="template-card-meta-row">
+                    <span class="template-card-meta">
+                      基础包
+                      <span class="template-card-meta-value">{{ template.basePackage || '未设置' }}</span>
+                    </span>
+                    <span
+                      v-if="template.author"
+                      class="template-card-meta"
+                    >
+                      作者
+                      <span class="template-card-meta-value">{{ template.author }}</span>
+                    </span>
+                    <span class="template-card-meta">
+                      文件
+                      <span class="template-card-meta-value">
+                        {{ template.templates?.length || 0 }} 个
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                <div class="template-card-actions">
                   <el-button
                     link
                     type="primary"
                     :icon="Edit"
                     size="small"
-                    style="margin-left: 8px"
                     @click.stop="openTemplateDialog(template)"
                   >
                     编辑
@@ -1281,29 +1398,63 @@ onMounted(async () => {
                     删除
                   </el-button>
                 </div>
-              </div>
-            </el-card>
+              </el-card>
+              <el-empty
+                v-if="!companyTemplates.length"
+                description="暂无公司模板，可点击右上角“新增模板”创建"
+              />
+            </el-scrollbar>
           </div>
 
           <div v-if="currentTemplate" class="template-details">
-            <h3>文件模板列表</h3>
-            <el-table :data="currentTemplate.templates" style="width: 100%">
-              <el-table-column prop="name" label="模板名称" />
-              <el-table-column prop="type" label="类型" />
-              <el-table-column prop="fileNamePattern" label="文件名模式" />
-              <el-table-column label="启用">
-                <template #default="{ row }">
-                  <el-switch v-model="row.enabled" />
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="100">
-                <template #default="{ row, $index }">
-                  <el-button link type="danger" :icon="Delete" @click="removeFileTemplate($index)">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-            <el-button :icon="Plus" @click="addFileTemplate" style="margin-top: 16px">添加文件模板</el-button>
+            <el-card shadow="never" class="template-details-card">
+              <div class="template-details-header">
+                <div>
+                  <div class="template-details-title">文件模板列表</div>
+                  <div class="template-details-subtitle">
+                    配置当前公司模板下需要生成的具体文件，可通过开关快速控制启用状态
+                  </div>
+                </div>
+                <el-tag size="small" type="info" effect="plain">
+                  共 {{ currentTemplate.templates.length }} 个文件模板
+                </el-tag>
+              </div>
+              <el-scrollbar height="360px" class="template-details-scroll">
+                <el-table :data="currentTemplate.templates" style="width: 100%" size="small">
+                  <el-table-column prop="name" label="模板名称" min-width="140" />
+                  <el-table-column prop="type" label="类型" width="120" />
+                  <el-table-column
+                    prop="fileNamePattern"
+                    label="文件名模式"
+                    min-width="180"
+                    show-overflow-tooltip
+                  />
+                  <el-table-column label="启用" width="90">
+                    <template #default="{ row }">
+                      <el-switch v-model="row.enabled" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="90">
+                    <template #default="{ row, $index }">
+                      <el-button
+                        link
+                        type="danger"
+                        :icon="Delete"
+                        size="small"
+                        @click="removeFileTemplate($index)"
+                      >
+                        删除
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-scrollbar>
+              <div class="template-details-footer">
+                <el-button :icon="Plus" @click="addFileTemplate">添加文件模板</el-button>
+              </div>
+            </el-card>
           </div>
+          <el-empty v-else description="请在左侧选择一个公司模板" />
         </div>
 
         <el-dialog v-model="templateDialogVisible" width="880px" top="5vh">
@@ -1450,9 +1601,6 @@ onMounted(async () => {
           </template>
         </el-dialog>
 
-        <div class="step-actions">
-          <el-button type="primary" @click="goNextStep">下一步</el-button>
-        </div>
       </div>
 
       <!-- 步骤4: 代码生成 -->
@@ -1562,14 +1710,44 @@ onMounted(async () => {
 
 <style scoped>
 .code-generator-container {
-  padding: 32px;
-  background: 
-    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
-    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  background-attachment: fixed;
-  border-radius: 24px;
-  min-height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+  /* 跟随外层布局背景，不再单独形成整页卡片 */
+  padding: 0;
+}
+
+/* 通用表格与列表观感优化：圆角、阴影与行高 */
+.code-generator-container :deep(.el-table) {
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+}
+
+.code-generator-container :deep(.el-table__header-wrapper th) {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.code-generator-container :deep(.el-table__row) {
+  transition: background-color 0.15s ease, transform 0.08s ease-out;
+}
+
+.code-generator-container :deep(.el-table__row:hover) {
+  background-color: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.code-generator-container :deep(.el-table td),
+.code-generator-container :deep(.el-table th) {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.code-generator-container :deep(.el-empty__description p) {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .header {
@@ -1590,8 +1768,160 @@ onMounted(async () => {
   letter-spacing: -0.5px;
 }
 
+.steps-wrapper {
+  margin-bottom: 24px;
+  padding: 16px 20px 12px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.steps-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(129, 140, 248, 0.12) 0%, transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(244, 114, 182, 0.12) 0%, transparent 55%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.steps-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.steps-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.steps-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.steps-subtitle {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.steps-progress-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(79, 70, 229, 0.08);
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(129, 140, 248, 0.35);
+}
+
 .steps {
-  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.steps :deep(.el-step) {
+  cursor: pointer;
+  transition: transform 0.16s ease-out, opacity 0.16s ease-out;
+}
+
+.steps :deep(.el-step:hover) {
+  transform: translateY(-1px);
+}
+
+.steps :deep(.el-step.step-disabled),
+.steps :deep(.el-step.step-disabled:hover) {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-index {
+  font-size: 11px;
+  font-weight: 700;
+  color: #818cf8;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(129, 140, 248, 0.12);
+}
+
+.step-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.step-description {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.steps :deep(.el-step__head.is-process) {
+  color: #4f46e5;
+  border-color: rgba(79, 70, 229, 0.9);
+}
+
+.steps :deep(.el-step__head.is-finish) {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.9);
+}
+
+.steps :deep(.el-step__head.is-wait) {
+  color: #cbd5f5;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.steps :deep(.el-step__icon) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.steps :deep(.el-step__icon-inner) {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #ec4899 100%);
+  color: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 6px 15px rgba(79, 70, 229, 0.45);
+}
+
+.steps :deep(.el-step__head.is-finish .el-step__icon-inner) {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 6px 15px rgba(22, 163, 74, 0.45);
+}
+
+.steps :deep(.el-step__title) {
+  font-size: 13px;
+}
+
+.steps :deep(.el-step__title.is-wait) {
+  color: #94a3b8;
+}
+
+.steps :deep(.el-step__title.is-process) {
+  color: #0f172a;
+}
+
+.steps :deep(.el-step__title.is-finish) {
+  color: #16a34a;
 }
 
 .content {
@@ -1620,6 +1950,12 @@ onMounted(async () => {
   letter-spacing: -0.3px;
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .step-actions {
   margin-top: 16px;
   text-align: right;
@@ -1630,14 +1966,63 @@ onMounted(async () => {
 }
 
 .table-config {
+  display: block;
+}
+
+.table-step-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.table-step-left,
+.table-step-right {
+  min-width: 0;
+}
+
+.table-base-card {
+  border-radius: 14px;
+}
+
+.table-select-row {
+  margin-bottom: 12px;
+}
+
+.table-meta {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.table-details h3 {
-  margin-bottom: 16px;
+.table-base-config {
+  padding-top: 4px;
+}
+
+.field-mapping-card {
+  border-radius: 14px;
+}
+
+.field-mapping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.field-mapping-title {
+  font-weight: 600;
   color: #0f172a;
+}
+
+.field-mapping-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.field-mapping-scroll {
+  margin-top: 4px;
 }
 
 .templates-container {
@@ -1646,15 +2031,133 @@ onMounted(async () => {
   gap: 24px;
 }
 
-.templates-list .active {
+.templates-list-header {
+  margin-bottom: 8px;
+}
+
+.templates-list-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.templates-list-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.template-card {
+  margin-bottom: 10px;
+  border-radius: 14px;
+  border-color: rgba(148, 163, 184, 0.4);
+  cursor: pointer;
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.12s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.template-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  border-color: rgba(99, 102, 241, 0.55);
+}
+
+.template-card.active {
   border-color: rgba(99, 102, 241, 0.4);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(191, 219, 254, 0.14) 100%);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.template-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.template-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.template-card-name {
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-card-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.template-card-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 2px;
+}
+
+.template-card-meta {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.template-card-meta-value {
+  margin-left: 4px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.template-card-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .template-details h3 {
   margin-bottom: 16px;
   color: #0f172a;
+}
+
+.template-details-card {
+  border-radius: 14px;
+}
+
+.template-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.template-details-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.template-details-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.template-details-scroll {
+  margin-top: 4px;
+}
+
+.template-details-footer {
+  margin-top: 10px;
+  text-align: right;
 }
 
 .dialog-header {

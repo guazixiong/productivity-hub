@@ -903,21 +903,14 @@ onUnmounted(() => {
 .home-container {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  min-height: 100vh;
-  padding: 32px;
-  /* 使用更优雅的渐变背景 */
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
-    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e0e7ff 100%);
-  background-attachment: fixed;
+  gap: 24px;
+  padding: 0;
+  background: transparent;
 }
 
 .info-cards {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   align-items: stretch;
   flex-wrap: nowrap;
 }
@@ -925,7 +918,7 @@ onUnmounted(() => {
 .info-left-column {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   flex: 0 0 360px;
   min-width: 320px;
 }
@@ -945,40 +938,19 @@ onUnmounted(() => {
 }
 
 .info-card {
-  border-radius: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 
-    0 20px 50px rgba(15, 23, 42, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  border-radius: 16px;
+  border: 1px solid var(--ph-border-subtle);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.08s ease-out, box-shadow 0.15s ease;
+  background: var(--surface-color);
+  box-shadow: var(--surface-shadow);
   position: relative;
   overflow: hidden;
 }
 
-.info-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
 .info-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 
-    0 28px 60px rgba(99, 102, 241, 0.2),
-    0 0 0 1px rgba(99, 102, 241, 0.1) inset;
-  border-color: rgba(99, 102, 241, 0.3);
-}
-
-.info-card:hover::before {
-  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: var(--surface-shadow-hover);
+  border-color: rgba(37, 99, 235, 0.7);
 }
 
 .card-header {
@@ -987,7 +959,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 8px;
   font-weight: 600;
-  color: #1e1b4b;
+  color: var(--text-primary);
 }
 
 .card-header-left {
@@ -1004,13 +976,13 @@ onUnmounted(() => {
   padding: 4px;
   border: none;
   background: transparent;
-  color: #64748b;
-  transition: all 0.2s ease;
+  color: var(--text-tertiary);
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.08s ease-out;
 }
 
 .refresh-btn:hover {
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.1);
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.16);
 }
 
 .refresh-btn:active {
@@ -1026,7 +998,7 @@ onUnmounted(() => {
 .location-main {
   font-size: 24px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .location-sub {
@@ -1036,7 +1008,7 @@ onUnmounted(() => {
 
 .location-detail {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-tertiary);
 }
 
 .location-weather-card {
@@ -1056,15 +1028,7 @@ onUnmounted(() => {
   min-width: 400px;
 }
 
-.location-weather-card,
-.fortune-card,
-.combined-countdown-card {
-  /* 更精致的玻璃态效果 */
-  background:
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.8), transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(224, 231, 255, 0.6), transparent 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
-}
+/* 移除了多余的内部背景层，使用统一的卡片背景 */
 
 .location-weather-content {
   display: flex;
@@ -1085,7 +1049,7 @@ onUnmounted(() => {
 .location-main {
   font-size: 32px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -1095,13 +1059,13 @@ onUnmounted(() => {
 
 .location-province {
   font-size: 15px;
-  color: #64748b;
+  color: var(--text-tertiary);
   font-weight: 500;
 }
 
 .location-detail {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   line-height: 1.5;
   margin-top: 4px;
 }
@@ -1110,7 +1074,7 @@ onUnmounted(() => {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-weight: 600;
   margin-bottom: 6px;
 }
@@ -1125,7 +1089,7 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 16px;
   padding-top: 24px;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
   width: 100%;
 }
 
@@ -1139,7 +1103,6 @@ onUnmounted(() => {
 .weather-icon {
   font-size: 28px;
   color: #f59e0b;
-  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2));
 }
 
 .weather-content {
@@ -1150,19 +1113,15 @@ onUnmounted(() => {
 
 .weather-temp {
   font-size: 40px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #ec4899 60%, #f97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: var(--text-primary);
   line-height: 1;
   letter-spacing: -1px;
-  filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
 }
 
 .weather-desc {
   font-size: 15px;
-  color: #475569;
+  color: var(--text-secondary);
   font-weight: 500;
   margin-top: 2px;
 }
@@ -1173,7 +1132,7 @@ onUnmounted(() => {
   gap: 24px;
   margin-top: 12px;
   padding-top: 16px;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
   width: 100%;
 }
 
@@ -1189,14 +1148,14 @@ onUnmounted(() => {
 }
 
 .weather-detail-label {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-weight: 500;
   font-size: 11px;
   letter-spacing: 0.5px;
 }
 
 .weather-detail-value {
-  color: #475569;
+  color: var(--text-secondary);
   font-weight: 600;
   font-size: 13px;
 }
@@ -1230,34 +1189,18 @@ onUnmounted(() => {
 
 .fortune-name {
   font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  color: var(--text-primary);
   text-align: center;
   padding: 12px 0;
-  border-bottom: 2px solid;
-  border-image: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent) 1;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
   position: relative;
-}
-
-.fortune-name::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 2px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  border-radius: 2px;
 }
 
 .fortune-description {
   font-size: 16px;
   line-height: 1.8;
-  color: #0f172a;
+  color: var(--text-secondary);
   text-align: center;
   font-style: italic;
 }
@@ -1265,10 +1208,10 @@ onUnmounted(() => {
 .fortune-advice {
   font-size: 14px;
   line-height: 1.6;
-  color: #64748b;
+  color: var(--text-tertiary);
   text-align: center;
   padding-top: 8px;
-  border-top: 1px solid rgba(99, 102, 241, 0.1);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .countdown-content {
@@ -1283,64 +1226,31 @@ onUnmounted(() => {
 
 .countdown-time {
   font-size: clamp(24px, 4.5vw, 40px);
-  font-weight: 800;
+  font-weight: 700;
   font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-  letter-spacing: 3px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3));
+  letter-spacing: 2px;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  animation: countdown-pulse 2s ease-in-out infinite;
-}
-
-@keyframes countdown-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.95;
-    transform: scale(1.02);
-  }
 }
 
 .countdown-label {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .off-work-time {
-  color: #6366f1;
+  color: var(--primary-color);
   font-weight: 600;
   font-size: 16px;
 }
 
-.lunch-countdown-card {
-  border-color: rgba(251, 146, 60, 0.2);
-}
-
-.lunch-countdown-card:hover {
-  box-shadow: 0 12px 32px rgba(251, 146, 60, 0.15);
-}
-
-.lunch-countdown-card .countdown-time {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.lunch-countdown-card .off-work-time {
-  color: #fb923c;
-}
+/* 简化午休卡片样式 */
 
 .combined-countdown-card {
   display: flex;
@@ -1387,44 +1297,26 @@ onUnmounted(() => {
 }
 
 .lunch-block .countdown-time {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #facc15;
 }
 
 .lunch-block .off-work-time {
-  color: #fb923c;
+  color: #facc15;
 }
 
 .salary-bubble {
   position: absolute;
-  background: rgba(99, 102, 241, 0.18);
-  color: #312e81;
-  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  border-radius: 8px;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.6);
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.salary-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  right: 20px;
-  width: 12px;
-  height: 12px;
-  background: inherit;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-left: none;
-  border-top: none;
-  transform: rotate(45deg);
-  box-shadow: inherit;
 }
 
 .salary-bubble-enter-active,
@@ -1442,25 +1334,12 @@ onUnmounted(() => {
   text-align: center;
   padding: 12px 20px;
   margin: 12px 0;
-  background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(249, 115, 22, 0.12) 100%);
-  border-radius: 12px;
+  background: #fffbeb;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #ea580c;
-  border: 1px solid rgba(251, 146, 60, 0.25);
-  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.15);
-  animation: weekend-tip-pulse 2s ease-in-out infinite;
-}
-
-@keyframes weekend-tip-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.02);
-  }
+  color: #9a3412;
+  border: 1px solid #fed7aa;
 }
 
 .salary-dates-section {
@@ -1480,12 +1359,12 @@ onUnmounted(() => {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .salary-dates-title .el-icon {
   font-size: 16px;
-  color: #f59e0b;
+  color: #fde68a;
 }
 
 .salary-dates-list {
@@ -1499,38 +1378,39 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  background: rgba(245, 158, 11, 0.08);
+  background: #fffbeb;
   border-radius: 8px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  transition: all 0.2s ease;
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.08s ease-out, box-shadow 0.15s ease;
 }
 
 .salary-date-item:hover {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.3);
-  transform: translateX(2px);
+  background: #fef3c7;
+  border-color: #f59e0b;
+  transform: translateX(1px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
 }
 
 .salary-date-item.is-today {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 146, 60, 0.12));
-  border-color: rgba(245, 158, 11, 0.4);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+  background: #fef3c7;
+  border-color: #f59e0b;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.18);
 }
 
 .salary-date-display {
   font-size: 14px;
-  color: #0f172a;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .salary-date-item.is-today .salary-date-display {
-  color: #f59e0b;
+  color: #92400e;
   font-weight: 600;
 }
 
 .salary-date-days {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1546,19 +1426,19 @@ onUnmounted(() => {
 }
 
 .salary-today-badge {
-  background: linear-gradient(135deg, #f59e0b, #fb923c);
+  background: #f59e0b;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.6);
 }
 
 .salary-tomorrow-badge {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(15, 23, 42, 0.96);
+  color: #facc15;
+  border: 1px solid rgba(252, 211, 77, 0.35);
 }
 
 .salary-days-number {
-  color: #f59e0b;
+  color: #facc15;
   font-weight: 700;
   font-size: 16px;
 }
@@ -1603,46 +1483,30 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 16px 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 12px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
-  backdrop-filter: blur(10px);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.08s ease-out, box-shadow 0.15s ease;
+  background: rgba(248, 250, 252, 0.98);
   position: relative;
   overflow: hidden;
 }
 
-.tool-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
-  transition: left 0.5s ease;
-}
-
 .tool-item:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border-color: #6366f1;
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
-}
-
-.tool-item:hover::before {
-  left: 100%;
+  background: #eff6ff;
+  border-color: rgba(37, 99, 235, 0.7);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
 
 .tool-icon {
   font-size: 28px;
-  color: #6366f1;
+  color: #2563eb;
 }
 
 .tool-name {
   font-size: 14px;
-  color: #0f172a;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -1652,16 +1516,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 20px;
-  border-radius: 12px;
-  border: 1px dashed rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  border: 1px dashed rgba(51, 65, 85, 0.95);
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #64748b;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  color: var(--text-tertiary);
 }
 
 .tool-empty:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: rgba(148, 163, 184, 0.9);
+  color: var(--text-secondary);
 }
 
 .tool-empty .el-icon {
@@ -1670,7 +1534,7 @@ onUnmounted(() => {
 
 .tool-empty-hint {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   margin-top: 4px;
   text-align: center;
 }

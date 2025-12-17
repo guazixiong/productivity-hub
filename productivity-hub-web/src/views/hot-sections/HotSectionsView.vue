@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { TrendCharts } from '@element-plus/icons-vue'
 import { scheduleApi } from '@/services/api'
 import type { HotSection } from '@/types/hotSections'
 
-// 固定的热点标签列表
-const HOT_SECTION_NAMES = [
+// 顶级标签页
+const MAIN_TABS = ['生活', '技术'] as const
+type MainTab = typeof MAIN_TABS[number]
+
+// 生活类热点标签列表
+const LIFE_HOT_SECTION_NAMES = [
   '综合热榜',
   '知乎热搜',
   '微博热搜',
@@ -15,6 +18,11 @@ const HOT_SECTION_NAMES = [
   '哔哩哔哩热榜',
   '抖音热榜',
   '百度贴吧热帖'
+]
+
+// 技术类热点标签列表（预留，后续扩展）
+const TECH_HOT_SECTION_NAMES: string[] = [
+  // 后续添加技术类热点标签
 ]
 
 // 每个标签页的数据状态
@@ -29,6 +37,7 @@ const DEFAULT_LIMIT = 10
 const LIMIT_STEP = 10
 const sectionDataMap = ref<Map<string, SectionData>>(new Map())
 const hotSectionsLoading = ref(false)
+const mainActiveTab = ref<MainTab>('生活')
 const activeTab = ref<string>('')
 const loadingMore = ref(false)
 
@@ -36,6 +45,16 @@ const loadingMore = ref(false)
 const scrollContainerRefs = ref<Map<string, HTMLElement>>(new Map())
 const scrollThreshold = 200 // 距离底部200px时触发加载
 let scrollTimer: number | null = null // 滚动节流定时器
+
+// 根据主标签页获取对应的热点标签列表
+const getCurrentHotSectionNames = computed(() => {
+  if (mainActiveTab.value === '生活') {
+    return LIFE_HOT_SECTION_NAMES
+  } else if (mainActiveTab.value === '技术') {
+    return TECH_HOT_SECTION_NAMES
+  }
+  return []
+})
 
 // 获取当前激活标签页的滚动容器
 const getCurrentScrollContainer = () => {
@@ -45,7 +64,18 @@ const getCurrentScrollContainer = () => {
 
 // 初始化所有标签页的数据状态
 const initSectionData = () => {
-  HOT_SECTION_NAMES.forEach(name => {
+  // 初始化生活类标签数据
+  LIFE_HOT_SECTION_NAMES.forEach(name => {
+    sectionDataMap.value.set(name, {
+      items: [],
+      limit: DEFAULT_LIMIT,
+      hasMore: true,
+      loading: false
+    })
+  })
+  
+  // 初始化技术类标签数据
+  TECH_HOT_SECTION_NAMES.forEach(name => {
     sectionDataMap.value.set(name, {
       items: [],
       limit: DEFAULT_LIMIT,
@@ -130,22 +160,51 @@ const loadHotSection = async (sectionName: string, limit?: number, append = fals
   }
 }
 
-// 加载所有标签页的初始数据
+// 加载当前主标签页的所有子标签数据
 const loadAllHotSections = async () => {
+  const currentSections = getCurrentHotSectionNames.value
+  if (currentSections.length === 0) {
+    return
+  }
+  
   hotSectionsLoading.value = true
   try {
     // 并行加载所有标签页的初始数据
-    const promises = HOT_SECTION_NAMES.map(name => loadHotSection(name, DEFAULT_LIMIT, false))
+    const promises = currentSections.map(name => loadHotSection(name, DEFAULT_LIMIT, false))
     await Promise.all(promises)
     
-    // 设置默认激活的标签页
-    if (!activeTab.value && HOT_SECTION_NAMES.length > 0) {
-      activeTab.value = HOT_SECTION_NAMES[0]
+    // 设置默认激活的子标签页
+    if (!activeTab.value && currentSections.length > 0) {
+      activeTab.value = currentSections[0]
     }
   } catch (error) {
     ElMessage.error((error as Error)?.message ?? '热点数据加载失败')
   } finally {
     hotSectionsLoading.value = false
+  }
+}
+
+// 主标签页切换处理
+const handleMainTabChange = async (name: MainTab) => {
+  mainActiveTab.value = name
+  
+  const currentSections = getCurrentHotSectionNames.value
+  if (currentSections.length === 0) {
+    activeTab.value = ''
+    return
+  }
+  
+  // 设置当前主标签页的第一个子标签为激活状态
+  activeTab.value = currentSections[0]
+  
+  // 如果当前主标签页下的数据未加载，则加载
+  const needLoad = currentSections.some(name => {
+    const sectionData = sectionDataMap.value.get(name)
+    return !sectionData || sectionData.items.length === 0
+  })
+  
+  if (needLoad) {
+    await loadAllHotSections()
   }
 }
 
@@ -240,89 +299,101 @@ onUnmounted(() => {
 
 <template>
   <div class="hot-sections-container">
-    <div class="page-header">
-      <div class="header-content">
-        <el-icon class="header-icon"><TrendCharts /></el-icon>
-        <h1 class="page-title">热点速览</h1>
-      </div>
-    </div>
-
     <div class="content-wrapper">
       <el-card class="hot-sections-card" shadow="hover">
-        <el-skeleton :loading="hotSectionsLoading" :rows="5" animated>
-          <template #default>
-            <el-tabs
-              v-if="HOT_SECTION_NAMES.length > 0"
-              v-model="activeTab"
-              type="card"
-              class="hot-tabs"
-              @tab-change="handleTabChange"
-            >
-              <el-tab-pane
-                v-for="sectionName in HOT_SECTION_NAMES"
-                :key="sectionName"
-                :name="sectionName"
-              >
-                <template #label>
-                  <span class="tab-label">
-                    <el-tag
-                      effect="plain"
-                      size="small"
-                      class="tab-tag"
-                    >
-                      {{ sectionName }}
-                    </el-tag>
-                  </span>
-                </template>
-                <div
-                  v-if="activeTab === sectionName"
-                  :ref="(el) => setScrollContainerRef(el as HTMLElement | null, sectionName)"
-                  class="hot-items-container"
-                  @scroll="handleScroll"
+        <!-- 主标签页：生活 / 技术 -->
+        <el-tabs
+          v-model="mainActiveTab"
+          type="border-card"
+          class="main-tabs"
+          @tab-change="handleMainTabChange"
+        >
+          <el-tab-pane
+            v-for="mainTab in MAIN_TABS"
+            :key="mainTab"
+            :name="mainTab"
+          >
+            <template #label>
+              <span class="main-tab-label">{{ mainTab }}</span>
+            </template>
+            
+            <!-- 子标签页内容 -->
+            <el-skeleton :loading="hotSectionsLoading" :rows="5" animated>
+              <template #default>
+                <!-- 生活/技术分类下的子标签 -->
+                <el-tabs
+                  v-if="getCurrentHotSectionNames.length > 0"
+                  v-model="activeTab"
+                  type="card"
+                  tab-position="left"
+                  class="hot-tabs"
+                  @tab-change="handleTabChange"
                 >
-                  <div class="hot-items-list">
-                    <a
-                      v-for="(item, index) in getSectionData(sectionName)?.items || []"
-                      :key="index"
-                      :href="item.link"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="hot-item"
-                    >
-                      <div class="hot-item-content">
-                        <div class="hot-item-title">
-                          <span class="hot-item-index">{{ index + 1 }}</span>
-                          <span class="hot-item-text">{{ item.title }}</span>
-                        </div>
-                        <div v-if="item.heat" class="hot-item-heat">{{ item.heat }}</div>
+                  <el-tab-pane
+                    v-for="sectionName in getCurrentHotSectionNames"
+                    :key="sectionName"
+                    :name="sectionName"
+                  >
+                    <template #label>
+                      <div class="sub-tab-label" :title="sectionName">
+                        <span class="sub-tab-dot"></span>
+                        <span class="sub-tab-text">
+                          {{ sectionName }}
+                        </span>
                       </div>
-                      <div v-if="item.desc" class="hot-item-desc">{{ item.desc }}</div>
-                    </a>
-                  </div>
-                  
-                  <!-- 加载更多提示 -->
-                  <template v-if="getSectionData(sectionName)">
-                    <div v-if="loadingMore || getSectionData(sectionName)?.loading" class="loading-more">
-                      <el-icon class="is-loading"><TrendCharts /></el-icon>
-                      <span>加载中...</span>
+                    </template>
+                    <div
+                      v-if="activeTab === sectionName"
+                      :ref="(el) => setScrollContainerRef(el as HTMLElement | null, sectionName)"
+                      class="hot-items-container"
+                      @scroll="handleScroll"
+                    >
+                      <div class="hot-items-list">
+                        <a
+                          v-for="(item, index) in getSectionData(sectionName)?.items || []"
+                          :key="index"
+                          :href="item.link"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="hot-item"
+                        >
+                          <div class="hot-item-content">
+                            <div class="hot-item-title">
+                              <span class="hot-item-index">{{ index + 1 }}</span>
+                              <span class="hot-item-text">{{ item.title }}</span>
+                            </div>
+                            <div v-if="item.heat" class="hot-item-heat">{{ item.heat }}</div>
+                          </div>
+                          <div v-if="item.desc" class="hot-item-desc">{{ item.desc }}</div>
+                        </a>
+                      </div>
+                      
+                      <!-- 加载更多提示 -->
+                      <template v-if="getSectionData(sectionName)">
+                        <div v-if="loadingMore || getSectionData(sectionName)?.loading" class="loading-more">
+                          <el-icon class="is-loading"><TrendCharts /></el-icon>
+                          <span>加载中...</span>
+                        </div>
+                        <div v-else-if="!getSectionData(sectionName)?.hasMore && (getSectionData(sectionName)?.items.length || 0) > 0" class="no-more">
+                          <span>没有更多数据了</span>
+                        </div>
+                        <div v-else-if="(getSectionData(sectionName)?.items.length || 0) === 0 && !getSectionData(sectionName)?.loading" class="hot-sections-empty">
+                          <el-icon><TrendCharts /></el-icon>
+                          <span>暂无热点数据</span>
+                        </div>
+                      </template>
                     </div>
-                    <div v-else-if="!getSectionData(sectionName)?.hasMore && (getSectionData(sectionName)?.items.length || 0) > 0" class="no-more">
-                      <span>没有更多数据了</span>
-                    </div>
-                    <div v-else-if="(getSectionData(sectionName)?.items.length || 0) === 0 && !getSectionData(sectionName)?.loading" class="hot-sections-empty">
-                      <el-icon><TrendCharts /></el-icon>
-                      <span>暂无热点数据</span>
-                    </div>
-                  </template>
+                  </el-tab-pane>
+                </el-tabs>
+                <!-- 技术标签为空时的占位提示 -->
+                <div v-else class="hot-sections-empty">
+                  <el-icon><TrendCharts /></el-icon>
+                  <span>{{ mainActiveTab === '技术' ? '技术类热点标签即将上线，敬请期待...' : '暂无热点标签' }}</span>
                 </div>
-              </el-tab-pane>
-            </el-tabs>
-            <div v-else class="hot-sections-empty">
-              <el-icon><TrendCharts /></el-icon>
-              <span>暂无热点标签</span>
-            </div>
-          </template>
-        </el-skeleton>
+              </template>
+            </el-skeleton>
+          </el-tab-pane>
+        </el-tabs>
       </el-card>
     </div>
   </div>
@@ -332,164 +403,206 @@ onUnmounted(() => {
 .hot-sections-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e0e7ff 100%);
-  background-attachment: fixed;
-  min-height: calc(100vh - 60px);
-}
-
-.page-header {
-  padding: 28px 32px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-icon {
-  font-size: 32px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
-}
-
-.page-title {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
+  padding: 0;
 }
 
 .content-wrapper {
   flex: 1;
-  padding: 24px 32px;
-  overflow: auto;
+  padding: 0;
 }
 
 .hot-sections-card {
   max-width: 1200px;
   margin: 0 auto;
-  border-radius: 24px;
-  border: 1px solid rgba(99, 102, 241, 0.12);
-  box-shadow: 
-    0 20px 60px rgba(15, 23, 42, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
-  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 20px;
+  border: 1px solid var(--ph-border-subtle);
+  box-shadow: var(--surface-shadow);
+  background: var(--surface-color);
   position: relative;
   overflow: hidden;
 }
 
-.hot-sections-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
-  opacity: 0.8;
+.hot-sections-card :deep(.el-card__body) {
+  padding: 0;
 }
 
-.hot-sections-card :deep(.el-card__body) {
-  padding: 24px;
+/* 主标签页样式 */
+.main-tabs {
+  width: 100%;
+  border: none;
+  box-shadow: none;
+}
+
+.main-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  border: none;
+  background: rgba(248, 250, 252, 0.95);
+  padding: 12px 18px 0;
+}
+
+.main-tabs :deep(.el-tabs__nav) {
+  border: none;
+}
+
+.main-tabs :deep(.el-tabs__item) {
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.main-tabs :deep(.el-tabs__item:hover) {
+  color: var(--primary-color);
+  background: rgba(191, 219, 254, 0.7);
+}
+
+.main-tabs :deep(.el-tabs__item.is-active) {
+  color: #0f172a;
+  background: #e0ecff;
+  border: none;
+}
+
+.main-tab-label {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.main-tabs :deep(.el-tabs__content) {
+  padding: 14px 16px 16px;
+  background: transparent;
 }
 
 .hot-tabs {
   width: 100%;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: none;
+  box-shadow: none;
+  min-height: 420px;
+  display: flex;
+  flex-direction: row-reverse;
+  overflow: hidden;
 }
 
 .hot-tabs :deep(.el-tabs__header) {
-  margin-bottom: 24px;
-  border-bottom: 2px solid rgba(99, 102, 241, 0.12);
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+  border-right: none;
+  border-left: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(248, 250, 252, 0.96);
+  border-radius: 0 16px 16px 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex: 0 0 220px;
+}
+
+.hot-tabs :deep(.el-tabs__nav-wrap) {
+  width: 100%;
+}
+
+.hot-tabs :deep(.el-tabs__nav-scroll) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding: 12px 10px;
+}
+
+.hot-tabs :deep(.el-tabs__nav) {
+  border: none;
 }
 
 .hot-tabs :deep(.el-tabs__item) {
-  padding: 0 20px;
-  height: 48px;
-  line-height: 48px;
+  padding: 0;
+  height: auto;
+  line-height: normal;
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-tertiary);
   border: none;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease;
   position: relative;
+  margin: 2px 0;
+  border-radius: 0;
 }
 
 .hot-tabs :deep(.el-tabs__item:hover) {
-  color: #475569;
+  color: #e5e7eb;
 }
 
 .hot-tabs :deep(.el-tabs__item.is-active) {
-  color: #1e293b;
+  color: #e5e7eb;
   font-weight: 600;
 }
 
 .hot-tabs :deep(.el-tabs__active-bar) {
-  height: 4px;
-  border-radius: 2px 2px 0 0;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  display: none;
 }
 
-.tab-label {
+.hot-tabs :deep(.el-tabs__content) {
+  padding: 14px 14px 16px;
+  background: #f8fafc;
+  border-radius: 16px 0 0 16px;
+  flex: 1;
+}
+
+.sub-tab-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.tab-tag {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #64748b;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.85) 100%);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
-}
-
-.tab-tag :deep(.el-tag__content) {
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  width: 100%;
+  cursor: pointer;
   color: inherit;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.hot-tabs :deep(.el-tabs__item.is-active .tab-tag) {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-  color: #ffffff !important;
-  border-color: transparent;
-  font-weight: 700;
-  box-shadow: 
-    0 4px 16px rgba(99, 102, 241, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  transform: scale(1.05);
+.sub-tab-label:hover {
+  background: rgba(226, 232, 240, 0.9);
 }
 
-.hot-tabs :deep(.el-tabs__item.is-active .tab-tag .el-tag__content) {
-  color: #ffffff !important;
+.sub-tab-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+
+.sub-tab-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hot-tabs :deep(.el-tabs__item.is-active .sub-tab-label) {
+  background: rgba(59, 130, 246, 0.16);
+  transform: translateX(1px);
+  color: #0f172a;
+}
+
+.hot-tabs :deep(.el-tabs__item.is-active .sub-tab-dot) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .hot-items-container {
-  height: calc(100vh - 300px);
-  min-height: 400px;
-  max-height: calc(100vh - 300px);
+  height: 420px;
+  max-height: 520px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 8px;
+  padding: 4px 8px 4px 0;
 }
 
 .hot-items-container::-webkit-scrollbar {
@@ -497,40 +610,40 @@ onUnmounted(() => {
 }
 
 .hot-items-container::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
+  background: rgba(241, 245, 249, 0.9);
   border-radius: 3px;
 }
 
 .hot-items-container::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.8);
   border-radius: 3px;
 }
 
 .hot-items-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
+  background: rgba(100, 116, 139, 0.9);
 }
 
 .hot-items-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .hot-item {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 18px 20px;
-  border-radius: 16px;
-  border: 1px solid rgba(99, 102, 241, 0.12);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
-  backdrop-filter: blur(10px);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  background: rgba(248, 250, 252, 0.98);
   text-decoration: none;
-  color: inherit;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-secondary);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease-out, box-shadow 0.15s ease;
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  min-height: 70px;
 }
 
 .hot-item::before {
@@ -539,22 +652,16 @@ onUnmounted(() => {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 0;
-  background: linear-gradient(180deg, #6366f1, #8b5cf6);
-  transition: width 0.3s ease;
+  width: 2px;
+  background: linear-gradient(180deg, #2563eb, #22c55e);
+  opacity: 0.85;
 }
 
 .hot-item:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
-  border-color: rgba(99, 102, 241, 0.35);
-  transform: translateX(6px) translateY(-2px);
-  box-shadow: 
-    0 8px 24px rgba(99, 102, 241, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.3) inset;
-}
-
-.hot-item:hover::before {
-  width: 4px;
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.12);
 }
 
 .hot-item-content {
@@ -567,7 +674,7 @@ onUnmounted(() => {
 .hot-item-title {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
 }
@@ -577,50 +684,60 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #e0ecff;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  color: #0f172a;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.08s ease-out;
 }
 
 .hot-item:hover .hot-item-index {
-  transform: scale(1.1) rotate(5deg);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.6);
 }
 
 .hot-item-text {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
   line-height: 1.5;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .hot-item-heat {
   flex-shrink: 0;
-  padding: 5px 14px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(249, 115, 22, 0.12) 100%);
-  color: #ef4444;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #c2410c;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  box-shadow: none;
+  border: 1px solid rgba(251, 191, 36, 0.6);
 }
 
 .hot-item-desc {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-tertiary);
   line-height: 1.5;
   margin-top: 4px;
-  padding-left: 36px;
+  padding-left: 32px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .loading-more,
@@ -630,7 +747,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 24px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
@@ -653,19 +770,19 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
-  color: #94a3b8;
+  padding: 64px 20px;
+  color: var(--text-tertiary);
   gap: 16px;
 }
 
 .hot-sections-empty .el-icon {
   font-size: 48px;
-  color: #cbd5e1;
+  color: rgba(148, 163, 184, 0.8);
 }
 
 .hot-sections-empty span {
   font-size: 16px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 </style>
 
