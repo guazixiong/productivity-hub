@@ -1,5 +1,5 @@
 import http, { request } from './http'
-import type { LoginPayload, AuthResponse } from '@/types/auth'
+import type { LoginPayload, AuthResponse, ManagedUser, UserCreatePayload } from '@/types/auth'
 import type { ConfigItem, ConfigUpdatePayload, ConfigCreateOrUpdatePayload } from '@/types/config'
 import type { BaseMessagePayload, MessageHistoryItem, MessageSendResult } from '@/types/messages'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
@@ -26,6 +26,20 @@ export const authApi = {
     request<{ success: boolean; message: string }>({
       url: '/api/auth/reset-password',
       method: 'POST',
+    }),
+}
+
+export const adminUserApi = {
+  list: () =>
+    request<ManagedUser[]>({
+      url: '/api/admin/users',
+      method: 'GET',
+    }),
+  create: (payload: UserCreatePayload) =>
+    request<ManagedUser>({
+      url: '/api/admin/users',
+      method: 'POST',
+      data: payload,
     }),
 }
 
@@ -95,6 +109,8 @@ export const toolApi = {
       url: '/api/tools/track',
       method: 'POST',
       data: { toolId },
+      timeout: 5000, // 统计请求使用更短的超时时间（5秒）
+      silent: true, // 静默处理错误，不显示错误消息
     }),
 }
 
@@ -233,8 +249,8 @@ export const codeGeneratorApi = {
 
     const disposition = response.headers['content-disposition'] as string | undefined
     const fileNameMatch = disposition?.match(/filename\\*=UTF-8''([^;]+)|filename="?([^\";]+)"?/i)
-    const fileName = fileNameMatch
-      ? decodeURIComponent(fileNameMatch[1] || fileNameMatch[2])
+    const fileName = fileNameMatch && (fileNameMatch[1] || fileNameMatch[2])
+      ? decodeURIComponent(fileNameMatch[1] || fileNameMatch[2] || '')
       : 'code-generator.zip'
 
     return { blob: response.data, fileName }

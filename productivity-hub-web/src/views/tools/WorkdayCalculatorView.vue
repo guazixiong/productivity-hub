@@ -276,9 +276,11 @@ const calculateWorkdays = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--surface-border);
   margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .mode-radio-group {
@@ -303,7 +305,7 @@ const calculateWorkdays = () => {
 .mode-switch span {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .workday-input-group {
@@ -314,7 +316,7 @@ const calculateWorkdays = () => {
 
 .workday-input-group label {
   font-size: 14px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -324,7 +326,7 @@ const calculateWorkdays = () => {
 }
 
 .workday-result-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--surface-border);
 }
 
 .workday-result-card :deep(.el-card__body) {
@@ -344,9 +346,9 @@ const calculateWorkdays = () => {
 }
 
 .result-panel {
-  border: 1px solid rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--surface-border);
   border-radius: 12px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.8);
   padding: 20px;
   height: 100%;
 }
@@ -372,13 +374,13 @@ const calculateWorkdays = () => {
 .stat-details span {
   display: block;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 
 .stat-details strong {
   font-size: 16px;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .stat {
@@ -387,7 +389,7 @@ const calculateWorkdays = () => {
 
 .stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 8px;
@@ -396,17 +398,17 @@ const calculateWorkdays = () => {
 .stat-value {
   font-size: 32px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .stat-value.primary {
-  color: #6366f1;
+  color: var(--primary-color);
 }
 
 .stat-tip {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .workday-list-header {
@@ -414,6 +416,13 @@ const calculateWorkdays = () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+}
+
+.workday-list-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .workday-scroll {
@@ -424,7 +433,7 @@ const calculateWorkdays = () => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -466,6 +475,11 @@ const calculateWorkdays = () => {
 
   .stat-details {
     flex-direction: column;
+  }
+
+  .mode-switch {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

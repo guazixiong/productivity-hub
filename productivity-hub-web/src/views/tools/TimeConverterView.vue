@@ -117,7 +117,7 @@ const initCurrentTimestamp = () => {
 .time-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .page-header {
@@ -145,8 +145,8 @@ const initCurrentTimestamp = () => {
 
 .time-section h4 {
   margin: 0;
-  font-size: 14px;
-  color: #0f172a;
+  font-size: 16px;
+  color: var(--text-primary);
   font-weight: 600;
 }
 

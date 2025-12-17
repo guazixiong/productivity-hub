@@ -110,7 +110,7 @@ const spinFoodWheel = () => {
 
 <style scoped>
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .food-wheel-container {
@@ -125,10 +125,17 @@ const spinFoodWheel = () => {
   gap: 24px;
 }
 
+.food-wheel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .food-wheel-section h3 {
-  margin: 0 0 16px 0;
+  margin: 0;
   font-size: 18px;
-  color: #0f172a;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .food-options {
@@ -152,22 +159,23 @@ const spinFoodWheel = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
 }
 
 .wheel-result {
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  border: 4px solid #6366f1;
+  border: 4px solid var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--brand-gradient);
   color: white;
   font-size: 24px;
   font-weight: 700;
   transition: transform 0.1s ease;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
 }
 
 .wheel-result.spinning {

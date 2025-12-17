@@ -73,6 +73,8 @@ const validateYaml = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .validator-grid {
@@ -89,19 +91,26 @@ const validateYaml = () => {
 .yaml-error {
   margin-top: 12px;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(248, 113, 113, 0.12);
   color: #b91c1c;
+  font-size: 13px;
+}
+
+.yaml-error strong {
+  display: block;
+  margin-bottom: 4px;
 }
 
 .json-preview {
   min-height: 300px;
   background: rgba(248, 250, 252, 0.8);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 16px;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+  border: 1px solid var(--surface-border);
 }
 </style>
 

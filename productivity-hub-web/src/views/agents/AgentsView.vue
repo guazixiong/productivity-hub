@@ -547,7 +547,25 @@ onMounted(async () => {
 
 .agents-card {
   border-radius: 24px;
-  border: 1px solid rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 
+    0 20px 60px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.agents-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+  opacity: 0.8;
 }
 
 .catalog-header {
@@ -569,9 +587,13 @@ onMounted(async () => {
 
 .catalog-header h2 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #0f172a;
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
 }
 
 .catalog-search {
@@ -588,29 +610,74 @@ onMounted(async () => {
 
 .agent-tile {
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.agent-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: height 0.3s ease;
 }
 
 .agent-tile.active {
-  border-color: #6366f1;
+  border-color: rgba(99, 102, 241, 0.4);
+  border-width: 2px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
+  box-shadow: 
+    0 8px 24px rgba(99, 102, 241, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+}
+
+.agent-tile.active::before {
+  height: 3px;
 }
 
 .agent-tile:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 
+    0 12px 32px rgba(99, 102, 241, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+}
+
+.agent-tile:hover::before {
+  height: 3px;
 }
 
 .agent-hot-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #ef4444;
+  top: 14px;
+  right: 14px;
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
   color: #fff;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  z-index: 1;
+  animation: hot-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hot-badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+  }
 }
 
 .card-title {
@@ -664,6 +731,10 @@ onMounted(async () => {
 .invoke-card,
 .result-card {
   border-radius: 20px;
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 .result-header {
@@ -690,9 +761,15 @@ onMounted(async () => {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   align-items: center;
   justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(10px);
 }
 
 .logs-filters-left {

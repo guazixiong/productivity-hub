@@ -251,7 +251,7 @@ const clearAll = () => {
 .sql-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .page-header {
@@ -264,14 +264,15 @@ const clearAll = () => {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 12px;
-  background: rgba(99, 102, 241, 0.05);
-  border-radius: 8px;
+  padding: 16px;
+  background: var(--primary-light);
+  border-radius: 12px;
 }
 
 .toolbar-left {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .toolbar-right {
@@ -283,19 +284,26 @@ const clearAll = () => {
 
 .toolbar-label {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .sql-editor {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 24px;
+}
+
+.sql-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .sql-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: #0f172a;
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -303,7 +311,9 @@ const clearAll = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .section-header h4 {
@@ -318,8 +328,11 @@ const clearAll = () => {
 
 .sql-error {
   margin-top: 8px;
-  color: #ef4444;
-  font-size: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {

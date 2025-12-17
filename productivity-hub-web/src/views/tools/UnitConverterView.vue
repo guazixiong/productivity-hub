@@ -419,7 +419,7 @@ initUnits()
 .category-selector h4 {
   margin: 0;
   font-size: 16px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -430,11 +430,11 @@ initUnits()
 }
 
 .converter-panel {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(99, 102, 241, 0.16);
-  border-radius: 16px;
+  background: var(--surface-color);
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
   padding: 24px;
-  backdrop-filter: blur(10px);
+  box-shadow: var(--surface-shadow);
 }
 
 .converter-header {
@@ -444,7 +444,7 @@ initUnits()
 .converter-header h3 {
   margin: 0;
   font-size: 20px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -485,13 +485,13 @@ initUnits()
 .units-list {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid rgba(99, 102, 241, 0.1);
+  border-top: 1px solid var(--surface-border);
 }
 
 .units-list h4 {
   margin: 0 0 16px 0;
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 

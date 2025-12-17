@@ -22,6 +22,7 @@ D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\sr
 D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\core\domain\HttpClientResponse.java
 D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\util\encryption\PemUtil.java
 D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\util\xml\XmlUtils.java
+D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\core\domain\PageResult.java
 D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\core\domain\dto\QueryDTO.java
 D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\core\domain\QueryDomain.java
 D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-core\src\main\java\common\util\RedisUtil.java

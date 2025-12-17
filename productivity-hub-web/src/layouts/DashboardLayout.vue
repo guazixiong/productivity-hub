@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, ref } from 'vue'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNavigationStore } from '@/stores/navigation'
 import { useTabsStore } from '@/stores/tabs'
+import { useNotificationStore } from '@/stores/notifications'
 import TabsView from '@/components/TabsView.vue'
 import ChatWidget from '@/components/ChatWidget.vue'
-import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts } from '@element-plus/icons-vue'
+import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import logoIcon from '@/assets/logo.svg'
 
@@ -15,15 +16,19 @@ const router = useRouter()
 const authStore = useAuthStore()
 const navigationStore = useNavigationStore()
 const tabsStore = useTabsStore()
+const notificationStore = useNotificationStore()
+const notificationVisible = ref(false)
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/home')) return '/home'
   if (route.path.startsWith('/hot-sections')) return '/hot-sections'
   if (route.path.startsWith('/config')) return '/config'
+  if (route.path.startsWith('/settings/users')) return '/settings/users'
   if (route.path.startsWith('/messages')) return '/messages'
   if (route.path.startsWith('/tools')) return '/tools'
   if (route.path.startsWith('/agents')) return '/agents'
   if (route.path.startsWith('/code-generator')) return '/code-generator'
+  if (route.path.startsWith('/bookmark')) return '/bookmark'
   return route.path
 })
 
@@ -37,6 +42,8 @@ const defaultOpenMenus = computed(() => {
   return openeds
 })
 
+const isAdminUser = computed(() => authStore.user?.roles?.includes('admin'))
+
 // 左上角 Logo 点击返回首页
 const handleLogoClick = () => {
   router.push('/home')
@@ -45,8 +52,26 @@ const handleLogoClick = () => {
 const handleLogout = () => {
   authStore.logout()
   tabsStore.clearTabs()
+  notificationStore.reset()
   router.replace({ name: 'Login' })
 }
+
+const handleNotificationClick = (id: string, link?: string) => {
+  notificationStore.markRead(id)
+  notificationVisible.value = false
+  if (link) {
+    router.push(link)
+  }
+}
+
+onMounted(() => {
+  if (!authStore.isHydrated) {
+    authStore.hydrateFromCache()
+  }
+  if (authStore.isAuthenticated) {
+    notificationStore.connect()
+  }
+})
 
 // 判断两个路径是否是同级页面（都属于同一个父路径）
 const isSiblingRoute = (path1: string, path2: string): boolean => {
@@ -103,6 +128,11 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
+  // 一级菜单：宝藏类网址
+  if (path === '/bookmark') {
+    return true
+  }
+  
   // 一级菜单：热点速览
   if (path === '/hot-sections') {
     return true
@@ -114,7 +144,7 @@ const isSubMenuPage = (path: string): boolean => {
   }
   
   // 二级菜单项：设置下的页面
-  if (path === '/config') {
+  if (path === '/config' || path.startsWith('/settings')) {
     return true
   }
   
@@ -149,6 +179,27 @@ onMounted(() => {
     tabsStore.addTab(route)
   }
 })
+
+watch(
+  () => authStore.isAuthenticated,
+  (authed) => {
+    if (authed) {
+      notificationStore.connect(true)
+    } else {
+      notificationStore.reset()
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => authStore.user?.id,
+  (id) => {
+    if (id) {
+      notificationStore.connect(true)
+    }
+  },
+)
 
 // 获取需要缓存的组件名称列表
 // 注意：keep-alive 的 include 需要匹配组件的 name 选项
@@ -213,6 +264,10 @@ const cachedViews = computed(() => {
           <el-icon><Document /></el-icon>
           <span>低代码生成</span>
         </el-menu-item>
+        <el-menu-item index="/bookmark">
+          <el-icon><Collection /></el-icon>
+          <span>宝藏类网址</span>
+        </el-menu-item>
         <el-sub-menu index="/settings">
           <template #title>
             <el-icon><Setting /></el-icon>
@@ -220,6 +275,9 @@ const cachedViews = computed(() => {
           </template>
           <el-menu-item index="/config">
             <span>全局参数配置</span>
+          </el-menu-item>
+          <el-menu-item v-if="isAdminUser" index="/settings/users">
+            <span>系统用户管理</span>
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
@@ -237,6 +295,57 @@ const cachedViews = computed(() => {
           <h1>{{ pageTitle }}</h1>
         </div>
         <div class="header-actions">
+          <el-popover
+            placement="bottom-end"
+            width="360"
+            trigger="click"
+            :show-arrow="false"
+            v-model:visible="notificationVisible"
+            popper-class="notification-popper"
+          >
+            <template #reference>
+              <el-badge
+                :value="notificationStore.unreadCount"
+                :hidden="notificationStore.unreadCount === 0"
+                class="notification-badge"
+              >
+                <el-button
+                  circle
+                  class="notification-button"
+                  :icon="Bell"
+                  @click="notificationVisible = !notificationVisible"
+                />
+              </el-badge>
+            </template>
+            <div class="notification-panel">
+              <div class="notification-header">
+                <div>
+                  <div class="notification-title-text">消息提醒</div>
+                  <div class="notification-subtitle">
+                    {{ notificationStore.connected ? '已连接' : '未连接，稍后自动重试' }}
+                    <span v-if="notificationStore.unreadCount"> · {{ notificationStore.unreadCount }} 未读</span>
+                  </div>
+                </div>
+                <el-button text size="small" @click="notificationStore.markAllRead">全部已读</el-button>
+              </div>
+              <el-empty v-if="!notificationStore.notifications.length" description="暂无消息" />
+              <div v-else class="notification-list">
+                <div
+                  v-for="item in notificationStore.notifications"
+                  :key="item.id"
+                  :class="['notification-item', !item.read && 'is-unread']"
+                  @click="handleNotificationClick(item.id, item.link)"
+                >
+                  <div class="notification-item__title">{{ item.title }}</div>
+                  <div class="notification-item__content">{{ item.content }}</div>
+                  <div class="notification-item__meta">
+                    <span>{{ new Date(item.receivedAt).toLocaleString() }}</span>
+                    <el-tag v-if="item.link" size="small" type="info" effect="plain">查看详情</el-tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-popover>
           <el-dropdown trigger="click" @command="(cmd) => cmd === 'logout' && handleLogout()">
             <div class="user-dropdown">
               <el-avatar :size="36" class="user-avatar">
@@ -284,31 +393,59 @@ const cachedViews = computed(() => {
 <style scoped>
 .layout-shell {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%);
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%);
+  background-attachment: fixed;
   color: #0f172a;
 }
 
 .layout-aside {
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.8), rgba(224, 231, 255, 0.9)),
-    linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(224, 231, 255, 0.9));
-  border-right: 1px solid rgba(99, 102, 241, 0.15);
-  backdrop-filter: blur(12px);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 70%),
+    radial-gradient(circle at bottom right, rgba(224, 231, 255, 0.8), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
+  border-right: 1px solid rgba(99, 102, 241, 0.12);
+  backdrop-filter: blur(20px) saturate(180%);
   display: flex;
   flex-direction: column;
-  box-shadow: 16px 0 40px rgba(15, 23, 42, 0.08);
+  box-shadow: 
+    20px 0 50px rgba(15, 23, 42, 0.08),
+    inset -1px 0 0 rgba(255, 255, 255, 0.5);
+  position: relative;
+}
+
+.layout-aside::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.2), transparent);
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #312e81;
-  font-weight: 700;
-  font-size: 20px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  font-size: 22px;
   padding: 28px 24px 20px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.logo:hover {
+  transform: translateX(2px);
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3));
 }
 
 .logo-icon {
@@ -326,18 +463,42 @@ const cachedViews = computed(() => {
 
 .menu :deep(.el-menu-item),
 .menu :deep(.el-sub-menu__title) {
-  border-radius: 12px;
-  margin: 4px 0;
-  height: 44px;
+  border-radius: 14px;
+  margin: 6px 0;
+  height: 48px;
   color: #334155;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.menu :deep(.el-menu-item::before),
+.menu :deep(.el-sub-menu__title::before) {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) translateX(-100%);
+  width: 4px;
+  height: 0;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  border-radius: 0 4px 4px 0;
+  transition: all 0.3s ease;
 }
 
 .menu :deep(.el-menu-item:hover),
 .menu :deep(.el-sub-menu__title:hover) {
-  background: rgba(99, 102, 241, 0.08);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
   color: #1e1b4b;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.menu :deep(.el-menu-item:hover::before),
+.menu :deep(.el-sub-menu__title:hover::before) {
+  height: 60%;
+  transform: translateY(-50%) translateX(0);
 }
 
 .menu :deep(.el-sub-menu__title .el-sub-menu__icon-arrow) {
@@ -345,9 +506,17 @@ const cachedViews = computed(() => {
 }
 
 .menu :deep(.el-menu-item.is-active) {
-  background: rgba(79, 70, 229, 0.12);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.12) 100%);
   color: #312e81;
-  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.18);
+  box-shadow: 
+    inset 0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 4px 12px rgba(99, 102, 241, 0.15);
+  font-weight: 600;
+}
+
+.menu :deep(.el-menu-item.is-active::before) {
+  height: 70%;
+  transform: translateY(-50%) translateX(0);
 }
 
 .menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
@@ -392,12 +561,16 @@ const cachedViews = computed(() => {
   align-items: center;
   justify-content: space-between;
   background:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 55%),
-    rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-  padding: 0 24px;
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 0 28px;
+  position: relative;
+  z-index: 10;
 }
 
 .page-meta {
@@ -408,8 +581,13 @@ const cachedViews = computed(() => {
 
 .page-meta h1 {
   margin: 0;
-  font-size: 20px;
-  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
 }
 
 .back-button {
@@ -447,9 +625,16 @@ const cachedViews = computed(() => {
 
 .user-avatar {
   flex-shrink: 0;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s ease;
+}
+
+.user-dropdown:hover .user-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
 
 .user-info {

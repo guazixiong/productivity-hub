@@ -556,12 +556,7 @@ const submitMessage = async () => {
 }
 
 .submit-button:hover {
-  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.submit-button:active {
-  transform: translateY(0);
 }
 
 /* Markdown编辑器布局 */

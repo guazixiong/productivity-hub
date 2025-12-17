@@ -13,7 +13,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:9888',
+        // Backend Spring Boot service is configured on port 9881
+        target: 'http://localhost:9881',
         changeOrigin: true,
         secure: false,
       },

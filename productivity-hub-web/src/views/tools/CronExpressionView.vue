@@ -108,6 +108,8 @@ const applyExample = (value: string) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .cron-card {
@@ -119,7 +121,7 @@ const applyExample = (value: string) => {
 .cron-input {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .example-list {
@@ -131,21 +133,23 @@ const applyExample = (value: string) => {
 
 .label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  font-weight: 600;
 }
 
 .cron-error {
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(248, 113, 113, 0.1);
   color: #dc2626;
+  font-size: 13px;
 }
 
 .cron-description {
   padding: 16px;
-  border-radius: 16px;
+  border-radius: 12px;
   background: rgba(16, 185, 129, 0.1);
   color: #047857;
   font-size: 16px;

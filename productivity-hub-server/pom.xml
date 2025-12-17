@@ -17,7 +17,8 @@
 
     <modules>
         <module>base-common</module>
-        <module>base-business-demo</module>
+        <module>base-service-basic</module>
+        <module>base-service-thirdparty-api</module>
     </modules>
 
     <properties>

@@ -54,12 +54,19 @@ const loadToolStats = async () => {
   }
 }
 
-const trackToolClick = async (toolId: string) => {
-  try {
-    toolStats.value = await toolApi.track(toolId)
-  } catch (error) {
-    console.warn('记录工具点击失败', error)
-  }
+const trackToolClick = (toolId: string) => {
+  // 使用 fire-and-forget 模式，不阻塞用户操作
+  // 统计功能失败不应该影响用户体验
+  toolApi
+    .track(toolId)
+    .then((stats) => {
+      // 成功时更新统计数据
+      toolStats.value = stats
+    })
+    .catch((error) => {
+      // 静默失败，只记录日志，不显示错误消息
+      console.debug('记录工具点击失败（已忽略）', error)
+    })
 }
 
 const navigateToTool = (path: string, toolId: string) => {
@@ -91,8 +98,6 @@ onMounted(() => {
       <el-button v-if="searchKeyword" text size="small" @click="resetFilter">清除</el-button>
     </div>
 
-    <el-skeleton v-if="isStatsLoading && !toolStats.length" :rows="3" animated />
-
     <div v-if="filteredTools.length" class="tools-grid">
       <el-card
         v-for="tool in filteredTools"
@@ -123,7 +128,8 @@ onMounted(() => {
 .tools-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
+  padding: 8px 0;
 }
 
 .tools-toolbar {
@@ -133,7 +139,22 @@ onMounted(() => {
 }
 
 .tool-search {
-  max-width: 360px;
+  max-width: 400px;
+  flex: 1;
+}
+
+.tool-search :deep(.el-input__wrapper) {
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+  transition: all 0.3s ease;
+}
+
+.tool-search :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
+}
+
+.tool-search :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 .tools-grid {
@@ -144,31 +165,64 @@ onMounted(() => {
 
 .tool-card {
   position: relative;
-  border-radius: 16px;
-  border: 1px solid rgba(99, 102, 241, 0.16);
+  border-radius: 20px;
+  border: 1px solid rgba(99, 102, 241, 0.12);
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
+  backdrop-filter: blur(12px) saturate(180%);
+  overflow: hidden;
+}
+
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 .tool-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
-  border-color: #6366f1;
-  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 
+    0 20px 50px rgba(99, 102, 241, 0.2),
+    0 0 0 1px rgba(99, 102, 241, 0.1) inset;
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.tool-card:hover::before {
+  opacity: 1;
 }
 
 .tool-hot-badge {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
   color: #fff;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  z-index: 1;
+  animation: hot-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hot-badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
+  }
 }
 
 .tool-content {
@@ -180,18 +234,38 @@ onMounted(() => {
 }
 
 .tool-icon-wrapper {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-icon-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  transform: rotate(45deg);
+  transition: transform 0.6s ease;
 }
 
 .tool-card:hover .tool-icon-wrapper {
-  transform: scale(1.1);
+  transform: scale(1.12) rotate(5deg);
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4);
+}
+
+.tool-card:hover .tool-icon-wrapper::before {
+  transform: rotate(225deg);
 }
 
 .tool-icon {
@@ -205,10 +279,14 @@ onMounted(() => {
 }
 
 .tool-name {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #0f172a;
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
 }
 
 .tool-description {

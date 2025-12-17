@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pbad.bookmark.mapper.BookmarkTagMapper">
+
+    <resultMap id="BookmarkTagResultMap" type="com.pbad.bookmark.domain.po.BookmarkTagPO">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="level" column="level"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 查询所有标签 -->
+    <select id="selectAll" resultMap="BookmarkTagResultMap">
+        SELECT
+            id,
+            name,
+            parent_id,
+            level,
+            sort_order,
+            created_at,
+            updated_at
+        FROM
+            bookmark_tag
+        ORDER BY
+            sort_order ASC,
+            created_at DESC
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" parameterType="string" resultMap="BookmarkTagResultMap">
+        SELECT
+            id,
+            name,
+            parent_id,
+            level,
+            sort_order,
+            created_at,
+            updated_at
+        FROM
+            bookmark_tag
+        WHERE
+            id = #{id}
+    </select>
+
+    <!-- 根据父标签ID查询子标签 -->
+    <select id="selectByParentId" parameterType="string" resultMap="BookmarkTagResultMap">
+        SELECT
+            id,
+            name,
+            parent_id,
+            level,
+            sort_order,
+            created_at,
+            updated_at
+        FROM
+            bookmark_tag
+        WHERE
+            parent_id = #{parentId}
+        ORDER BY
+            sort_order ASC,
+            created_at DESC
+    </select>
+
+    <!-- 根据层级查询标签 -->
+    <select id="selectByLevel" parameterType="int" resultMap="BookmarkTagResultMap">
+        SELECT
+            id,
+            name,
+            parent_id,
+            level,
+            sort_order,
+            created_at,
+            updated_at
+        FROM
+            bookmark_tag
+        WHERE
+            level = #{level}
+        ORDER BY
+            sort_order ASC,
+            created_at DESC
+    </select>
+
+    <!-- 根据名称和父标签ID查询（用于重复校验） -->
+    <select id="selectByNameAndParentId" resultMap="BookmarkTagResultMap">
+        SELECT
+            id,
+            name,
+            parent_id,
+            level,
+            sort_order,
+            created_at,
+            updated_at
+        FROM
+            bookmark_tag
+        WHERE
+            name = #{name}
+            AND parent_id = #{parentId}
+        LIMIT 1
+    </select>
+
+    <!-- 插入标签 -->
+    <insert id="insertTag" parameterType="com.pbad.bookmark.domain.po.BookmarkTagPO">
+        INSERT INTO bookmark_tag (
+            id,
+            name,
+            parent_id,
+            level,
+            sort_order,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{id},
+            #{name},
+            #{parentId},
+            #{level},
+            #{sortOrder},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <!-- 更新标签 -->
+    <update id="updateTag" parameterType="com.pbad.bookmark.domain.po.BookmarkTagPO">
+        UPDATE bookmark_tag
+        SET
+            name = #{name},
+            parent_id = #{parentId},
+            level = #{level},
+            sort_order = #{sortOrder},
+            updated_at = #{updatedAt}
+        WHERE
+            id = #{id}
+    </update>
+
+    <!-- 删除标签 -->
+    <delete id="deleteTag" parameterType="string">
+        DELETE FROM bookmark_tag WHERE id = #{id}
+    </delete>
+
+    <!-- 批量更新排序 -->
+    <update id="batchUpdateSortOrder" parameterType="java.util.List">
+        UPDATE bookmark_tag
+        SET
+            sort_order = CASE id
+            <foreach collection="tags" item="tag">
+                WHEN #{tag.id} THEN #{tag.sortOrder}
+            </foreach>
+            END
+        WHERE
+            id IN
+            <foreach collection="tags" item="tag" open="(" close=")" separator=",">
+                #{tag.id}
+            </foreach>
+    </update>
+
+    <!-- 统计标签下网址数量 -->
+    <select id="countUrlsByTagId" parameterType="string" resultType="int">
+        SELECT COUNT(1)
+        FROM bookmark_url_tag
+        WHERE tag_id = #{tagId}
+    </select>
+
+    <!-- 统计一级标签（包括其所有子标签）下的网址数量（去重） -->
+    <select id="countUrlsByParentTagId" parameterType="string" resultType="int">
+        SELECT COUNT(DISTINCT url_id)
+        FROM bookmark_url_tag
+        WHERE tag_id = #{parentTagId}
+           OR tag_id IN (
+               SELECT id 
+               FROM bookmark_tag 
+               WHERE parent_id = #{parentTagId}
+           )
+    </select>
+
+</mapper>
+
+

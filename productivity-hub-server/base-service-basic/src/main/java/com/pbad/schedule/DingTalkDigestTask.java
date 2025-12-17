@@ -1,0 +1,209 @@
+package com.pbad.schedule;
+
+import com.pbad.messages.domain.dto.MessageSendDTO;
+import com.pbad.messages.service.MessageService;
+import com.pbad.thirdparty.api.HotDataApi;
+import com.pbad.thirdparty.api.DailyQuoteApi;
+import com.pbad.thirdparty.api.WeatherApi;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 每日热点新闻推送任务（钉钉消息渠道）。
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DingTalkDigestTask {
+
+    private static final int LIMIT = 10;
+
+    private final MessageService messageService;
+    private final HotDataApi hotDataApi;
+    private final WeatherApi weatherApi;
+    private final DailyQuoteApi dailyQuoteApi;
+
+    @Scheduled(cron = "0 0 7,12,18 * * ?", zone = "Asia/Shanghai")
+    public void sendDingTalkDigest() {
+        log.info("开始执行每日热点新闻任务（钉钉消息）");
+        try {
+            DigestData dingTalkData = buildDigestDataForDingTalk();
+            WeatherApi.WeatherInfo weatherInfo = weatherApi.getWeatherInfoByCoordinates(34.7466, 113.6254, "郑州");
+            DailyQuoteApi.DailyQuote dailyQuote = dailyQuoteApi.getDailyQuote();
+            String markdown = renderDingTalkMarkdown(dingTalkData, weatherInfo, dailyQuote);
+            Map<String, Object> dingTalkPayload = new HashMap<>();
+            dingTalkPayload.put("msgType", "markdown");
+            dingTalkPayload.put("content", markdown);
+            MessageSendDTO dingTalkDto = new MessageSendDTO();
+            dingTalkDto.setChannel("dingtalk");
+            dingTalkDto.setData(dingTalkPayload);
+            messageService.sendMessage(dingTalkDto, "system");
+            log.info("钉钉消息推送完成");
+        } catch (Exception e) {
+            log.error("钉钉消息推送失败: {}", e.getMessage(), e);
+        }
+    }
+
+    private DigestData buildDigestDataForDingTalk() {
+        HotDataApi.HotSectionVO sectionVO = hotDataApi.getHotSectionByName("综合热榜", LIMIT);
+        List<HotItem> items = new ArrayList<>();
+        for (HotDataApi.HotItemVO itemVO : sectionVO.getItems()) {
+            items.add(new HotItem(itemVO.getTitle(), itemVO.getLink(), itemVO.getHeat(), itemVO.getDesc()));
+        }
+        List<Section> sections = new ArrayList<>();
+        sections.add(new Section("综合热榜", items));
+        return new DigestData(sections);
+    }
+
+    private boolean isBlank(String text) {
+        return text == null || text.trim().isEmpty();
+    }
+
+    private String renderDingTalkMarkdown(DigestData digest, WeatherApi.WeatherInfo weatherInfo, DailyQuoteApi.DailyQuote dailyQuote) {
+        StringBuilder sb = new StringBuilder();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        int month = now.getMonthValue();
+        int day = now.getDayOfMonth();
+        String weekDay = getWeekDayShort(now.getDayOfWeek());
+        sb.append("## 📆 ").append(month).append("月").append(day).append("日 ").append(weekDay).append("\n\n");
+
+        sb.append("---\n\n");
+
+        sb.append("### 🌤️ 郑州天气\n\n");
+        if (weatherInfo != null) {
+            sb.append("**").append(weatherInfo.getWeather()).append("**");
+            if (!isBlank(weatherInfo.getTemp())) {
+                sb.append(" ").append(weatherInfo.getTemp()).append("°C");
+            }
+            if (!isBlank(weatherInfo.getWind())) {
+                sb.append(" | ").append(weatherInfo.getWind());
+            }
+            if (!isBlank(weatherInfo.getHumidity())) {
+                sb.append(" | 湿度 ").append(weatherInfo.getHumidity());
+            }
+            sb.append("\n\n");
+        } else {
+            sb.append("天气信息获取中...\n\n");
+        }
+
+        sb.append("### 💭 每日一言\n\n");
+        if (dailyQuote != null && !isBlank(dailyQuote.getQuote())) {
+            sb.append("> ").append(dailyQuote.getQuote()).append("\n\n");
+            if (!isBlank(dailyQuote.getFrom())) {
+                sb.append("—— ").append(dailyQuote.getFrom()).append("\n\n");
+            }
+        } else {
+            sb.append("每日一言获取中...\n\n");
+        }
+
+        sb.append("---\n\n");
+
+        for (Section section : digest.getSections()) {
+            String icon = getSectionIcon(section.getName());
+            sb.append("### ").append(icon).append(" ").append(section.getName()).append("\n\n");
+
+            List<HotItem> items = section.getItems();
+            if (items == null || items.isEmpty()) {
+                sb.append("暂无数据\n\n");
+            } else {
+                for (int i = 0; i < items.size(); i++) {
+                    HotItem item = items.get(i);
+                    sb.append("**").append(i + 1).append(". ").append(item.getTitle()).append("**\n");
+
+                    boolean hasInfo = false;
+                    if (!isBlank(item.getLink())) {
+                        sb.append("[🔗 查看详情](").append(item.getLink()).append(")");
+                        hasInfo = true;
+                    }
+                    if (!isBlank(item.getHeat())) {
+                        if (hasInfo) {
+                            sb.append(" · ");
+                        }
+                        sb.append("🔥 ").append(item.getHeat());
+                        hasInfo = true;
+                    }
+                    if (hasInfo) {
+                        sb.append("\n");
+                    }
+
+                    if (!isBlank(item.getDesc()) && item.getDesc().length() <= 80) {
+                        sb.append("_").append(item.getDesc()).append("_\n");
+                    }
+
+                    if (i < items.size() - 1) {
+                        sb.append("\n");
+                    }
+                }
+            }
+            sb.append("\n");
+        }
+
+        sb.append("---\n\n");
+        sb.append("⭐ 由 小胖 自动推送\n");
+
+        return sb.toString();
+    }
+
+    private String getWeekDayShort(DayOfWeek dayOfWeek) {
+        String[] weekDays = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+        return weekDays[dayOfWeek.getValue() - 1];
+    }
+
+    private String getSectionIcon(String sectionName) {
+        if (sectionName.contains("综合")) {
+            return "📡";
+        } else if (sectionName.contains("知乎")) {
+            return "💡";
+        } else if (sectionName.contains("微博")) {
+            return "🔥";
+        } else if (sectionName.contains("虎扑")) {
+            return "🏀";
+        } else if (sectionName.contains("小红书")) {
+            return "📕";
+        } else if (sectionName.contains("哔哩哔哩") || sectionName.contains("B站")) {
+            return "📺";
+        } else if (sectionName.contains("抖音")) {
+            return "🎵";
+        } else if (sectionName.contains("贴吧")) {
+            return "💬";
+        }
+        return "📰";
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class HotItem {
+        private String title;
+        private String link;
+        private String heat;
+        private String desc;
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class Section {
+        private String name;
+        private List<HotItem> items;
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class DigestData {
+        private List<Section> sections;
+    }
+}
+
+

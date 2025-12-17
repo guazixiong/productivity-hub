@@ -43,6 +43,14 @@ export const useConfigStore = defineStore('config', {
         this.loading = false
       }
     },
+    /**
+     * 清空本地缓存（用于登出/切换账号时防止拿到旧用户的配置 ID）
+     */
+    reset() {
+      this.configs = []
+      this.lastFetched = 0
+      this.loading = false
+    },
     async updateConfig(payload: ConfigUpdatePayload) {
       const updated = await configApi.update(payload)
       this.configs = this.configs.map((item) => (item.id === updated.id ? updated : item))

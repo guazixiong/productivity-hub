@@ -2,6 +2,7 @@ common\core\domain\ApiResponse.class
 common\util\IDCardUtil.class
 common\core\domain\ChangeResult.class
 common\util\judge\JudgeParameterUtil.class
+common\core\domain\PageResult.class
 common\constant\RegexConstants.class
 common\util\encryption\RsaCryptoUtil.class
 common\core\domain\HttpClientResponse.class

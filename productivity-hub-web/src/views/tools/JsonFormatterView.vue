@@ -457,7 +457,7 @@ const highlightJson = (value: string) => {
 .json-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .page-header {
@@ -472,18 +472,25 @@ const highlightJson = (value: string) => {
 .json-toolbar {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .json-editor {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 24px;
+}
+
+.json-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .json-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: #0f172a;
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -510,13 +517,14 @@ const highlightJson = (value: string) => {
 .json-highlight {
   min-height: 320px;
   background: rgba(15, 23, 42, 0.04);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 16px;
   margin: 0;
   font-family: 'Courier New', monospace;
   font-size: 13px;
   white-space: pre-wrap;
   word-break: break-all;
+  border: 1px solid var(--surface-border);
 }
 
 .json-highlight .json-key {
@@ -528,7 +536,7 @@ const highlightJson = (value: string) => {
 }
 
 .json-highlight .json-number {
-  color: #6366f1;
+  color: var(--primary-color);
 }
 
 .json-highlight .json-boolean {
@@ -536,20 +544,23 @@ const highlightJson = (value: string) => {
 }
 
 .json-highlight .json-null {
-  color: #94a3b8;
+  color: var(--text-disabled);
   font-style: italic;
 }
 
 .json-error {
   margin-top: 8px;
-  color: #ef4444;
-  font-size: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-size: 13px;
 }
 
 .json-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -560,29 +571,29 @@ const highlightJson = (value: string) => {
 .section-tip {
   margin-top: 8px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .diff-message {
   margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(99, 102, 241, 0.08);
-  color: #312e81;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary-hover);
   font-size: 13px;
 }
 
 .diff-summary {
   margin-top: 4px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .diff-legend {
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   flex-wrap: wrap;
 }
@@ -626,7 +637,7 @@ const highlightJson = (value: string) => {
 .diff-label {
   display: inline-flex;
   align-self: flex-start;
-  padding: 2px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -655,19 +666,20 @@ const highlightJson = (value: string) => {
 .diff-value span {
   display: inline-block;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 
 .diff-value pre {
   margin: 0;
   background: rgba(15, 23, 42, 0.04);
-  padding: 8px;
-  border-radius: 12px;
+  padding: 12px;
+  border-radius: 10px;
   font-family: 'Courier New', monospace;
   white-space: pre-wrap;
   word-break: break-all;
   font-size: 12px;
+  border: 1px solid var(--surface-border);
 }
 
 .diff-before pre {
@@ -688,7 +700,7 @@ const highlightJson = (value: string) => {
 .diff-json-block h5 {
   margin: 0 0 8px 0;
   font-size: 13px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -696,11 +708,12 @@ const highlightJson = (value: string) => {
   margin: 0;
   background: rgba(15, 23, 42, 0.04);
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 10px;
   font-family: 'Courier New', monospace;
   white-space: pre-wrap;
   word-break: break-all;
   font-size: 12px;
+  border: 1px solid var(--surface-border);
 }
 
 @media (max-width: 768px) {

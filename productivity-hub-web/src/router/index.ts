@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/config/ConfigView.vue'),
       },
       {
+        path: 'settings/users',
+        name: 'UserManagement',
+        meta: { title: '系统用户管理', requiresAdmin: true },
+        component: () => import('@/views/settings/UserManagementView.vue'),
+      },
+      {
         path: 'settings',
         name: 'Settings',
         meta: { title: '设置' },
@@ -170,6 +176,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/agents/AgentsView.vue'),
       },
       {
+        path: 'bookmark',
+        name: 'Bookmark',
+        meta: { title: '宝藏类网址' },
+        component: () => import('@/views/bookmark/BookmarkDisplayView.vue'),
+      },
+      {
+        path: 'bookmark/manage',
+        name: 'BookmarkManage',
+        meta: { title: '数据维护' },
+        component: () => import('@/views/bookmark/BookmarkManageView.vue'),
+      },
+      {
         path: 'reset-password',
         name: 'ResetPassword',
         meta: { title: '重置密码' },
@@ -210,6 +228,15 @@ router.beforeEach((to, from, next) => {
   if (!authStore.isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
     return
+  }
+
+  // 权限校验：仅管理员可访问 requiresAdmin 路由
+  if (to.meta.requiresAdmin) {
+    const roles = authStore.user?.roles || []
+    if (!roles.includes('admin')) {
+      next({ name: 'NotFound' })
+      return
+    }
   }
 
   // 记录导航历史（记录来源页面）

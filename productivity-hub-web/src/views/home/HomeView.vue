@@ -97,8 +97,8 @@ const salaryBubbleCooldownTimer = ref<number | null>(null)
 const salaryBubbleLocked = ref(false)
 const salaryBubbleText = '薪资 +1'
 
-// 快捷工具列表（热门工具 Top5）
-const MAX_QUICK_TOOLS = 5
+// 快捷工具列表（热门工具 Top8）
+const MAX_QUICK_TOOLS = 8
 const REQUIRED_QUICK_TOOL_IDS = ['blueprint']
 const quickTools = ref<ToolMeta[]>([])
 const toolStats = ref<ToolStat[]>([])
@@ -903,13 +903,16 @@ onUnmounted(() => {
 .home-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
   min-height: 100vh;
-  padding: 24px;
-  /* 使用浅色渐变叠加背景图，让整体色调更贴近期望的全局浅色系 */
-  background:
-    linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(236, 252, 203, 0.9)),
-    url('@/assets/home-bg.jpg') center/cover fixed no-repeat;
+  padding: 32px;
+  /* 使用更优雅的渐变背景 */
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
+    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e0e7ff 100%);
+  background-attachment: fixed;
 }
 
 .info-cards {
@@ -942,17 +945,40 @@ onUnmounted(() => {
 }
 
 .info-card {
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 
+    0 20px 50px rgba(15, 23, 42, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 .info-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(99, 102, 241, 0.22);
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 
+    0 28px 60px rgba(99, 102, 241, 0.2),
+    0 0 0 1px rgba(99, 102, 241, 0.1) inset;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.info-card:hover::before {
+  opacity: 1;
 }
 
 .card-header {
@@ -1033,11 +1059,11 @@ onUnmounted(() => {
 .location-weather-card,
 .fortune-card,
 .combined-countdown-card {
-  /* 在玻璃上叠一层细腻高光，不破坏透视感 */
+  /* 更精致的玻璃态效果 */
   background:
-    radial-gradient(circle at top left, rgba(248, 250, 252, 0.65), transparent 60%),
-    radial-gradient(circle at bottom right, rgba(191, 219, 254, 0.45), transparent 60%),
-    rgba(255, 255, 255, 0.6);
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.8), transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(224, 231, 255, 0.6), transparent 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
 }
 
 .location-weather-content {
@@ -1123,15 +1149,15 @@ onUnmounted(() => {
 }
 
 .weather-temp {
-  font-size: 36px;
-  font-weight: 700;
-  color: #6366f1;
-  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 40%, #f97316 100%);
+  font-size: 40px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #ec4899 60%, #f97316 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
+  filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
 }
 
 .weather-desc {
@@ -1203,12 +1229,29 @@ onUnmounted(() => {
 }
 
 .fortune-name {
-  font-size: 24px;
-  font-weight: 700;
-  color: #4f46e5;
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-align: center;
-  padding: 8px 0;
-  border-bottom: 2px solid rgba(129, 140, 248, 0.35);
+  padding: 12px 0;
+  border-bottom: 2px solid;
+  border-image: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent) 1;
+  position: relative;
+}
+
+.fortune-name::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 2px;
 }
 
 .fortune-description {
@@ -1239,20 +1282,31 @@ onUnmounted(() => {
 }
 
 .countdown-time {
-  font-size: clamp(20px, 4vw, 32px);
-  font-weight: 700;
-  color: #6366f1;
-  font-family: 'Courier New', monospace;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  font-size: clamp(24px, 4.5vw, 40px);
+  font-weight: 800;
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+  filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  animation: countdown-pulse 2s ease-in-out infinite;
+}
+
+@keyframes countdown-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.02);
+  }
 }
 
 .countdown-label {
@@ -1548,18 +1602,37 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(99, 102, 241, 0.12);
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+  transition: left 0.5s ease;
 }
 
 .tool-item:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%);
   border-color: #6366f1;
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+}
+
+.tool-item:hover::before {
+  left: 100%;
 }
 
 .tool-icon {

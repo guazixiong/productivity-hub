@@ -48,28 +48,57 @@ const navigateToComposer = (channel: MessageChannel) => {
 <style scoped>
 .message-center {
   padding: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-attachment: fixed;
+  min-height: calc(100vh - 60px);
+  padding: 32px;
 }
 
 .channel-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .channel-card {
-  border-radius: 16px;
-  border: 1px solid rgba(99, 102, 241, 0.16);
+  border-radius: 20px;
+  border: 1px solid rgba(99, 102, 241, 0.12);
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  backdrop-filter: blur(12px) saturate(180%);
+  position: relative;
+  overflow: hidden;
+}
+
+.channel-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 .channel-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
-  border-color: #6366f1;
-  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 
+    0 20px 50px rgba(99, 102, 241, 0.2),
+    0 0 0 1px rgba(99, 102, 241, 0.1) inset;
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.channel-card:hover::before {
+  opacity: 1;
 }
 
 .channel-card__title {
@@ -82,16 +111,20 @@ const navigateToComposer = (channel: MessageChannel) => {
 
 .channel-card h3 {
   margin: 0;
-  font-size: 18px;
-  color: #1e1b4b;
-  font-weight: 600;
+  font-size: 20px;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .channel-card p {
-  margin: 0;
-  color: #475569;
+  margin: 8px 0 0;
+  color: #64748b;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 </style>
 

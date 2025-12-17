@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pbad.codegenerator.mapper.CompanyTemplateMapper">
+
+    <resultMap id="CompanyTemplateResultMap" type="com.pbad.codegenerator.domain.po.CompanyTemplatePO">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="basePackage" column="base_package"/>
+        <result property="author" column="author"/>
+        <result property="templatesJson" column="templates_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
+    </resultMap>
+
+    <!-- 查询所有模板 -->
+    <select id="selectAll" resultMap="CompanyTemplateResultMap">
+        SELECT
+            id,
+            name,
+            description,
+            base_package,
+            author,
+            templates_json,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM
+            code_generator_company_template
+        ORDER BY
+            created_at DESC
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" parameterType="string" resultMap="CompanyTemplateResultMap">
+        SELECT
+            id,
+            name,
+            description,
+            base_package,
+            author,
+            templates_json,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM
+            code_generator_company_template
+        WHERE
+            id = #{id}
+    </select>
+
+    <!-- 插入模板 -->
+    <insert id="insert" parameterType="com.pbad.codegenerator.domain.po.CompanyTemplatePO">
+        INSERT INTO code_generator_company_template (
+            id,
+            name,
+            description,
+            base_package,
+            author,
+            templates_json,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        ) VALUES (
+            #{id},
+            #{name},
+            #{description},
+            #{basePackage},
+            #{author},
+            #{templatesJson},
+            #{createdAt},
+            #{updatedAt},
+            #{createdBy},
+            #{updatedBy}
+        )
+    </insert>
+
+    <!-- 更新模板 -->
+    <update id="update" parameterType="com.pbad.codegenerator.domain.po.CompanyTemplatePO">
+        UPDATE code_generator_company_template
+        SET
+            name = #{name},
+            description = #{description},
+            base_package = #{basePackage},
+            author = #{author},
+            templates_json = #{templatesJson},
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        WHERE
+            id = #{id}
+    </update>
+
+    <!-- 删除模板 -->
+    <delete id="deleteById" parameterType="string">
+        DELETE FROM code_generator_company_template WHERE id = #{id}
+    </delete>
+
+</mapper>
+
+

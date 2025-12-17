@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { LoginPayload, UserInfo, AuthResponse } from '@/types/auth'
 import { authApi } from '@/services/api'
+import { useConfigStore } from '@/stores/config'
 
 const TOKEN_KEY = 'phub/token'
 const REFRESH_KEY = 'phub/refreshToken'
@@ -50,6 +51,9 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(REFRESH_KEY)
       localStorage.removeItem(USER_KEY)
+      // 切换账号时清空配置缓存，避免沿用上一位用户的配置 ID
+      const configStore = useConfigStore()
+      configStore.reset()
     },
     hydrateFromCache() {
       if (this.isHydrated) return

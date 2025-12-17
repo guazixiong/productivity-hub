@@ -244,27 +244,32 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
-  padding: 0 8px;
-  height: 48px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  padding: 0 12px;
+  height: 52px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .scroll-button {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  background: rgba(255, 255, 255, 0.9);
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
   color: #6366f1;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
 }
 
 .scroll-button:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%);
   border-color: #6366f1;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 .scroll-button-left {
@@ -294,30 +299,53 @@ onMounted(() => {
 .tab-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  min-width: 120px;
-  max-width: 200px;
-  height: 36px;
-  background: rgba(248, 250, 252, 0.8);
-  border: 1px solid rgba(99, 102, 241, 0.1);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 10px 18px;
+  min-width: 130px;
+  max-width: 220px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.85) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 0;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  border-radius: 0 0 3px 3px;
+  transition: height 0.3s ease;
 }
 
 .tab-item:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-color: rgba(99, 102, 241, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .tab-item.active {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.12) 100%);
+  border-color: rgba(99, 102, 241, 0.35);
   color: #312e81;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 
+    0 4px 16px rgba(99, 102, 241, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.tab-item.active::before {
+  height: 100%;
 }
 
 .tab-title {
@@ -325,12 +353,14 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
   color: #334155;
+  transition: color 0.2s ease;
 }
 
 .tab-item.active .tab-title {
   color: #312e81;
+  font-weight: 600;
 }
 
 .tab-close {
@@ -354,27 +384,31 @@ onMounted(() => {
 .context-menu {
   position: fixed;
   z-index: 9999;
-  background: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
   border: 1px solid rgba(99, 102, 241, 0.15);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
-  padding: 4px;
-  min-width: 160px;
-  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  box-shadow: 
+    0 12px 32px rgba(15, 23, 42, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  padding: 6px;
+  min-width: 180px;
+  backdrop-filter: blur(20px) saturate(180%);
 }
 
 .context-menu-item {
-  padding: 10px 16px;
-  font-size: 13px;
+  padding: 12px 18px;
+  font-size: 14px;
   color: #334155;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 10px;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .context-menu-item:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
   color: #312e81;
+  transform: translateX(2px);
 }
 </style>
 

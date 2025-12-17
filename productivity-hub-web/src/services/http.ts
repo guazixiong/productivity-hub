@@ -19,6 +19,11 @@ type RequestConfig = AxiosRequestConfig & {
    * 是否显示全局 Loading（默认关闭，需要按需开启）
    */
   showLoading?: boolean
+  /**
+   * 是否静默处理错误（默认 false，设置为 true 时不显示错误消息）
+   * 适用于非关键请求，如统计、埋点等
+   */
+  silent?: boolean
 }
 
 const startGlobalLoading = () => {
@@ -45,23 +50,24 @@ const http: AxiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT,
 })
 
-http.interceptors.request.use((config: RequestConfig) => {
+http.interceptors.request.use((config) => {
   const authStore = useAuthStore()
+  const requestConfig = config as RequestConfig
   if (authStore.isAuthenticated) {
-    if (!config.headers) {
-      config.headers = new AxiosHeaders()
+    if (!requestConfig.headers) {
+      requestConfig.headers = new AxiosHeaders()
     }
-    if (typeof config.headers.set === 'function') {
-      config.headers.set('Authorization', `Bearer ${authStore.token}`)
+    if (typeof requestConfig.headers.set === 'function') {
+      requestConfig.headers.set('Authorization', `Bearer ${authStore.token}`)
     } else {
-      ;(config.headers as Record<string, string>).Authorization = `Bearer ${authStore.token}`
+      ;(requestConfig.headers as Record<string, string>).Authorization = `Bearer ${authStore.token}`
     }
   }
   // 确保所有请求都有统一的超时时间与加载态
-  if (!config.timeout) {
-    config.timeout = REQUEST_TIMEOUT
+  if (!requestConfig.timeout) {
+    requestConfig.timeout = REQUEST_TIMEOUT
   }
-  if (config.showLoading) {
+  if (requestConfig.showLoading) {
     startGlobalLoading()
   }
   return config
@@ -85,8 +91,8 @@ http.interceptors.response.use(
     const message = isTimeout
       ? '请求超时，请重试'
       : error.response?.data?.message ?? error.message ?? '网络错误'
-    if (isTimeout) {
-      // 触发显式提示，避免静默失败
+    // 只有在非静默模式下才显示错误消息
+    if (isTimeout && !config?.silent) {
       ElMessage.error(message)
     }
     return Promise.reject(new Error(message))

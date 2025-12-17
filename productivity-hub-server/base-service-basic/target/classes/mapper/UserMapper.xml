@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.auth.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.pbad.auth.domain.po.UserPO">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="name" column="name"/>
+        <result property="email" column="email"/>
+        <result property="roles" column="roles"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, username, password, name, email, roles, created_at, updated_at
+    </sql>
+
+    <select id="selectByUsername" parameterType="string" resultMap="UserResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_user
+        where username = #{username}
+    </select>
+
+    <select id="selectById" parameterType="string" resultMap="UserResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_user
+        where id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="UserResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_user
+        order by created_at desc
+    </select>
+
+    <update id="updatePassword">
+        update sys_user
+        set password = #{password},
+            updated_at = now()
+        where id = #{id}
+    </update>
+
+    <insert id="insertUser" parameterType="com.pbad.auth.domain.po.UserPO">
+        insert into sys_user
+        (id, username, password, name, email, roles, created_at, updated_at)
+        values
+        (#{id}, #{username}, #{password}, #{name}, #{email}, #{roles}, now(), now())
+    </insert>
+</mapper>
+

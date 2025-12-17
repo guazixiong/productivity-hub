@@ -12,8 +12,9 @@ public interface IdGeneratorDataBaseApi {
     /**
      * 获取唯一id.
      *
-     * @param moduleKey 模块唯一标识
+     * @param workerId     工作ID (0~31)
+     * @param datacenterId 数据中心ID (0~31)
      * @return 唯一id
      */
-    String generatorId(String moduleKey);
+    String generatorId(long workerId, long datacenterId);
 }

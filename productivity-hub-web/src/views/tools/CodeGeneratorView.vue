@@ -1090,6 +1090,23 @@ onMounted(async () => {
               <el-descriptions-item label="字段数">{{ selectedTable.columns.length }}</el-descriptions-item>
             </el-descriptions>
 
+            <div class="table-base-config">
+              <el-form-item label="Java类名">
+                <el-input
+                  v-model="generationConfig.tableInfo.javaClassName"
+                  placeholder="自动生成"
+                  style="width: 300px"
+                />
+              </el-form-item>
+              <el-form-item label="包名">
+                <el-input
+                  v-model="generationConfig.tableInfo.javaPackage"
+                  placeholder="com.example.entity"
+                  style="width: 300px"
+                />
+              </el-form-item>
+            </div>
+
             <h3>字段映射</h3>
             <el-table :data="tableColumns" style="width: 100%">
               <el-table-column prop="name" label="字段名" />
@@ -1115,23 +1132,6 @@ onMounted(async () => {
                 </template>
               </el-table-column>
             </el-table>
-
-            <div class="table-base-config">
-              <el-form-item label="Java类名">
-                <el-input
-                  v-model="generationConfig.tableInfo.javaClassName"
-                  placeholder="自动生成"
-                  style="width: 300px"
-                />
-              </el-form-item>
-              <el-form-item label="包名">
-                <el-input
-                  v-model="generationConfig.tableInfo.javaPackage"
-                  placeholder="com.example.entity"
-                  style="width: 300px"
-                />
-              </el-form-item>
-            </div>
           </div>
         </div>
 
@@ -1483,7 +1483,7 @@ onMounted(async () => {
                 :class="{ active: generatedActiveIndex === index }"
                 @click="selectGeneratedCode(index)"
               >
-                <div>
+                <div class="generated-item__info">
                   <div class="generated-item__title">{{ code.fileName }}</div>
                   <div class="generated-item__meta">{{ code.type }}</div>
                 </div>
@@ -1562,9 +1562,13 @@ onMounted(async () => {
 
 <style scoped>
 .code-generator-container {
-  padding: 24px;
-  background: #fff;
-  border-radius: 8px;
+  padding: 32px;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+    linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-attachment: fixed;
+  border-radius: 24px;
   min-height: calc(100vh - 200px);
 }
 
@@ -1577,8 +1581,13 @@ onMounted(async () => {
 
 .header h1 {
   margin: 0;
-  font-size: 24px;
-  color: #0f172a;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
 }
 
 .steps {
@@ -1602,8 +1611,13 @@ onMounted(async () => {
 
 .section-header h2 {
   margin: 0;
-  font-size: 20px;
-  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
 }
 
 .step-actions {
@@ -1633,8 +1647,9 @@ onMounted(async () => {
 }
 
 .templates-list .active {
-  border-color: #6366f1;
-  background: #f0f4ff;
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .template-details h3 {
@@ -1701,17 +1716,45 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: #f9fafb;
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  backdrop-filter: blur(10px);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.file-template-list-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+.file-template-list-item:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.file-template-list-item:hover::before {
+  width: 3px;
 }
 
 .file-template-list-item.active {
-  border-color: #6366f1;
-  background: #eef2ff;
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.1) 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.file-template-list-item.active::before {
+  width: 3px;
 }
 
 .file-template-list-item-content {
@@ -1915,11 +1958,20 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid transparent;
+}
+
+.generated-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .generated-item:hover {
@@ -1935,16 +1987,25 @@ onMounted(async () => {
 .generated-item__title {
   font-weight: 600;
   color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .generated-item__meta {
   color: #6b7280;
   font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .generated-item__actions {
   display: flex;
   gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .generated-pane {

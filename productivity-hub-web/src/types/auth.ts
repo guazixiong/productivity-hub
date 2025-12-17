@@ -20,3 +20,21 @@ export interface AuthResponse extends AuthTokens {
   user: UserInfo
 }
 
+export interface ManagedUser {
+  id: string
+  username: string
+  name: string
+  email?: string
+  roles: string[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface UserCreatePayload {
+  username: string
+  password?: string
+  name: string
+  email?: string
+  roles: string[]
+}
+

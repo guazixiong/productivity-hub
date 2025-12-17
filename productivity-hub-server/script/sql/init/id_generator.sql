@@ -1,5 +1,4 @@
 --- 发号器
-DROP TABLE IF EXISTS id_generator_info;
 CREATE TABLE `id_generator_info`
 (
     `module_key`     varchar(20) NOT NULL COMMENT '模块唯一标识',

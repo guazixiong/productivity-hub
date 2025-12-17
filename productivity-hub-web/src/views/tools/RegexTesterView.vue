@@ -138,6 +138,8 @@ const runRegex = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .input-grid {
@@ -156,14 +158,15 @@ const runRegex = () => {
 .field label {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .regex-error {
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(248, 113, 113, 0.12);
   color: #b91c1c;
+  font-size: 13px;
 }
 
 .result-grid {
@@ -174,12 +177,13 @@ const runRegex = () => {
 
 .highlight-preview {
   min-height: 160px;
-  border: 1px dashed rgba(148, 163, 184, 0.5);
+  border: 1px dashed var(--surface-border);
   border-radius: 12px;
   padding: 16px;
   font-family: 'Courier New', monospace;
   white-space: pre-wrap;
   word-break: break-all;
+  background: rgba(248, 250, 252, 0.8);
 }
 
 .highlight-preview mark {
@@ -197,6 +201,7 @@ const runRegex = () => {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
+  border: 1px solid var(--surface-border);
 }
 
 .match-card {

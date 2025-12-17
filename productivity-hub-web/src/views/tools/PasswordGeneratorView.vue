@@ -122,11 +122,14 @@ const copyPassword = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .config-card {
@@ -144,7 +147,7 @@ const copyPassword = async () => {
 .length {
   font-size: 28px;
   font-weight: 700;
-  color: #6366f1;
+  color: var(--primary-color);
 }
 
 .options-grid {
@@ -162,7 +165,7 @@ const copyPassword = async () => {
 .password-display {
   min-height: 64px;
   border: 1px dashed rgba(99, 102, 241, 0.4);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 16px;
   font-family: 'Courier New', monospace;
   font-size: 20px;
@@ -171,10 +174,11 @@ const copyPassword = async () => {
   justify-content: center;
   text-align: center;
   word-break: break-all;
+  background: rgba(248, 250, 252, 0.8);
 }
 
 .password-display.empty {
-  color: #94a3b8;
+  color: var(--text-disabled);
 }
 
 .history {
@@ -186,13 +190,19 @@ const copyPassword = async () => {
 
 .label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
   .options-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

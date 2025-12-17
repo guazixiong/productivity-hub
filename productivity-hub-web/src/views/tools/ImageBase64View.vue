@@ -411,7 +411,7 @@ const formatFileSize = (bytes: number): string => {
 .input-section h4 {
   margin: 0;
   font-size: 16px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -429,8 +429,8 @@ const formatFileSize = (bytes: number): string => {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: rgba(99, 102, 241, 0.05);
-  border-radius: 8px;
+  background: var(--primary-light);
+  border-radius: 10px;
 }
 
 .info-item {
@@ -440,19 +440,19 @@ const formatFileSize = (bytes: number): string => {
 }
 
 .info-label {
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .info-value {
-  color: #0f172a;
+  color: var(--text-primary);
   margin-left: 8px;
 }
 
 .image-preview {
   width: 100%;
   min-height: 300px;
-  border: 2px dashed #e2e8f0;
+  border: 2px dashed var(--surface-border);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -466,7 +466,7 @@ const formatFileSize = (bytes: number): string => {
 .image-preview img {
   max-width: 100%;
   max-height: 400px;
-  border-radius: 8px;
+  border-radius: 10px;
   object-fit: contain;
 }
 
@@ -487,12 +487,14 @@ const formatFileSize = (bytes: number): string => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .section-header h4 {
   margin: 0;
   font-size: 16px;
-  color: #0f172a;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -509,16 +511,16 @@ const formatFileSize = (bytes: number): string => {
 
 .output-info {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-tertiary);
   text-align: right;
 }
 
 .decode-tip {
   font-size: 12px;
-  color: #64748b;
-  padding: 8px 12px;
-  background: rgba(99, 102, 241, 0.05);
-  border-radius: 6px;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  background: var(--primary-light);
+  border-radius: 8px;
 }
 
 .decode-actions {

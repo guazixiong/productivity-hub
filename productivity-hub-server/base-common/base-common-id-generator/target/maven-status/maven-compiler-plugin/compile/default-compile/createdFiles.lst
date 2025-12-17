@@ -5,6 +5,5 @@ com\pbad\generator\api\IdGeneratorDataBaseApi.class
 com\pbad\generator\mapper\IdGeneratorMapper.class
 com\pbad\generator\domain\po\IdGeneratorInfoPO.class
 com\pbad\generator\enums\StatusEnum.class
-com\pbad\generator\GeneratorApplication.class
 com\pbad\generator\api\impl\IdGeneratorApiImpl.class
 com\pbad\generator\api\impl\IdGeneratorDataBaseApiImpl.class
