@@ -2,6 +2,8 @@ package common.web.interceptor;
 
 import common.core.domain.ApiResponse;
 import common.util.JwtUtil;
+import common.web.context.RequestUser;
+import common.web.context.RequestUserContext;
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -71,8 +73,15 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         String username = JwtUtil.getUsernameFromToken(token);
         request.setAttribute("userId", userId);
         request.setAttribute("username", username);
+        RequestUserContext.set(RequestUser.builder().userId(userId).username(username).build());
 
         return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        RequestUserContext.clear();
+        HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
     }
 
     /**

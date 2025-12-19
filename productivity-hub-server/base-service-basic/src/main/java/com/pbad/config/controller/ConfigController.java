@@ -5,11 +5,10 @@ import com.pbad.config.domain.dto.ConfigUpdateDTO;
 import com.pbad.config.domain.vo.ConfigItemVO;
 import com.pbad.config.service.ConfigService;
 import common.core.domain.ApiResponse;
-import common.util.JwtUtil;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -32,17 +31,11 @@ public class ConfigController {
      * @return 配置项列表
      */
     @GetMapping
-    public ApiResponse<List<ConfigItemVO>> getConfigList(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-        if (token == null || !JwtUtil.validateToken(token)) {
-            return ApiResponse.unauthorized("Token 无效或过期");
+    public ApiResponse<List<ConfigItemVO>> getConfigList() {
+        String userId = currentUserId();
+        if (userId == null) {
+            return ApiResponse.unauthorized("未登录或登录已过期");
         }
-        String userId = JwtUtil.getUserIdFromToken(token);
-        if (userId == null || userId.isEmpty()) {
-            return ApiResponse.unauthorized("无法识别用户");
-        }
-
         List<ConfigItemVO> configList = configService.getConfigList(userId);
         return ApiResponse.ok(configList);
     }
@@ -55,26 +48,12 @@ public class ConfigController {
      * @return 更新后的配置项
      */
     @PutMapping
-    public ApiResponse<ConfigItemVO> updateConfig(@RequestBody ConfigUpdateDTO updateDTO,
-                                                   HttpServletRequest request) {
-        // 从请求头获取 Token
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-
-        if (token == null || !JwtUtil.validateToken(token)) {
-            return ApiResponse.unauthorized("Token 无效或过期");
+    public ApiResponse<ConfigItemVO> updateConfig(@RequestBody ConfigUpdateDTO updateDTO) {
+        String userId = currentUserId();
+        String username = currentUsername();
+        if (userId == null) {
+            return ApiResponse.unauthorized("未登录或登录已过期");
         }
-
-        // 从 Token 中获取用户名
-        String username = JwtUtil.getUsernameFromToken(token);
-        String userId = JwtUtil.getUserIdFromToken(token);
-        if (username == null) {
-            username = "系统";
-        }
-        if (userId == null || userId.isEmpty()) {
-            return ApiResponse.unauthorized("无法识别用户");
-        }
-
         ConfigItemVO configItem = configService.updateConfig(updateDTO, userId, username);
         return ApiResponse.ok("保存成功", configItem);
     }
@@ -87,28 +66,23 @@ public class ConfigController {
      * @return 创建或更新后的配置项
      */
     @PostMapping("/create-or-update")
-    public ApiResponse<ConfigItemVO> createOrUpdateConfig(@RequestBody ConfigCreateOrUpdateDTO createOrUpdateDTO,
-                                                           HttpServletRequest request) {
-        // 从请求头获取 Token
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-
-        if (token == null || !JwtUtil.validateToken(token)) {
-            return ApiResponse.unauthorized("Token 无效或过期");
+    public ApiResponse<ConfigItemVO> createOrUpdateConfig(@RequestBody ConfigCreateOrUpdateDTO createOrUpdateDTO) {
+        String userId = currentUserId();
+        String username = currentUsername();
+        if (userId == null) {
+            return ApiResponse.unauthorized("未登录或登录已过期");
         }
-
-        // 从 Token 中获取用户名
-        String username = JwtUtil.getUsernameFromToken(token);
-        String userId = JwtUtil.getUserIdFromToken(token);
-        if (username == null) {
-            username = "系统";
-        }
-        if (userId == null || userId.isEmpty()) {
-            return ApiResponse.unauthorized("无法识别用户");
-        }
-
         ConfigItemVO configItem = configService.createOrUpdateConfig(createOrUpdateDTO, userId, username);
         return ApiResponse.ok("保存成功", configItem);
+    }
+
+    private String currentUserId() {
+        return RequestUserContext.getUserId();
+    }
+
+    private String currentUsername() {
+        String username = RequestUserContext.getUsername();
+        return username != null ? username : "系统";
     }
 }
 

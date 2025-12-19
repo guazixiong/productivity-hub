@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.todo.mapper.TodoTaskMapper">
+
+    <resultMap id="TodoTaskResultMap" type="com.pbad.todo.domain.po.TodoTaskPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="moduleId" column="module_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="priority" column="priority"/>
+        <result property="tagsJson" column="tags_json"/>
+        <result property="status" column="status"/>
+        <result property="dueDate" column="due_date"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="endedAt" column="ended_at"/>
+        <result property="activeStartAt" column="active_start_at"/>
+        <result property="pauseStartedAt" column="pause_started_at"/>
+        <result property="durationMs" column="duration_ms"/>
+        <result property="pausedDurationMs" column="paused_duration_ms"/>
+        <result property="lastEventAt" column="last_event_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, module_id, title, description, priority, tags_json, status,
+        due_date,
+        started_at, ended_at, active_start_at, pause_started_at,
+        duration_ms, paused_duration_ms, last_event_at, created_at, updated_at
+    </sql>
+
+    <select id="selectByUser" resultMap="TodoTaskResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM todo_task
+        WHERE user_id = #{userId}
+        <if test="moduleId != null and moduleId != ''">
+            AND module_id = #{moduleId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY 
+            CASE WHEN due_date IS NULL THEN 1 ELSE 0 END,
+            due_date ASC,
+            CASE priority
+                WHEN 'P0' THEN 0
+                WHEN 'P1' THEN 1
+                WHEN 'P2' THEN 2
+                WHEN 'P3' THEN 3
+                ELSE 4
+            END ASC,
+            CASE status
+                WHEN 'PENDING' THEN 0
+                WHEN 'IN_PROGRESS' THEN 1
+                WHEN 'PAUSED' THEN 2
+                WHEN 'COMPLETED' THEN 3
+                WHEN 'INTERRUPTED' THEN 4
+                ELSE 5
+            END ASC
+    </select>
+
+    <select id="selectByUserWithPage" resultMap="TodoTaskResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM todo_task
+        WHERE user_id = #{userId}
+        <if test="moduleId != null and moduleId != ''">
+            AND module_id = #{moduleId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY 
+            CASE WHEN due_date IS NULL THEN 1 ELSE 0 END,
+            due_date ASC,
+            CASE priority
+                WHEN 'P0' THEN 0
+                WHEN 'P1' THEN 1
+                WHEN 'P2' THEN 2
+                WHEN 'P3' THEN 3
+                ELSE 4
+            END ASC,
+            CASE status
+                WHEN 'PENDING' THEN 0
+                WHEN 'IN_PROGRESS' THEN 1
+                WHEN 'PAUSED' THEN 2
+                WHEN 'COMPLETED' THEN 3
+                WHEN 'INTERRUPTED' THEN 4
+                ELSE 5
+            END ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByUser" resultType="long">
+        SELECT COUNT(1)
+        FROM todo_task
+        WHERE user_id = #{userId}
+        <if test="moduleId != null and moduleId != ''">
+            AND module_id = #{moduleId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="selectById" resultMap="TodoTaskResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM todo_task
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByStatuses" resultMap="TodoTaskResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM todo_task
+        WHERE user_id = #{userId}
+        <if test="statuses != null and statuses.size() > 0">
+            AND status IN
+            <foreach collection="statuses" item="st" open="(" close=")" separator=",">
+                #{st}
+            </foreach>
+        </if>
+        ORDER BY updated_at DESC
+    </select>
+
+    <insert id="insertTask" parameterType="com.pbad.todo.domain.po.TodoTaskPO">
+        INSERT INTO todo_task (
+            id, user_id, module_id, title, description, priority, tags_json, status,
+            due_date,
+            started_at, ended_at, active_start_at, pause_started_at,
+            duration_ms, paused_duration_ms, last_event_at, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{moduleId}, #{title}, #{description}, #{priority}, #{tagsJson}, #{status},
+            #{dueDate},
+            #{startedAt}, #{endedAt}, #{activeStartAt}, #{pauseStartedAt},
+            #{durationMs}, #{pausedDurationMs}, #{lastEventAt},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="updateTask" parameterType="com.pbad.todo.domain.po.TodoTaskPO">
+        UPDATE todo_task
+        SET
+            module_id = #{moduleId},
+            title = #{title},
+            description = #{description},
+            priority = #{priority},
+            tags_json = #{tagsJson},
+            status = #{status},
+            due_date = #{dueDate},
+            started_at = #{startedAt},
+            ended_at = #{endedAt},
+            active_start_at = #{activeStartAt},
+            pause_started_at = #{pauseStartedAt},
+            duration_ms = #{durationMs},
+            paused_duration_ms = #{pausedDurationMs},
+            last_event_at = #{lastEventAt},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteTask">
+        DELETE FROM todo_task
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+    <select id="aggregateByModule" resultType="com.pbad.todo.domain.po.TodoModuleStatsPO">
+        SELECT
+            t.module_id AS moduleId,
+            m.name AS moduleName,
+            COUNT(1) AS totalTasks,
+            SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedTasks,
+            IFNULL(SUM(
+                t.duration_ms + 
+                CASE 
+                    WHEN t.status = 'IN_PROGRESS' AND t.active_start_at IS NOT NULL 
+                    THEN TIMESTAMPDIFF(SECOND, t.active_start_at, NOW()) * 1000
+                    ELSE 0 
+                END
+            ), 0) AS durationMs
+        FROM todo_task t
+                 INNER JOIN todo_module m ON t.module_id = m.id
+        WHERE t.user_id = #{userId}
+        <if test="start != null">
+            AND (t.started_at IS NULL OR t.started_at >= #{start})
+        </if>
+        <if test="end != null">
+            AND (t.ended_at IS NULL OR t.ended_at &lt;= #{end})
+        </if>
+        GROUP BY t.module_id, m.name
+    </select>
+
+    <select id="aggregateDaily" resultType="com.pbad.todo.domain.po.TodoDailyStatsPO">
+        SELECT
+            DATE_FORMAT(DATE(IFNULL(t.ended_at, t.updated_at)), '%Y-%m-%d') AS date,
+            SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedTasks,
+            IFNULL(SUM(
+                t.duration_ms + 
+                CASE 
+                    WHEN t.status = 'IN_PROGRESS' AND t.active_start_at IS NOT NULL 
+                    THEN TIMESTAMPDIFF(SECOND, t.active_start_at, NOW()) * 1000
+                    ELSE 0 
+                END
+            ), 0) AS durationMs
+        FROM todo_task t
+        WHERE t.user_id = #{userId}
+        <if test="start != null">
+            AND (t.started_at IS NULL OR t.started_at &gt;= #{start})
+        </if>
+        <if test="end != null">
+            AND (t.ended_at IS NULL OR t.ended_at &lt;= #{end})
+        </if>
+        GROUP BY DATE_FORMAT(DATE(IFNULL(t.ended_at, t.updated_at)), '%Y-%m-%d')
+        ORDER BY DATE_FORMAT(DATE(IFNULL(t.ended_at, t.updated_at)), '%Y-%m-%d')
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(1)
+        FROM todo_task
+        WHERE user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="sumDuration" resultType="long">
+        SELECT IFNULL(SUM(
+            duration_ms + 
+            CASE 
+                WHEN status = 'IN_PROGRESS' AND active_start_at IS NOT NULL 
+                THEN TIMESTAMPDIFF(SECOND, active_start_at, NOW()) * 1000
+                ELSE 0 
+            END
+        ), 0)
+        FROM todo_task
+        WHERE user_id = #{userId}
+        <if test="start != null">
+            AND (started_at IS NULL OR started_at &gt;= #{start})
+        </if>
+        <if test="end != null">
+            AND (ended_at IS NULL OR ended_at &lt;= #{end})
+        </if>
+    </select>
+</mapper>
+

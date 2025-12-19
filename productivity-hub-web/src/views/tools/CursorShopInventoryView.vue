@@ -15,7 +15,9 @@ const hasData = computed(() => commodities.value.length > 0)
 
 const stats = computed(() => {
   const total = commodities.value.length
-  const inStock = commodities.value.filter((item) => item.stockState === 2 || item.stockState === 3).length
+  const inStock = commodities.value.filter(
+    (item) => item.stockState === 2 || item.stockState === 3 || item.stockState === 4
+  ).length
   const lowStock = commodities.value.filter((item) => item.stockState === 1).length
   const outOfStock = commodities.value.filter((item) => item.stockState === 0).length
   const totalStock = commodities.value.reduce((sum, item) => sum + (item.stock ?? 0), 0)
@@ -39,6 +41,7 @@ const stockTagType = (state: CursorCommodity['stockState']) => {
   switch (state) {
     case 2:
     case 3:
+    case 4:
       return 'success'
     case 1:
       return 'warning'
@@ -46,6 +49,21 @@ const stockTagType = (state: CursorCommodity['stockState']) => {
       return 'danger'
     default:
       return undefined
+  }
+}
+
+const getStockStateText = (state: CursorCommodity['stockState']) => {
+  switch (state) {
+    case 2:
+    case 3:
+    case 4:
+      return '库存充足'
+    case 1:
+      return '库存不足'
+    case 0:
+      return '缺货'
+    default:
+      return '-'
   }
 }
 
@@ -72,6 +90,7 @@ const getRowClassName = ({ stockState }: CursorCommodity) => {
   switch (stockState) {
     case 2:
     case 3:
+    case 4:
       return 'row-success'
     case 1:
       return 'row-warning'
@@ -86,6 +105,7 @@ const getStockClass = (stockState: CursorCommodity['stockState']) => {
   switch (stockState) {
     case 2:
     case 3:
+    case 4:
       return 'stock-success'
     case 1:
       return 'stock-warning'
@@ -220,7 +240,7 @@ onMounted(() => {
         <el-table-column prop="stockStateText" label="库存状态" width="150" align="center">
           <template #default="{ row }">
             <el-tag :type="stockTagType(row.stockState)" effect="light" size="large">
-              {{ row.stockStateText ?? '-' }}
+              {{ getStockStateText(row.stockState) }}
             </el-tag>
           </template>
         </el-table-column>

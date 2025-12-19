@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pbad.notifications.mapper.NotificationMapper">
+
+    <resultMap id="NotificationResultMap" type="com.pbad.notifications.domain.po.NotificationPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="link" column="link"/>
+        <result property="extraData" column="extra_data"/>
+        <result property="readFlag" column="read_flag"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, title, content, link, extra_data, read_flag, created_at, updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.pbad.notifications.domain.po.NotificationPO">
+        INSERT INTO sys_notification (
+            id, user_id, title, content, link, extra_data, read_flag, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{title}, #{content}, #{link}, #{extraData},
+            IFNULL(#{readFlag}, 0),
+            IFNULL(#{createdAt}, NOW()),
+            IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <select id="selectPageByUser" resultMap="NotificationResultMap">
+        SELECT
+            <include refid="Base_Column_List"/>
+        FROM
+            sys_notification
+        WHERE
+            user_id = #{userId}
+        ORDER BY
+            created_at DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countByUser" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_notification
+        WHERE user_id = #{userId}
+    </select>
+
+    <update id="markRead">
+        UPDATE sys_notification
+        SET read_flag = 1,
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+</mapper>
+
+

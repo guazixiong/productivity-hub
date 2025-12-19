@@ -3,21 +3,25 @@ package com.pbad.auth.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.pbad.auth.domain.dto.LoginDTO;
 import com.pbad.auth.domain.po.UserPO;
+import com.pbad.auth.domain.vo.CaptchaResponseVO;
 import com.pbad.auth.domain.vo.LoginResponseVO;
 import com.pbad.auth.domain.vo.ResetPasswordResponseVO;
 import com.pbad.auth.domain.vo.UserVO;
 import com.pbad.auth.mapper.UserMapper;
 import com.pbad.auth.service.AuthService;
+import com.pbad.auth.util.CaptchaUtil;
 import common.exception.BusinessException;
 import common.util.JwtUtil;
-import common.util.SpringCopyUtil;
-import common.util.encryption.MD5Utils;
+import common.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务实现类.
@@ -32,11 +36,42 @@ import java.util.List;
 public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
+    private final RedisUtil redisUtil;
 
     /**
      * 默认密码
      */
     private static final String DEFAULT_PASSWORD = "123456";
+
+    /**
+     * 验证码Redis Key前缀
+     */
+    private static final String CAPTCHA_KEY_PREFIX = "captcha:";
+
+    /**
+     * 验证码过期时间（5分钟）
+     */
+    private static final long CAPTCHA_EXPIRE_MINUTES = 5;
+
+    @Override
+    public CaptchaResponseVO generateCaptcha() {
+        // 生成验证码
+        CaptchaUtil.CaptchaResult captchaResult = CaptchaUtil.generateCaptcha();
+
+        // 生成唯一Key
+        String captchaKey = UUID.randomUUID().toString().replace("-", "");
+
+        // 存储到Redis（5分钟过期）
+        String redisKey = CAPTCHA_KEY_PREFIX + captchaKey;
+        redisUtil.setKey(redisKey, captchaResult.getCode().toUpperCase(), CAPTCHA_EXPIRE_MINUTES, TimeUnit.MINUTES);
+
+        // 构建响应
+        CaptchaResponseVO response = new CaptchaResponseVO();
+        response.setKey(captchaKey);
+        response.setImage(captchaResult.getImageBase64());
+
+        return response;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -45,6 +80,26 @@ public class AuthServiceImpl implements AuthService {
         if (loginDTO == null || loginDTO.getUsername() == null || loginDTO.getPassword() == null) {
             throw new BusinessException("401", "用户名或密码不能为空");
         }
+
+        // 验证码校验
+        if (!StringUtils.hasText(loginDTO.getCaptcha()) || !StringUtils.hasText(loginDTO.getCaptchaKey())) {
+            throw new BusinessException("401", "请输入验证码");
+        }
+
+        String redisKey = CAPTCHA_KEY_PREFIX + loginDTO.getCaptchaKey();
+        Object storedCaptcha = redisUtil.getValue(redisKey);
+        if (storedCaptcha == null) {
+            throw new BusinessException("401", "验证码已过期，请刷新后重试");
+        }
+
+        String expectedCaptcha = storedCaptcha.toString().toUpperCase();
+        String inputCaptcha = loginDTO.getCaptcha().toUpperCase();
+        if (!expectedCaptcha.equals(inputCaptcha)) {
+            throw new BusinessException("401", "验证码错误");
+        }
+
+        // 验证通过后删除验证码（一次性使用）
+        redisUtil.delete(redisKey);
 
         // 查询用户
         UserPO userPO = userMapper.selectByUsername(loginDTO.getUsername());

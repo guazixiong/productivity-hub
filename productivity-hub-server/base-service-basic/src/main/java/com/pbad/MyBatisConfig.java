@@ -15,7 +15,8 @@ import org.springframework.context.annotation.Configuration;
         "com.pbad.tools.mapper",
         "com.pbad.messages.mapper",
         "com.pbad.agents.mapper",
-        "com.pbad.generator.mapper"
+        "com.pbad.todo.mapper",
+        "com.pbad.notifications.mapper"
 })
 public class MyBatisConfig {
 }

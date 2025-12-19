@@ -316,6 +316,10 @@ public class ConfigServiceImpl implements ConfigService {
         if (userId == null || userId.isEmpty()) {
             return false;
         }
+        // 模板用户（system）视为全局管理员，用于修改模板配置
+        if (isTemplateUser(userId)) {
+            return true;
+        }
         UserPO user = userMapper.selectById(userId);
         if (user == null) {
             return false;

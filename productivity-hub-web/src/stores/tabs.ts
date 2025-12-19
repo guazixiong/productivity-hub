@@ -8,19 +8,18 @@ export interface TabItem {
   query?: Record<string, any>
   params?: Record<string, any>
   meta?: Record<string, any>
+  refreshKey?: number
 }
 
 interface TabsState {
   tabs: TabItem[]
   activeTab: string | null
-  refreshKey: number
 }
 
 export const useTabsStore = defineStore('tabs', {
   state: (): TabsState => ({
     tabs: [],
     activeTab: null,
-    refreshKey: 0,
   }),
 
   getters: {
@@ -58,6 +57,7 @@ export const useTabsStore = defineStore('tabs', {
         query: { ...route.query },
         params: { ...route.params },
         meta: { ...route.meta },
+        refreshKey: 0,
       }
 
       this.tabs.push(tab)
@@ -104,10 +104,24 @@ export const useTabsStore = defineStore('tabs', {
 
     // 刷新指定或当前标签页
     refreshTab(path?: string) {
-      if (path && this.hasTab(path)) {
-        this.activeTab = path
+      const targetPath = path || this.activeTab
+      if (!targetPath) return
+      
+      const tab = this.tabs.find(tab => tab.path === targetPath)
+      if (tab) {
+        // 增加该标签页的 refreshKey，触发组件重新渲染
+        tab.refreshKey = (tab.refreshKey || 0) + 1
+        // 如果刷新的是非当前激活标签，先切换过去
+        if (targetPath !== this.activeTab) {
+          this.activeTab = targetPath
+        }
       }
-      this.refreshKey += 1
+    },
+    
+    // 获取指定标签页的 refreshKey
+    getRefreshKey(path: string): number {
+      const tab = this.tabs.find(tab => tab.path === path)
+      return tab?.refreshKey || 0
     },
 
     // 更新标签页信息（当路由变化时）

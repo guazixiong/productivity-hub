@@ -2,6 +2,7 @@ export interface LoginPayload {
   username: string
   password: string
   captcha?: string
+  captchaKey?: string
 }
 
 export interface UserInfo {

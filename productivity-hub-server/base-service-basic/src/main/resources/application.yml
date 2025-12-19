@@ -32,7 +32,7 @@ pagehelper:
 
 common:
   web:
-    exclude-paths: /api/auth/login,/api/schedule/**
+    exclude-paths: /api/auth/login,/api/auth/captcha
 
 logging:
   level.org.springframework.boot.autoconfigure: error

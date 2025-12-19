@@ -4,16 +4,17 @@ import com.pbad.codegenerator.domain.dto.*;
 import com.pbad.codegenerator.domain.vo.*;
 import com.pbad.codegenerator.service.CodeGeneratorService;
 import common.core.domain.ApiResponse;
-import common.util.JwtUtil;
+import common.exception.BusinessException;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,13 +35,12 @@ public class CodeGeneratorController {
     /**
      * 获取当前用户ID
      */
-    private String getCurrentUserId(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-        if (token != null && JwtUtil.validateToken(token)) {
-            return JwtUtil.getUserIdFromToken(token);
+    private String getCurrentUserId() {
+        String userId = RequestUserContext.getUserId();
+        if (StringUtils.hasText(userId)) {
+            return userId;
         }
-        return "system"; // 默认用户
+        throw new BusinessException("401", "未登录或登录已过期");
     }
 
     // ========== 公司模板管理 ==========
@@ -68,9 +68,8 @@ public class CodeGeneratorController {
      */
     @PostMapping("/templates")
     public ApiResponse<CompanyTemplateVO> saveCompanyTemplate(
-            @RequestBody CompanyTemplateDTO dto,
-            HttpServletRequest request) {
-        String userId = getCurrentUserId(request);
+            @RequestBody CompanyTemplateDTO dto) {
+        String userId = getCurrentUserId();
         CompanyTemplateVO template = codeGeneratorService.saveCompanyTemplate(dto, userId);
         return ApiResponse.ok(template);
     }
@@ -109,9 +108,8 @@ public class CodeGeneratorController {
      */
     @PostMapping("/database-configs")
     public ApiResponse<DatabaseConfigVO> saveDatabaseConfig(
-            @RequestBody DatabaseConfigDTO dto,
-            HttpServletRequest request) {
-        String userId = getCurrentUserId(request);
+            @RequestBody DatabaseConfigDTO dto) {
+        String userId = getCurrentUserId();
         DatabaseConfigVO config = codeGeneratorService.saveDatabaseConfig(dto, userId);
         return ApiResponse.ok(config);
     }

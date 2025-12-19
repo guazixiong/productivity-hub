@@ -1,9 +1,10 @@
 package com.pbad.schedule;
 
+import com.pbad.config.service.ConfigService;
 import com.pbad.messages.domain.dto.MessageSendDTO;
 import com.pbad.messages.service.MessageService;
-import com.pbad.thirdparty.api.HotDataApi;
 import com.pbad.thirdparty.api.DailyQuoteApi;
+import com.pbad.thirdparty.api.HotDataApi;
 import com.pbad.thirdparty.api.WeatherApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,9 +34,14 @@ public class DingTalkDigestTask {
     private final HotDataApi hotDataApi;
     private final WeatherApi weatherApi;
     private final DailyQuoteApi dailyQuoteApi;
+    private final ConfigService configService;
 
     @Scheduled(cron = "0 0 7,12,18 * * ?", zone = "Asia/Shanghai")
     public void sendDingTalkDigest() {
+        if (!isTaskEnabled("dingTalkDigest.enabled")) {
+            log.info("每日热点新闻任务（钉钉消息）已被关闭，跳过执行");
+            return;
+        }
         log.info("开始执行每日热点新闻任务（钉钉消息）");
         try {
             DigestData dingTalkData = buildDigestDataForDingTalk();
@@ -52,6 +58,16 @@ public class DingTalkDigestTask {
             log.info("钉钉消息推送完成");
         } catch (Exception e) {
             log.error("钉钉消息推送失败: {}", e.getMessage(), e);
+        }
+    }
+
+    private boolean isTaskEnabled(String key) {
+        try {
+            String value = configService.getTemplateConfigValue("schedule", key);
+            return !"false".equalsIgnoreCase(value) && !"0".equals(value);
+        } catch (Exception ex) {
+            // 如果配置不存在或读取失败，默认视为开启
+            return true;
         }
     }
 

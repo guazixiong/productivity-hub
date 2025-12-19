@@ -1,5 +1,6 @@
 package com.pbad.tools.schedule;
 
+import com.pbad.config.service.ConfigService;
 import com.pbad.tools.domain.po.ToolStatPO;
 import com.pbad.tools.mapper.ToolStatMapper;
 import common.util.RedisUtil;
@@ -32,6 +33,7 @@ public class ToolStatSyncTask {
 
     private final RedisUtil redisUtil;
     private final ToolStatMapper toolStatMapper;
+    private final ConfigService configService;
 
     /**
      * 每小时执行一次，将Redis热点数据落库.
@@ -42,6 +44,10 @@ public class ToolStatSyncTask {
     @Scheduled(cron = "0 0 * * * ?", zone = "Asia/Shanghai")
     @Transactional(rollbackFor = Exception.class)
     public void syncToolStatsToDatabase() {
+        if (!isTaskEnabled("toolStatSync.enabled")) {
+            log.info("工具统计数据同步任务已被关闭，跳过执行");
+            return;
+        }
         log.info("开始执行工具统计数据同步任务：将Redis热点数据落库");
         try {
             // 获取所有Redis中的工具统计key
@@ -112,6 +118,16 @@ public class ToolStatSyncTask {
 
         } catch (Exception e) {
             log.error("工具统计数据同步失败: {}", e.getMessage(), e);
+        }
+    }
+
+    private boolean isTaskEnabled(String key) {
+        try {
+            String value = configService.getTemplateConfigValue("schedule", key);
+            return !"false".equalsIgnoreCase(value) && !"0".equals(value);
+        } catch (Exception ex) {
+            // 如果配置不存在或读取失败，默认视为开启
+            return true;
         }
     }
 

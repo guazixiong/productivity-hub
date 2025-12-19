@@ -24,21 +24,54 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/hot-sections')) return '/hot-sections'
   if (route.path.startsWith('/config')) return '/config'
   if (route.path.startsWith('/settings/users')) return '/settings/users'
+  if (route.path.startsWith('/settings/schedules')) return '/settings/schedules'
   if (route.path.startsWith('/messages')) return '/messages'
   if (route.path.startsWith('/tools')) return '/tools'
   if (route.path.startsWith('/agents')) return '/agents'
+  if (route.path.startsWith('/todo')) return '/todo'
   if (route.path.startsWith('/code-generator')) return '/code-generator'
   if (route.path.startsWith('/bookmark')) return '/bookmark'
   return route.path
 })
 
-const pageTitle = computed(() => route.meta.title ?? '控制台')
+// 是否为 Todo 任务大屏页面
+const isTodoDashboardPage = computed(() => route.name === 'TodoDashboardPage')
+
+const pageTitle = computed(() => {
+  if (isTodoDashboardPage.value) {
+    // 大屏内不展示“TODO任务大屏”等标题文案
+    return ''
+  }
+  return route.meta.title ?? '控制台'
+})
 
 const defaultOpenMenus = computed(() => {
   const openeds: string[] = []
-  if (route.path.startsWith('/config') || route.path.startsWith('/settings')) {
-    openeds.push('/settings')
+
+  if (route.path.startsWith('/home') || route.path.startsWith('/todo') || route.path.startsWith('/messages')) {
+    openeds.push('workbench')
   }
+
+  if (route.path.startsWith('/hot-sections')) {
+    openeds.push('info-center')
+  }
+
+  if (route.path.startsWith('/agents')) {
+    openeds.push('ai-tools')
+  }
+
+  if (
+    route.path.startsWith('/tools') ||
+    route.path.startsWith('/bookmark') ||
+    route.path.startsWith('/code-generator')
+  ) {
+    openeds.push('toolbox')
+  }
+
+  if (route.path.startsWith('/config') || route.path.startsWith('/settings')) {
+    openeds.push('settings')
+  }
+
   return openeds
 })
 
@@ -123,6 +156,10 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
+  if (path === '/todo') {
+    return true
+  }
+ 
   // 一级菜单：智能体调用
   if (path === '/agents') {
     return true
@@ -163,6 +200,8 @@ const isSubMenuPage = (path: string): boolean => {
 
 // 判断是否显示返回按钮（一级菜单页面显示，二级菜单页面不显示）
 const showBackButton = computed(() => {
+  // 任务大屏不展示返回按钮
+  if (isTodoDashboardPage.value) return false
   return !isSubMenuPage(route.path)
 })
 
@@ -217,13 +256,14 @@ const commandPaletteVisible = ref(false)
 const commandQuery = ref('')
 
 const quickCommands: QuickCommand[] = [
-  { id: 'go-home', label: '前往首页', description: '查看总览与快捷入口', route: '/home' },
-  { id: 'go-hot', label: '查看热点速览', description: '快速浏览热点与动态', route: '/hot-sections' },
-  { id: 'go-tools', label: '打开工具箱', description: '常用工程工具与小组件', route: '/tools' },
-  { id: 'go-messages', label: '消息推送中心', description: '查看与配置消息推送', route: '/messages' },
+  { id: 'go-home', label: '首页 / 概览', description: '查看总览与快捷入口', route: '/home' },
+  { id: 'go-todo', label: '我的待办（Todo）', description: '任务管理与计时', route: '/todo' },
+  { id: 'go-messages', label: '消息中心', description: '查看与配置消息推送', route: '/messages' },
+  { id: 'go-hot', label: '热点速览', description: '快速浏览热点与动态', route: '/hot-sections' },
   { id: 'go-agents', label: '智能体调用', description: '管理与调用智能体', route: '/agents' },
+  { id: 'go-tools', label: '常用工具', description: '常用工程工具与小组件', route: '/tools' },
+  { id: 'go-bookmark', label: '宝藏网址', description: '站点收藏与导航', route: '/bookmark' },
   { id: 'go-codegen', label: '低代码生成', description: '快速搭建页面与脚本', route: '/code-generator' },
-  { id: 'go-bookmark', label: '宝藏类网址', description: '站点收藏与导航', route: '/bookmark' },
 ]
 
 const filteredCommands = computed(() => {
@@ -304,49 +344,93 @@ const cachedViews = computed(() => {
           :default-openeds="defaultOpenMenus"
           :collapse="isCollapsed"
           router
+          unique-opened
           class="menu"
           background-color="transparent"
           text-color="var(--text-secondary)"
           active-text-color="var(--primary-color)"
         >
-          <el-menu-item index="/home">
-            <el-icon><HomeFilled /></el-icon>
-            <template #title>首页</template>
-          </el-menu-item>
-          <el-menu-item index="/hot-sections">
-            <el-icon><TrendCharts /></el-icon>
-            <template #title>热点速览</template>
-          </el-menu-item>
-          <el-menu-item index="/messages">
-            <el-icon><Message /></el-icon>
-            <template #title>消息推送</template>
-          </el-menu-item>
-          <el-menu-item index="/tools">
-            <el-icon><Tools /></el-icon>
-            <template #title>工具箱</template>
-          </el-menu-item>
-          <el-menu-item index="/agents">
-            <el-icon><Cpu /></el-icon>
-            <template #title>智能体调用</template>
-          </el-menu-item>
-          <el-menu-item index="/code-generator">
-            <el-icon><Document /></el-icon>
-            <template #title>低代码生成</template>
-          </el-menu-item>
-          <el-menu-item index="/bookmark">
-            <el-icon><Collection /></el-icon>
-            <template #title>宝藏类网址</template>
-          </el-menu-item>
-          <el-sub-menu index="/settings">
+          <!-- 📊 工作台（一级菜单） -->
+          <el-sub-menu index="workbench">
+            <template #title>
+              <el-icon><HomeFilled /></el-icon>
+              <span v-show="!isCollapsed">工作台</span>
+            </template>
+            <el-menu-item index="/home">
+              <el-icon><HomeFilled /></el-icon>
+              <template #title>首页 / 概览</template>
+            </el-menu-item>
+            <el-menu-item index="/todo">
+              <el-icon><Collection /></el-icon>
+              <template #title>我的待办（Todo）</template>
+            </el-menu-item>
+            <el-menu-item index="/messages">
+              <el-icon><Message /></el-icon>
+              <template #title>消息中心</template>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <!-- 🔥 信息中心（一级菜单） -->
+          <el-sub-menu index="info-center">
+            <template #title>
+              <el-icon><TrendCharts /></el-icon>
+              <span v-show="!isCollapsed">信息中心</span>
+            </template>
+            <el-menu-item index="/hot-sections">
+              <el-icon><TrendCharts /></el-icon>
+              <template #title>热点速览</template>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <!-- 🤖 AI 工具（一级菜单） -->
+          <el-sub-menu index="ai-tools">
+            <template #title>
+              <el-icon><Cpu /></el-icon>
+              <span v-show="!isCollapsed">AI 工具</span>
+            </template>
+            <el-menu-item index="/agents">
+              <el-icon><Cpu /></el-icon>
+              <template #title>智能体调用</template>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <!-- 🛠️ 工具箱（一级菜单） -->
+          <el-sub-menu index="toolbox">
+            <template #title>
+              <el-icon><Tools /></el-icon>
+              <span v-show="!isCollapsed">工具箱</span>
+            </template>
+            <el-menu-item index="/tools">
+              <el-icon><Tools /></el-icon>
+              <template #title>常用工具</template>
+            </el-menu-item>
+            <el-menu-item index="/bookmark">
+              <el-icon><Collection /></el-icon>
+              <template #title>宝藏网址</template>
+            </el-menu-item>
+            <el-menu-item index="/code-generator">
+              <el-icon><Document /></el-icon>
+              <template #title>低代码生成</template>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <!-- ⚙️ 系统设置（一级菜单） -->
+          <el-sub-menu index="settings">
             <template #title>
               <el-icon><Setting /></el-icon>
-              <template v-if="!isCollapsed">设置</template>
+              <span v-show="!isCollapsed">系统设置</span>
             </template>
             <el-menu-item index="/config">
-              <span>全局参数配置</span>
+              <el-icon><Setting /></el-icon>
+              <template #title>全局参数设置</template>
             </el-menu-item>
             <el-menu-item v-if="isAdminUser" index="/settings/users">
-              <span>系统用户管理</span>
+              <el-icon><Setting /></el-icon>
+              <template #title>系统用户管理</template>
+            </el-menu-item>
+            <el-menu-item v-if="isAdminUser" index="/settings/schedules">
+              <el-icon><Setting /></el-icon>
+              <template #title>定时任务管理</template>
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -362,7 +446,10 @@ const cachedViews = computed(() => {
       </div>
     </el-aside>
     <el-container>
-      <el-header class="layout-header">
+      <el-header
+        v-if="!isTodoDashboardPage"
+        class="layout-header"
+      >
         <div class="page-meta">
           <el-button
             v-if="showBackButton"
@@ -371,9 +458,9 @@ const cachedViews = computed(() => {
             class="back-button"
             @click="handleGoBack"
           />
-          <h1>{{ pageTitle }}</h1>
+          <h1 v-if="pageTitle">{{ pageTitle }}</h1>
         </div>
-        <div class="header-center">
+        <div class="header-center" v-if="!isTodoDashboardPage">
           <button
             class="command-k-button"
             type="button"
@@ -388,7 +475,7 @@ const cachedViews = computed(() => {
             </span>
           </button>
         </div>
-        <div class="header-actions">
+        <div class="header-actions" v-if="!isTodoDashboardPage">
           <el-popover
             placement="bottom-end"
             width="360"
@@ -425,7 +512,7 @@ const cachedViews = computed(() => {
               <el-empty v-if="!notificationStore.notifications.length" description="暂无消息" />
               <div v-else class="notification-list">
                 <div
-                  v-for="item in notificationStore.notifications"
+                  v-for="item in notificationStore.notifications.filter(n => !n.read)"
                   :key="item.id"
                   :class="['notification-item', !item.read && 'is-unread']"
                   @click="handleNotificationClick(item.id, item.link)"
@@ -472,7 +559,7 @@ const cachedViews = computed(() => {
           <keep-alive>
             <component 
               :is="Component" 
-              :key="currentRoute.fullPath"
+              :key="`${currentRoute.fullPath}-${tabsStore.getRefreshKey(currentRoute.fullPath)}`"
               v-if="Component"
             />
           </keep-alive>
@@ -707,12 +794,16 @@ const cachedViews = computed(() => {
 }
 
 .menu :deep(.el-menu-item.is-active) {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.6), rgba(8, 47, 73, 0.95));
-  color: #e5e7eb;
+  background: #e0ecff;
+  color: var(--primary-color);
   box-shadow:
-    inset 0 0 0 1px rgba(129, 140, 248, 0.6),
-    0 6px 18px rgba(15, 23, 42, 0.8);
+    0 0 0 1px rgba(37, 99, 235, 0.6),
+    0 4px 12px rgba(37, 99, 235, 0.35);
   font-weight: 600;
+}
+
+.menu :deep(.el-menu-item.is-active .el-icon) {
+  color: var(--primary-color);
 }
 
 .menu :deep(.el-menu-item.is-active::before) {
@@ -727,15 +818,15 @@ const cachedViews = computed(() => {
 }
 
 .menu :deep(.el-sub-menu .el-menu-item) {
-  margin-left: 12px;
+  margin-left: 8px;
   background: transparent;
   border-radius: 10px;
 }
 
 .menu :deep(.el-sub-menu .el-menu) {
-  padding: 4px 0 4px 12px;
-  border-left: 1px solid rgba(148, 163, 184, 0.5);
-  margin-left: 4px;
+  padding: 2px 0 6px 4px;
+  border-left: none;
+  margin-left: 0;
 }
 
 .menu :deep(.el-sub-menu .el-sub-menu .el-menu-item) {

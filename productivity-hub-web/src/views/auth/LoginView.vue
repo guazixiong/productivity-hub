@@ -1,23 +1,44 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { authApi } from '@/services/api'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
 const loginFormRef = ref<FormInstance>()
+const captchaImage = ref('')
+const loadingCaptcha = ref(false)
+
 const form = reactive({
-  username: 'admin',
-  password: 'admin123',
+  username: '',
+  password: '',
+  captcha: '',
+  captchaKey: '',
 })
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captcha: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
+}
+
+const loadCaptcha = async () => {
+  loadingCaptcha.value = true
+  try {
+    const response = await authApi.getCaptcha()
+    captchaImage.value = `data:image/png;base64,${response.image}`
+    form.captchaKey = response.key
+    form.captcha = ''
+  } catch (error) {
+    ElMessage.error('获取验证码失败，请刷新页面重试')
+  } finally {
+    loadingCaptcha.value = false
+  }
 }
 
 const handleLogin = async () => {
@@ -25,14 +46,25 @@ const handleLogin = async () => {
   const valid = await loginFormRef.value.validate().catch(() => false)
   if (!valid) return
   try {
-    await authStore.login(form)
+    await authStore.login({
+      username: form.username,
+      password: form.password,
+      captcha: form.captcha,
+      captchaKey: form.captchaKey,
+    })
     ElMessage.success('登录成功')
     router.replace((route.query.redirect as string) || '/home')
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : (error as string) || '登录失败'
     ElMessage.error(errorMessage)
+    // 登录失败后刷新验证码
+    loadCaptcha()
   }
 }
+
+onMounted(() => {
+  loadCaptcha()
+})
 </script>
 
 <template>
@@ -52,6 +84,20 @@ const handleLogin = async () => {
             placeholder="请输入密码"
             show-password
           />
+        </el-form-item>
+        <el-form-item label="验证码" prop="captcha">
+          <div class="captcha-container">
+            <el-input
+              v-model="form.captcha"
+              placeholder="请输入验证码"
+              maxlength="4"
+              class="captcha-input"
+            />
+            <div class="captcha-image-wrapper" @click="loadCaptcha" :class="{ loading: loadingCaptcha }">
+              <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-image" />
+              <div v-else class="captcha-placeholder">点击获取验证码</div>
+            </div>
+          </div>
         </el-form-item>
         <el-button type="primary" class="submit-btn" :loading="authStore.loading" @click="handleLogin">登录</el-button>
       </el-form>
@@ -140,6 +186,20 @@ const handleLogin = async () => {
   margin-bottom: 8px;
 }
 
+.login-form :deep(.el-form-item) {
+  margin-bottom: 24px;
+}
+
+.login-form :deep(.el-form-item:has(.captcha-container)) {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form :deep(.el-form-item:has(.captcha-container) .el-form-item__content) {
+  display: flex;
+  align-items: center;
+}
+
 .login-form :deep(.el-input__wrapper) {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -181,6 +241,56 @@ const handleLogin = async () => {
 
 .submit-btn:hover {
   box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+}
+
+.captcha-container {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.captcha-input {
+  flex: 1;
+}
+
+.captcha-image-wrapper {
+  width: 120px;
+  height: 40px;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.captcha-image-wrapper:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.captcha-image-wrapper.loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.captcha-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.captcha-placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  text-align: center;
+  padding: 0 8px;
 }
 </style>
 

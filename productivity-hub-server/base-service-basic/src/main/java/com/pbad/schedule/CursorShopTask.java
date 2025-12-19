@@ -30,6 +30,10 @@ public class CursorShopTask {
     private final CursorShopService cursorShopService;
 
     public void execute() {
+        if (!isTaskEnabled("cursorShop.enabled")) {
+            log.info("Cursor 邮箱自助小店任务已被关闭，跳过执行");
+            return;
+        }
         log.info("开始执行 Cursor 邮箱自助小店任务");
         List<CursorCommodityVO> commodities = cursorShopService.fetchCommodities();
         if (commodities.isEmpty()) {
@@ -48,6 +52,16 @@ public class CursorShopTask {
             cfg.put("sign", sign);
         }
         dingtalkChannelApi.sendMessage(payload, cfg);
+    }
+
+    private boolean isTaskEnabled(String key) {
+        try {
+            String value = configService.getTemplateConfigValue("schedule", key);
+            return !"false".equalsIgnoreCase(value) && !"0".equals(value);
+        } catch (Exception ex) {
+            // 如果配置不存在或读取失败，默认视为开启
+            return true;
+        }
     }
 
     public LocalDateTime nextAllowedExecution(LocalDateTime from) {

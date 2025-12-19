@@ -2,6 +2,7 @@ import http, { request } from './http'
 import type { LoginPayload, AuthResponse, ManagedUser, UserCreatePayload } from '@/types/auth'
 import type { ConfigItem, ConfigUpdatePayload, ConfigCreateOrUpdatePayload } from '@/types/config'
 import type { BaseMessagePayload, MessageHistoryItem, MessageSendResult } from '@/types/messages'
+import type { NotificationItem } from '@/types/notifications'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
 import type { ToolStat } from '@/types/tools'
 import type { CursorCommodity } from '@/types/cursorShop'
@@ -14,6 +15,7 @@ import type {
   GeneratedCode,
   CodeGenerationConfig,
 } from '@/types/codeGenerator'
+import type { ScheduleTask } from '@/types/schedule'
 
 export const authApi = {
   login: (payload: LoginPayload) =>
@@ -26,6 +28,11 @@ export const authApi = {
     request<{ success: boolean; message: string }>({
       url: '/api/auth/reset-password',
       method: 'POST',
+    }),
+  getCaptcha: () =>
+    request<{ key: string; image: string }>({
+      url: '/api/auth/captcha',
+      method: 'GET',
     }),
 }
 
@@ -75,6 +82,20 @@ export const messageApi = {
       url: '/api/messages/history',
       method: 'GET',
       params,
+    }),
+}
+
+export const notificationApi = {
+  list: (params?: { page?: number; pageSize?: number }) =>
+    request<PageResult<NotificationItem>>({
+      url: '/api/notifications',
+      method: 'GET',
+      params,
+    }),
+  markRead: (id: string) =>
+    request<void>({
+      url: `/api/notifications/${id}/read`,
+      method: 'POST',
     }),
 }
 
@@ -156,6 +177,35 @@ export const scheduleApi = {
       params,
     })
   },
+}
+
+export const scheduleTaskApi = {
+  listTasks: () =>
+    request<ScheduleTask[]>({
+      url: '/api/schedule/manage/tasks',
+      method: 'GET',
+    }),
+  toggleTask: (payload: { id: string; enabled: boolean }) =>
+    request<string>({
+      url: '/api/schedule/manage/toggle',
+      method: 'POST',
+      data: payload,
+    }),
+  enableAll: () =>
+    request<string>({
+      url: '/api/schedule/manage/enableAll',
+      method: 'POST',
+    }),
+  disableAll: () =>
+    request<string>({
+      url: '/api/schedule/manage/disableAll',
+      method: 'POST',
+    }),
+  triggerTask: (id: string) =>
+    request<string>({
+      url: `/api/schedule/manage/trigger/${id}`,
+      method: 'POST',
+    }),
 }
 
 export interface WeatherInfo {

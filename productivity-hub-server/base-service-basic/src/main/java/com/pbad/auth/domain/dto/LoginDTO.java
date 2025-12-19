@@ -22,8 +22,13 @@ public class LoginDTO {
     private String password;
 
     /**
-     * 验证码（可选）
+     * 验证码
      */
     private String captcha;
+
+    /**
+     * 验证码Key
+     */
+    private String captchaKey;
 }
 

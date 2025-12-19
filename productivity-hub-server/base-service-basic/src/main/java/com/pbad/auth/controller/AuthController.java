@@ -1,16 +1,15 @@
 package com.pbad.basic.auth.controller;
 
 import com.pbad.auth.domain.dto.LoginDTO;
+import com.pbad.auth.domain.vo.CaptchaResponseVO;
 import com.pbad.auth.domain.vo.LoginResponseVO;
 import com.pbad.auth.domain.vo.ResetPasswordResponseVO;
 import com.pbad.auth.service.AuthService;
 import common.core.domain.ApiResponse;
-import common.util.JwtUtil;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * 认证控制器.
@@ -26,6 +25,17 @@ import javax.servlet.http.HttpServletRequest;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 获取验证码
+     *
+     * @return 验证码响应
+     */
+    @GetMapping("/captcha")
+    public ApiResponse<CaptchaResponseVO> getCaptcha() {
+        CaptchaResponseVO response = authService.generateCaptcha();
+        return ApiResponse.ok(response);
+    }
 
     /**
      * 用户登录
@@ -46,21 +56,11 @@ public class AuthController {
      * @return 重置密码响应
      */
     @PostMapping("/reset-password")
-    public ApiResponse<ResetPasswordResponseVO> resetPassword(HttpServletRequest request) {
-        // 从请求头获取 Token
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-
-        if (token == null || !JwtUtil.validateToken(token)) {
-            return ApiResponse.unauthorized("Token 无效或过期");
-        }
-
-        // 从 Token 中获取用户ID
-        String userId = JwtUtil.getUserIdFromToken(token);
+    public ApiResponse<ResetPasswordResponseVO> resetPassword() {
+        String userId = RequestUserContext.getUserId();
         if (userId == null) {
-            return ApiResponse.unauthorized("Token 无效");
+            return ApiResponse.unauthorized("未登录或登录已过期");
         }
-
         ResetPasswordResponseVO response = authService.resetPassword(userId);
         return ApiResponse.ok(response.getMessage(), response);
     }

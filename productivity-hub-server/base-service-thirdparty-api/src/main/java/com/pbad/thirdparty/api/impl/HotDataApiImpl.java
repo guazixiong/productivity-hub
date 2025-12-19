@@ -26,6 +26,13 @@ public class HotDataApiImpl implements HotDataApi {
     private static final String REBANG_ZHIHU_URL = "https://api.rebang.today/v1/items?tab=zhihu&date_type=now&page=1&version=1";
     private static final String REBANG_WEIBO_URL = "https://api.rebang.today/v1/items?tab=weibo&sub_tab=search&version=2";
     private static final String REBANG_HUPU_URL = "https://api.rebang.today/v1/items?tab=hupu&sub_tab=all-gambia&date_type=now&page=1&version=1";
+    private static final String REBANG_52POJIE_URL = "https://api.rebang.today/v1/items?tab=52pojie&sub_tab=today&date_type=now&page=1&version=1";
+    private static final String REBANG_JOURNAL_TECH_URL = "https://api.rebang.today/v1/items?tab=journal-tech&page=1&version=1";
+    private static final String REBANG_JUEJIN_URL = "https://api.rebang.today/v1/items?tab=juejin&sub_tab=all&page=1&version=1";
+    private static final String REBANG_INFOQ_URL = "https://api.rebang.today/v1/items?tab=infoq&sub_tab=day&page=1&version=1";
+    private static final String REBANG_GITHUB_URL = "https://api.rebang.today/v1/items?tab=github&sub_tab=all&date_type=daily&chinese=false&page=1&version=1";
+    private static final String REBANG_CSDN_URL = "https://api.rebang.today/v1/items?tab=csdn&sub_tab=blog&page=1&version=1";
+    private static final String REBANG_V2EX_URL = "https://api.rebang.today/v1/items?tab=top&sub_tab=lasthour&page=1&version=1";
     private static final String REBANG_XIAOHONGSHU_URL = "https://api.rebang.today/v1/items?tab=xiaohongshu&sub_tab=hot-search&page=1&version=1";
     private static final String REBANG_BILIBILI_URL = "https://api.rebang.today/v1/items?tab=bilibili&sub_tab=popular&date_type=now&page=1&version=1";
     private static final String REBANG_DOUYIN_URL = "https://api.rebang.today/v1/items?tab=douyin&date_type=now&page=1&version=1";
@@ -38,13 +45,20 @@ public class HotDataApiImpl implements HotDataApi {
     public List<String> getHotSectionNames() {
         return Arrays.asList(
                 "综合热榜",
+                "吾爱破解",
                 "知乎热搜",
                 "微博热搜",
                 "虎扑热帖",
                 "小红书热帖",
                 "哔哩哔哩热榜",
                 "抖音热榜",
-                "百度贴吧热帖"
+                "百度贴吧热帖",
+                "技术期刊",
+                "掘金",
+                "infoQ",
+                "GitHub",
+                "CSDN",
+                "V2EX"
         );
     }
 
@@ -60,6 +74,7 @@ public class HotDataApiImpl implements HotDataApi {
         int finalLimit = normalizeLimit(limit);
         List<HotSectionVO> sections = new ArrayList<>();
         sections.add(convertToSectionVO("综合热榜", fetchHotList("综合热榜", REBANG_TOP_URL, finalLimit)));
+        sections.add(convertToSectionVO("吾爱破解", fetchHotList("吾爱破解", REBANG_52POJIE_URL, finalLimit)));
         sections.add(convertToSectionVO("知乎热搜", fetchHotList("知乎热搜", REBANG_ZHIHU_URL, finalLimit)));
         sections.add(convertToSectionVO("微博热搜", fetchHotList("微博热搜", REBANG_WEIBO_URL, finalLimit)));
         sections.add(convertToSectionVO("虎扑热帖", fetchHotList("虎扑热帖", REBANG_HUPU_URL, finalLimit)));
@@ -67,6 +82,12 @@ public class HotDataApiImpl implements HotDataApi {
         sections.add(convertToSectionVO("哔哩哔哩热榜", fetchHotList("哔哩哔哩热榜", REBANG_BILIBILI_URL, finalLimit)));
         sections.add(convertToSectionVO("抖音热榜", fetchHotList("抖音热榜", REBANG_DOUYIN_URL, finalLimit)));
         sections.add(convertToSectionVO("百度贴吧热帖", fetchHotList("百度贴吧热帖", REBANG_BAIDU_TIEBA_URL, finalLimit)));
+        sections.add(convertToSectionVO("技术期刊", fetchHotList("技术期刊", REBANG_JOURNAL_TECH_URL, finalLimit)));
+        sections.add(convertToSectionVO("掘金", fetchHotList("掘金", REBANG_JUEJIN_URL, finalLimit)));
+        sections.add(convertToSectionVO("infoQ", fetchHotList("infoQ", REBANG_INFOQ_URL, finalLimit)));
+        sections.add(convertToSectionVO("GitHub", fetchHotList("GitHub", REBANG_GITHUB_URL, finalLimit)));
+        sections.add(convertToSectionVO("CSDN", fetchHotList("CSDN", REBANG_CSDN_URL, finalLimit)));
+        sections.add(convertToSectionVO("V2EX", fetchHotList("V2EX", REBANG_V2EX_URL, finalLimit)));
         return sections;
     }
 
@@ -89,6 +110,8 @@ public class HotDataApiImpl implements HotDataApi {
         switch (sectionName) {
             case "综合热榜":
                 return fetchHotList("综合热榜", REBANG_TOP_URL, limit);
+            case "吾爱破解":
+                return fetchHotList("吾爱破解", REBANG_52POJIE_URL, limit);
             case "知乎热搜":
                 return fetchHotList("知乎热搜", REBANG_ZHIHU_URL, limit);
             case "微博热搜":
@@ -103,6 +126,18 @@ public class HotDataApiImpl implements HotDataApi {
                 return fetchHotList("抖音热榜", REBANG_DOUYIN_URL, limit);
             case "百度贴吧热帖":
                 return fetchHotList("百度贴吧热帖", REBANG_BAIDU_TIEBA_URL, limit);
+            case "技术期刊":
+                return fetchHotList("技术期刊", REBANG_JOURNAL_TECH_URL, limit);
+            case "掘金":
+                return fetchHotList("掘金", REBANG_JUEJIN_URL, limit);
+            case "infoQ":
+                return fetchHotList("infoQ", REBANG_INFOQ_URL, limit);
+            case "GitHub":
+                return fetchHotList("GitHub", REBANG_GITHUB_URL, limit);
+            case "CSDN":
+                return fetchHotList("CSDN", REBANG_CSDN_URL, limit);
+            case "V2EX":
+                return fetchHotList("V2EX", REBANG_V2EX_URL, limit);
             default:
                 log.warn("未知的标签名称: {}", sectionName);
                 return new ArrayList<>();
@@ -144,6 +179,19 @@ public class HotDataApiImpl implements HotDataApi {
                 }
                 String link = firstNonBlank(item.getString("www_url"), item.getString("mobile_url"), item.getString("url"));
                 if (isBlank(link)) {
+                    if ("掘金".equals(source)) {
+                        String id = item.getString("id");
+                        if (!isBlank(id)) {
+                            link = "https://juejin.cn/post/" + id;
+                        }
+                    } else if ("infoQ".equals(source)) {
+                        String uuid = item.getString("uuid");
+                        if (!isBlank(uuid)) {
+                            link = "https://www.infoq.cn/article/" + uuid;
+                        }
+                    }
+                }
+                if (isBlank(link)) {
                     if ("哔哩哔哩热榜".equals(source)) {
                         String bvid = item.getString("bvid");
                         if (!isBlank(bvid)) {
@@ -166,6 +214,13 @@ public class HotDataApiImpl implements HotDataApi {
                         item.getString("light_str"),
                         item.getString("reply_str"),
                         item.getString("label_str"));
+                if (isBlank(heat)) {
+                    if ("掘金".equals(source)) {
+                        heat = numberToHeat(item.getDouble("view"));
+                    } else if ("infoQ".equals(source)) {
+                        heat = numberToHeat(item.getDouble("views"));
+                    }
+                }
                 String desc = firstNonBlank(item.getString("desc"), item.getString("describe"));
                 if (isBlank(title) || isBlank(link)) {
                     continue;

@@ -302,96 +302,17 @@ npm run build
 
 ### v1.0（规划 & TODO）
 
-- [ ] **TODO 任务（v1.0）**
-  - [ ] 基本管理：支持 Markdown
-- [ ] 消息中心界面
-
 #### 中台能力（v1.0）
 
 - [ ] **热点速览**
-  
-  - 生活区与技术区两类数据源，按需加载，切换标签后再拉取数据
-  
-  | 区域 | 数据源   | 请求示例                                                     |
-  | ---- | -------- | ------------------------------------------------------------ |
-  | 生活 | 吾爱破解 | `GET https://api.rebang.today/v1/items?tab=52pojie&sub_tab=today&date_type=now&page=1&version=1` |
-  | 技术 | 技术期刊 | `GET https://api.rebang.today/v1/items?tab=journal-tech&page=1&version=1` |
-  | 技术 | 掘金     | `GET https://api.rebang.today/v1/items?tab=juejin&sub_tab=all&page=1&version=1` |
-  | 技术 | infoQ    | `GET https://api.rebang.today/v1/items?tab=infoq&sub_tab=day&page=1&version=1` |
-  | 技术 | GitHub   | `GET https://api.rebang.today/v1/items?tab=github&sub_tab=all&date_type=daily&chinese=false&page=1&version=1` |
-  | 技术 | CSDN     | `GET https://api.rebang.today/v1/items?tab=csdn&sub_tab=blog&page=1&version=1` |
-  | 技术 | V2EX     | `GET https://api.rebang.today/v1/items?tab=top&sub_tab=lasthour&page=1&version=1` |
-  
-  示例返回（首条截取，更多见接口返回）：
-  
-  - 吾爱破解
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"2270aa39f8f94291a64bc3cfdbf9435c\",\"title\":\"图像透视矫正 v1.0\"}]"}}
-  ```
-  
-  - 技术期刊
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"40eeef15024fc3a47edc42a0bf0a9a6d\",\"title\":\"“我曾想付钱给 Google 去工作”—— Russ Cox 深度访谈\"}]"}}
-  ```
-  
-  - 掘金
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"3f588dccffb8c2085779fc71202a4304\",\"title\":\"vue也支持声明式UI了\"}]"}}
-  ```
-  
-  - infoQ
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"3d01a3faa3951edc07edd0bfcd4f2630\",\"title\":\"1122人干出“国产GPU”第一股\"}]"}}
-  ```
-  
-  - GitHub
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"045b6eeb6c84c0ae0dc13f52264f07cd\",\"title\":\"kaiju\"}]"}}
-  ```
-  
-  - CSDN
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"9614e8f1d5928378e753527701ed2769\",\"title\":\"【中草药识别系统】Python+TensorFlow+Django...\"}]"}}
-  ```
-  
-  - V2EX
-  
-  ```json
-  {"code":200,"data":{"current_page":1,"list":"[{\"item_key\":\"2459573d61fdab6e9e7938540ae8256e\",\"title\":\"如何看待「BBA 车主最后的体面被一份盒饭击溃」的说法？\"}]"}}
-  ```
-  
-- [ ] **热点速览优化**
   - 进入页面后仅加载当前标签数据，切换时再请求
   - 点击后弹出 iframe 弹窗展示 URL 内容，避免新标签页跳转
 
-- [ ] **消息通知**
-  
-  - 前端：头像旁新增小铃铛消息提示
-  - 通信：前后端使用 WebSocket进行消息通信.
-  
-- [ ] **安全**
-  
-  - 全局敏感信息加密
-  
-- [ ] **权限认证**
-  - 全局接口使用 `userId` 入参，可直接获取当前请求用户
-  
-- [ ] 定时任务管理
-
-  - [ ] 开关
-
-
 ### v2.0（规划 & TODO）
 
+安全相关配置.
+
 - [ ] **首页大屏（v2.0）**
-  - [ ] 当前时间展示
-  - [ ] 接入 TODO 任务、消息提醒
   - [ ] 支持选中后自动处理流程
 - [ ] **AI 相关能力（v2.0）**
   - [ ] dify 智能体模块
@@ -407,7 +328,6 @@ npm run build
   - [ ] 城市生命线
   - [ ] 南阳 deepseek
   - [ ] 投标项目
-
 - [ ] dify 智能体
   - [ ] 薪资计算
   - [ ] 文档数据清洗与存储

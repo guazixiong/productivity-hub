@@ -6,11 +6,11 @@ import com.pbad.auth.domain.po.UserPO;
 import com.pbad.auth.mapper.UserMapper;
 import com.pbad.auth.service.UserManagementService;
 import common.core.domain.ApiResponse;
-import common.util.JwtUtil;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import org.springframework.util.StringUtils;
 import java.util.List;
 
 /**
@@ -25,34 +25,31 @@ public class UserManagementController {
     private final UserMapper userMapper;
 
     @GetMapping
-    public ApiResponse<List<ManagedUserVO>> listUsers(HttpServletRequest request) {
-        if (!isAdmin(request)) {
+    public ApiResponse<List<ManagedUserVO>> listUsers() {
+        String userId = RequestUserContext.getUserId();
+        if (!StringUtils.hasText(userId)) {
+            return ApiResponse.unauthorized("未登录或登录已过期");
+        }
+        if (!isAdmin(userId)) {
             return ApiResponse.fail(403, "仅管理员可以查看用户列表");
         }
         return ApiResponse.ok(userManagementService.listUsers());
     }
 
     @PostMapping
-    public ApiResponse<ManagedUserVO> createUser(@RequestBody UserCreateDTO dto, HttpServletRequest request) {
-        if (!isAdmin(request)) {
+    public ApiResponse<ManagedUserVO> createUser(@RequestBody UserCreateDTO dto) {
+        String userId = RequestUserContext.getUserId();
+        if (!StringUtils.hasText(userId)) {
+            return ApiResponse.unauthorized("未登录或登录已过期");
+        }
+        if (!isAdmin(userId)) {
             return ApiResponse.fail(403, "仅管理员可以创建用户");
         }
-        String token = JwtUtil.extractTokenFromHeader(request.getHeader("Authorization"));
-        String operatorId = JwtUtil.getUserIdFromToken(token);
-        ManagedUserVO user = userManagementService.createUser(dto, operatorId);
+        ManagedUserVO user = userManagementService.createUser(dto, userId);
         return ApiResponse.ok("创建成功", user);
     }
 
-    private boolean isAdmin(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-        if (token == null || !JwtUtil.validateToken(token)) {
-            return false;
-        }
-        String userId = JwtUtil.getUserIdFromToken(token);
-        if (userId == null) {
-            return false;
-        }
+    private boolean isAdmin(String userId) {
         UserPO current = userMapper.selectById(userId);
         if (current == null || current.getRoles() == null) {
             return false;

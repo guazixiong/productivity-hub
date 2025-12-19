@@ -1,6 +1,7 @@
 package com.pbad.auth.service;
 
 import com.pbad.auth.domain.dto.LoginDTO;
+import com.pbad.auth.domain.vo.CaptchaResponseVO;
 import com.pbad.auth.domain.vo.LoginResponseVO;
 import com.pbad.auth.domain.vo.ResetPasswordResponseVO;
 
@@ -12,6 +13,13 @@ import com.pbad.auth.domain.vo.ResetPasswordResponseVO;
  * @version: 1.0
  */
 public interface AuthService {
+
+    /**
+     * 生成验证码
+     *
+     * @return 验证码响应（包含验证码Key和图片）
+     */
+    CaptchaResponseVO generateCaptcha();
 
     /**
      * 用户登录

@@ -21,6 +21,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/home/HomeView.vue'),
       },
       {
+        path: 'todo',
+        name: 'Todo',
+        meta: { title: '行为级Todo' },
+        component: () => import('@/views/todo/TodoView.vue'),
+      },
+      {
+        path: 'todo/dashboard',
+        name: 'TodoDashboardPage',
+        meta: { title: 'TODO任务大屏' },
+        component: () => import('@/views/todo/TodoDashboardPage.vue'),
+      },
+      {
         path: 'hot-sections',
         name: 'HotSections',
         meta: { title: '热点速览' },
@@ -37,6 +49,12 @@ const routes: RouteRecordRaw[] = [
         name: 'UserManagement',
         meta: { title: '系统用户管理', requiresAdmin: true },
         component: () => import('@/views/settings/UserManagementView.vue'),
+      },
+      {
+        path: 'settings/schedules',
+        name: 'ScheduleTasks',
+        meta: { title: '定时任务管理', requiresAdmin: true },
+        component: () => import('@/views/settings/ScheduleTasksView.vue'),
       },
       {
         path: 'settings',

@@ -6,11 +6,9 @@ import com.pbad.messages.domain.vo.MessageSendResponseVO;
 import com.pbad.messages.service.MessageService;
 import common.core.domain.ApiResponse;
 import common.core.domain.PageResult;
-import common.util.JwtUtil;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * 消息推送控制器.
@@ -23,10 +21,10 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping("/send")
-    public ApiResponse<MessageSendResponseVO> sendMessage(@RequestBody MessageSendDTO sendDTO, HttpServletRequest request) {
-        String userId = extractUserId(request);
+    public ApiResponse<MessageSendResponseVO> sendMessage(@RequestBody MessageSendDTO sendDTO) {
+        String userId = currentUserId();
         if (userId == null) {
-            return ApiResponse.unauthorized("Token 无效或过期");
+            return ApiResponse.unauthorized("未登录或登录已过期");
         }
 
         MessageSendResponseVO response = messageService.sendMessage(sendDTO, userId);
@@ -44,11 +42,10 @@ public class MessageController {
     @GetMapping("/history")
     public ApiResponse<PageResult<MessageHistoryVO>> getMessageHistory(
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-            HttpServletRequest request) {
-        String userId = extractUserId(request);
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+        String userId = currentUserId();
         if (userId == null) {
-            return ApiResponse.unauthorized("Token 无效或过期");
+            return ApiResponse.unauthorized("未登录或登录已过期");
         }
 
         PageResult<MessageHistoryVO> history = messageService.getMessageHistory(page, pageSize, userId);
@@ -59,17 +56,8 @@ public class MessageController {
         return value == null || value.trim().isEmpty();
     }
 
-    private String extractUserId(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        String token = JwtUtil.extractTokenFromHeader(authHeader);
-        if (token == null || !JwtUtil.validateToken(token)) {
-            return null;
-        }
-        String userId = JwtUtil.getUserIdFromToken(token);
-        if (userId == null || userId.isEmpty()) {
-            return null;
-        }
-        return userId;
+    private String currentUserId() {
+        return RequestUserContext.getUserId();
     }
 }
 
