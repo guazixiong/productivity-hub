@@ -7,13 +7,28 @@
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
       <el-form-item label="网址标题" prop="title">
-        <el-input v-model="form.title" placeholder="请输入网址标题" />
+        <el-input 
+          v-model="form.title" 
+          placeholder="请输入网址标题" 
+          maxlength="100"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="跳转URL" prop="url">
-        <el-input v-model="form.url" placeholder="请输入网址URL（必须以http://或https://开头）" />
+        <el-input 
+          v-model="form.url" 
+          placeholder="请输入网址URL（必须以http://或https://开头）" 
+          maxlength="500"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="网站图标" prop="iconUrl">
-        <el-input v-model="form.iconUrl" placeholder="请输入图标URL（可选）" />
+        <el-input 
+          v-model="form.iconUrl" 
+          placeholder="请输入图标URL（可选）" 
+          maxlength="500"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="网址描述" prop="description">
         <el-input
@@ -21,6 +36,8 @@
           type="textarea"
           :rows="3"
           placeholder="请输入网址描述（可选）"
+          maxlength="500"
+          show-word-limit
         />
       </el-form-item>
       <el-form-item label="标签归属" prop="tagIds">
@@ -50,7 +67,7 @@
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="loading">
+      <el-button type="primary" @click="handleSubmit" :loading="loading" v-button-lock>
         确定
       </el-button>
     </template>

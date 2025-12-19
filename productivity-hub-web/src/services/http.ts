@@ -1,7 +1,8 @@
 import axios, { AxiosHeaders } from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import router from '@/router'
 
 interface ApiEnvelope<T> {
   code: number
@@ -73,6 +74,9 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+// 用于防止重复弹出登录提示
+let isHandlingAuthError = false
+
 http.interceptors.response.use(
   (response: AxiosResponse<ApiEnvelope<unknown>>) => {
     if ((response.config as RequestConfig).showLoading) {
@@ -80,11 +84,60 @@ http.interceptors.response.use(
     }
     return response
   },
-  (error) => {
+  async (error) => {
     const config = error.config as RequestConfig | undefined
     if (config?.showLoading) {
       stopGlobalLoading()
     }
+
+    // 处理401未授权错误（token无效或过期）
+    if (error.response?.status === 401) {
+      // 防止重复弹出提示
+      if (!isHandlingAuthError) {
+        isHandlingAuthError = true
+        const authStore = useAuthStore()
+        
+        // 如果当前不在登录页面，才显示弹窗并跳转
+        if (router.currentRoute.value.name !== 'Login') {
+          try {
+            await ElMessageBox.alert(
+              '您的登录已过期，请重新登录',
+              '登录已过期',
+              {
+                confirmButtonText: '前往登录',
+                type: 'warning',
+                showClose: false,
+                closeOnClickModal: false,
+                closeOnPressEscape: false,
+              }
+            )
+          } catch {
+            // 用户关闭弹窗时也会触发，这里忽略
+          }
+          
+          // 清除认证信息
+          authStore.logout()
+          
+          // 跳转到登录页面，并保存当前路径以便登录后返回
+          const currentPath = router.currentRoute.value.fullPath
+          router.push({
+            name: 'Login',
+            query: { redirect: currentPath },
+          })
+        } else {
+          // 如果已经在登录页面，只清除认证信息
+          authStore.logout()
+        }
+        
+        // 重置标志，允许下次401时再次处理
+        setTimeout(() => {
+          isHandlingAuthError = false
+        }, 1000)
+      }
+      
+      return Promise.reject(new Error('登录已过期，请重新登录'))
+    }
+
     const isTimeout =
       error.code === 'ECONNABORTED' ||
       (typeof error.message === 'string' && error.message.toLowerCase().includes('timeout'))

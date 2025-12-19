@@ -7,7 +7,12 @@
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
       <el-form-item label="标签名称" prop="name">
-        <el-input v-model="form.name" placeholder="请输入标签名称" />
+        <el-input 
+          v-model="form.name" 
+          placeholder="请输入标签名称" 
+          maxlength="50"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item v-if="!parentTag" label="标签层级" prop="level">
         <el-radio-group v-model="form.level">
@@ -43,7 +48,7 @@
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="loading">
+      <el-button type="primary" @click="handleSubmit" :loading="loading" v-button-lock>
         确定
       </el-button>
     </template>

@@ -28,6 +28,7 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/messages')) return '/messages'
   if (route.path.startsWith('/tools')) return '/tools'
   if (route.path.startsWith('/agents')) return '/agents'
+  if (route.path.startsWith('/ai/')) return route.path
   if (route.path.startsWith('/todo')) return '/todo'
   if (route.path.startsWith('/code-generator')) return '/code-generator'
   if (route.path.startsWith('/bookmark')) return '/bookmark'
@@ -56,7 +57,7 @@ const defaultOpenMenus = computed(() => {
     openeds.push('info-center')
   }
 
-  if (route.path.startsWith('/agents')) {
+  if (route.path.startsWith('/agents') || route.path.startsWith('/ai/')) {
     openeds.push('ai-tools')
   }
 
@@ -85,6 +86,19 @@ const toggleCollapse = () => {
 // 左上角 Logo 点击返回首页
 const handleLogoClick = () => {
   router.push('/home')
+}
+
+// 处理菜单项点击（当 router 属性无法正常工作时使用）
+const handleMenuSelect = (index: string) => {
+  // 如果当前路径已经是目标路径，则不进行跳转
+  if (route.path !== index) {
+    router.push(index).catch((err) => {
+      // 忽略重复导航错误
+      if (err.name !== 'NavigationDuplicated') {
+        console.error('Navigation error:', err)
+      }
+    })
+  }
 }
 
 const handleLogout = () => {
@@ -162,6 +176,11 @@ const isSubMenuPage = (path: string): boolean => {
  
   // 一级菜单：智能体调用
   if (path === '/agents') {
+    return true
+  }
+  
+  // AI工具下的页面
+  if (path.startsWith('/ai/')) {
     return true
   }
   
@@ -349,6 +368,7 @@ const cachedViews = computed(() => {
           background-color="transparent"
           text-color="var(--text-secondary)"
           active-text-color="var(--primary-color)"
+          @select="handleMenuSelect"
         >
           <!-- 📊 工作台（一级菜单） -->
           <el-sub-menu index="workbench">
@@ -388,9 +408,29 @@ const cachedViews = computed(() => {
               <el-icon><Cpu /></el-icon>
               <span v-show="!isCollapsed">AI 工具</span>
             </template>
-            <el-menu-item index="/agents">
+            <el-menu-item index="/ai/prompt">
               <el-icon><Cpu /></el-icon>
-              <template #title>智能体调用</template>
+              <template #title>Prompt</template>
+            </el-menu-item>
+            <el-menu-item index="/ai/knowledge-base">
+              <el-icon><Cpu /></el-icon>
+              <template #title>知识库</template>
+            </el-menu-item>
+            <el-menu-item index="/ai/image-generation">
+              <el-icon><Cpu /></el-icon>
+              <template #title>AI生图</template>
+            </el-menu-item>
+            <el-menu-item index="/ai/statistics">
+              <el-icon><Cpu /></el-icon>
+              <template #title>AI统计报表</template>
+            </el-menu-item>
+            <el-menu-item index="/ai/dify-assistant">
+              <el-icon><Cpu /></el-icon>
+              <template #title>Dify助手</template>
+            </el-menu-item>
+            <el-menu-item index="/ai/assistant">
+              <el-icon><Cpu /></el-icon>
+              <template #title>AI助手</template>
             </el-menu-item>
           </el-sub-menu>
 

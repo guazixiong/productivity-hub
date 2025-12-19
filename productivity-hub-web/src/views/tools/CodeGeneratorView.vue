@@ -1081,18 +1081,32 @@ onMounted(async () => {
               <el-input-number v-model="currentDbConfig.port" :min="1" :max="65535" style="width: 100%" />
             </el-form-item>
             <el-form-item label="数据库名">
-              <el-input v-model="currentDbConfig.database" />
+              <el-input 
+                v-model="currentDbConfig.database" 
+                maxlength="100"
+                show-word-limit
+              />
             </el-form-item>
             <el-form-item label="用户名">
-              <el-input v-model="currentDbConfig.username" />
+              <el-input 
+                v-model="currentDbConfig.username" 
+                maxlength="100"
+                show-word-limit
+              />
             </el-form-item>
             <el-form-item label="密码">
-              <el-input v-model="currentDbConfig.password" type="password" show-password />
+              <el-input 
+                v-model="currentDbConfig.password" 
+                type="password" 
+                show-password 
+                maxlength="100"
+                show-word-limit
+              />
             </el-form-item>
           </el-form>
           <template #footer>
             <el-button @click="dbConfigDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveDbConfig">保存</el-button>
+            <el-button type="primary" @click="saveDbConfig" v-button-lock>保存</el-button>
           </template>
         </el-dialog>
 
@@ -1257,7 +1271,7 @@ onMounted(async () => {
           </el-form>
           <template #footer>
             <el-button @click="manualTableDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveManualTable">保存</el-button>
+            <el-button type="primary" @click="saveManualTable" v-button-lock>保存</el-button>
           </template>
         </el-dialog>
 
@@ -1299,15 +1313,26 @@ onMounted(async () => {
               <el-switch v-model="currentColumn.autoIncrement" />
             </el-form-item>
             <el-form-item label="默认值">
-              <el-input v-model="currentColumn.defaultValue" placeholder="可选" />
+              <el-input 
+                v-model="currentColumn.defaultValue" 
+                placeholder="可选" 
+                maxlength="200"
+                show-word-limit
+              />
             </el-form-item>
             <el-form-item label="注释">
-              <el-input v-model="currentColumn.comment" type="textarea" placeholder="字段说明" />
+              <el-input 
+                v-model="currentColumn.comment" 
+                type="textarea" 
+                placeholder="字段说明" 
+                maxlength="500"
+                show-word-limit
+              />
             </el-form-item>
           </el-form>
           <template #footer>
             <el-button @click="columnDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveColumn">保存</el-button>
+            <el-button type="primary" @click="saveColumn" v-button-lock>保存</el-button>
           </template>
         </el-dialog>
 
@@ -1597,7 +1622,7 @@ onMounted(async () => {
           </div>
           <template #footer>
             <el-button @click="templateDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveTemplate">保存</el-button>
+            <el-button type="primary" @click="saveTemplate" v-button-lock>保存</el-button>
           </template>
         </el-dialog>
 

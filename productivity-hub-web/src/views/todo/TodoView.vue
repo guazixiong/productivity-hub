@@ -625,7 +625,12 @@ const openDashboard = () => {
     <el-dialog v-model="taskDialogVisible" :title="editingTaskId ? '编辑任务' : '新建任务'" width="520px">
       <el-form label-width="90px" @submit.prevent>
         <el-form-item label="标题" required>
-          <el-input v-model="taskForm.title" placeholder="任务标题" />
+          <el-input 
+            v-model="taskForm.title" 
+            placeholder="任务标题" 
+            maxlength="200"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item label="模块" required>
           <el-select v-model="taskForm.moduleId" placeholder="选择模块" style="width: 100%">
@@ -651,16 +656,27 @@ const openDashboard = () => {
           />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="taskForm.tags" placeholder="多个标签以逗号分隔" />
+          <el-input 
+            v-model="taskForm.tags" 
+            placeholder="多个标签以逗号分隔" 
+            maxlength="200"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="taskForm.description" type="textarea" rows="3" />
+          <el-input 
+            v-model="taskForm.description" 
+            type="textarea" 
+            rows="3" 
+            maxlength="1000"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-space>
           <el-button @click="taskDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitTask">保存</el-button>
+          <el-button type="primary" @click="submitTask" v-button-lock>保存</el-button>
         </el-space>
       </template>
     </el-dialog>
@@ -668,10 +684,21 @@ const openDashboard = () => {
     <el-dialog v-model="moduleDialogVisible" :title="editingModuleId ? '编辑模块' : '新建模块'" width="480px">
       <el-form label-width="90px">
         <el-form-item label="名称" required>
-          <el-input v-model="moduleForm.name" placeholder="模块名称" />
+          <el-input 
+            v-model="moduleForm.name" 
+            placeholder="模块名称" 
+            maxlength="50"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="moduleForm.description" type="textarea" rows="3" />
+          <el-input 
+            v-model="moduleForm.description" 
+            type="textarea" 
+            rows="3" 
+            maxlength="500"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="moduleForm.sortOrder" :min="0" />
@@ -680,7 +707,7 @@ const openDashboard = () => {
       <template #footer>
         <el-space>
           <el-button @click="moduleDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitModule">保存</el-button>
+          <el-button type="primary" @click="submitModule" v-button-lock>保存</el-button>
         </el-space>
       </template>
     </el-dialog>

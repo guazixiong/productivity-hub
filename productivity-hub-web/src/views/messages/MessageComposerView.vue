@@ -238,6 +238,8 @@ const submitMessage = async () => {
                 class="custom-input"
                 size="large"
                 :prefix-icon="Document"
+                :maxlength="field.maxlength || 200"
+                show-word-limit
               />
             </template>
             
@@ -251,6 +253,8 @@ const submitMessage = async () => {
                     :rows="field.rows ?? 3"
                     :placeholder="field.placeholder"
                     class="custom-textarea"
+                    :maxlength="field.maxlength || 2000"
+                    show-word-limit
                   />
                   <el-button
                     v-if="form.data.content"
@@ -277,6 +281,8 @@ const submitMessage = async () => {
                   :placeholder="field.placeholder"
                   class="custom-textarea html-textarea"
                   resize="vertical"
+                  :maxlength="field.maxlength || 2000"
+                  show-word-limit
                 />
                 <div v-if="field.key === 'content'" class="textarea-hint">
                   <el-icon><InfoFilled /></el-icon>
@@ -320,6 +326,7 @@ const submitMessage = async () => {
             class="submit-button"
             :icon="Message"
             @click="submitMessage"
+            v-button-lock
           >
             发送邮件
           </el-button>

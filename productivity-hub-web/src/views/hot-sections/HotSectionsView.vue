@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
-import { DocumentCopy } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ElMessage, ElDialog } from 'element-plus'
+import { DocumentCopy, Share, ArrowLeft, ArrowRight, Link } from '@element-plus/icons-vue'
 import { scheduleApi } from '@/services/api'
 import type { HotSection } from '@/types/hotSections'
 
@@ -70,6 +70,309 @@ const hotSectionsLoading = ref(false)
 const mainActiveTab = ref<MainTab>('生活')
 const activeTab = ref<string>('')
 const loadingMore = ref(false)
+
+// iframe 弹窗相关状态
+const iframeDialogVisible = ref(false)
+const currentUrl = ref('')
+const currentTitle = ref('')
+const currentSectionName = ref('')
+const currentItemIndex = ref(-1)
+
+// 动态设置导航按钮位置 - 基于实际弹窗位置
+const updateNavButtonPositions = () => {
+  const dialogEl = document.querySelector('.iframe-dialog .el-dialog') as HTMLElement
+  const leftButton = document.querySelector('.iframe-nav-left') as HTMLElement
+  const rightButton = document.querySelector('.iframe-nav-right') as HTMLElement
+  
+  if (!dialogEl) return
+  
+  // 获取弹窗的实际位置和尺寸
+  const dialogRect = dialogEl.getBoundingClientRect()
+  const screenWidth = window.innerWidth
+  const buttonSpacing = 100 // 按钮与弹窗之间的间距（像素）- 增加到100px确保不重叠
+  const minEdgeSpacing = 20 // 按钮距离屏幕边缘的最小距离
+  const safetyMargin = 10 // 额外的安全边距，防止因计算误差导致的重叠
+  
+  // 计算左侧按钮位置
+  if (leftButton) {
+    // 强制重新计算布局，确保获取准确的尺寸
+    void leftButton.offsetWidth
+    
+    // 获取按钮的实际宽度（包括边框和内边距）
+    const buttonWidth = leftButton.offsetWidth || leftButton.getBoundingClientRect().width || 280
+    
+    // 按钮右边缘应该在弹窗左边缘左侧 (buttonSpacing + safetyMargin) 像素处
+    // 所以按钮的 left = 弹窗左边缘 - 按钮宽度 - 间距 - 安全边距
+    let leftPosition = dialogRect.left - buttonWidth - buttonSpacing - safetyMargin
+    
+    // 确保按钮不会超出屏幕左边缘
+    if (leftPosition < minEdgeSpacing) {
+      leftPosition = minEdgeSpacing
+    }
+    
+    leftButton.style.left = `${leftPosition}px`
+    leftButton.style.right = 'auto'
+  }
+  
+  // 计算右侧按钮位置
+  if (rightButton) {
+    // 强制重新计算布局，确保获取准确的尺寸
+    void rightButton.offsetWidth
+    
+    // 获取按钮的实际宽度（包括边框和内边距）
+    const buttonWidth = rightButton.offsetWidth || rightButton.getBoundingClientRect().width || 280
+    
+    // 按钮左边缘应该在弹窗右边缘右侧 (buttonSpacing + safetyMargin) 像素处
+    // 所以按钮的 left = 弹窗右边缘 + 间距 + 安全边距
+    let rightButtonLeft = dialogRect.right + buttonSpacing + safetyMargin
+    
+    // 确保按钮不会超出屏幕右边缘
+    if (rightButtonLeft + buttonWidth > screenWidth - minEdgeSpacing) {
+      rightButtonLeft = screenWidth - buttonWidth - minEdgeSpacing
+    }
+    
+    rightButton.style.left = `${rightButtonLeft}px`
+    rightButton.style.right = 'auto'
+  }
+}
+
+// 动态设置弹窗样式 - 基于屏幕尺寸，居中显示
+const applyDialogStyles = () => {
+  const dialogEl = document.querySelector('.iframe-dialog .el-dialog') as HTMLElement
+  const dialogBodyEl = document.querySelector('.iframe-dialog .el-dialog__body') as HTMLElement
+  const dialogWrapperEl = document.querySelector('.iframe-dialog .el-dialog__wrapper') as HTMLElement
+  const overlayDialogEl = document.querySelector('.iframe-dialog .el-overlay-dialog') as HTMLElement
+  const overlayEl = document.querySelector('.iframe-dialog .el-overlay') as HTMLElement
+  
+  // 基于屏幕尺寸计算弹窗大小
+  // 弹窗宽度：65% 的屏幕宽度，最大不超过 1200px
+  // 弹窗高度：70% 的屏幕高度，确保完全可见
+  const screenWidth = window.innerWidth
+  const screenHeight = window.innerHeight
+  const dialogWidth = Math.min(screenWidth * 0.65, 1200)
+  const dialogHeight = screenHeight * 0.7
+  
+  // 确保 body 和 html 不出现滚动条
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+  document.body.style.height = '100vh'
+  document.documentElement.style.height = '100vh'
+  
+  if (overlayEl) {
+    overlayEl.style.setProperty('overflow', 'hidden', 'important')
+    overlayEl.style.setProperty('max-height', '100vh', 'important')
+    overlayEl.style.setProperty('height', '100vh', 'important')
+    overlayEl.style.setProperty('position', 'fixed', 'important')
+    overlayEl.style.setProperty('top', '0', 'important')
+    overlayEl.style.setProperty('left', '0', 'important')
+    overlayEl.style.setProperty('right', '0', 'important')
+    overlayEl.style.setProperty('bottom', '0', 'important')
+  }
+  
+  if (overlayDialogEl) {
+    overlayDialogEl.style.setProperty('display', 'flex', 'important')
+    overlayDialogEl.style.setProperty('align-items', 'center', 'important')
+    overlayDialogEl.style.setProperty('justify-content', 'center', 'important')
+    overlayDialogEl.style.setProperty('padding', '0', 'important')
+    overlayDialogEl.style.setProperty('overflow', 'hidden', 'important')
+    overlayDialogEl.style.setProperty('max-height', '100vh', 'important')
+    overlayDialogEl.style.setProperty('height', '100vh', 'important')
+    overlayDialogEl.style.setProperty('box-sizing', 'border-box', 'important')
+    overlayDialogEl.style.setProperty('position', 'fixed', 'important')
+    overlayDialogEl.style.setProperty('top', '0', 'important')
+    overlayDialogEl.style.setProperty('left', '0', 'important')
+    overlayDialogEl.style.setProperty('right', '0', 'important')
+    overlayDialogEl.style.setProperty('bottom', '0', 'important')
+  }
+  
+  if (dialogWrapperEl) {
+    dialogWrapperEl.style.setProperty('overflow', 'visible', 'important')
+    dialogWrapperEl.style.setProperty('max-height', '100vh', 'important')
+    dialogWrapperEl.style.setProperty('height', '100vh', 'important')
+    dialogWrapperEl.style.setProperty('position', 'fixed', 'important')
+    dialogWrapperEl.style.setProperty('top', '0', 'important')
+    dialogWrapperEl.style.setProperty('left', '0', 'important')
+    dialogWrapperEl.style.setProperty('right', '0', 'important')
+    dialogWrapperEl.style.setProperty('bottom', '0', 'important')
+    dialogWrapperEl.style.setProperty('display', 'flex', 'important')
+    dialogWrapperEl.style.setProperty('align-items', 'center', 'important')
+    dialogWrapperEl.style.setProperty('justify-content', 'center', 'important')
+  }
+  
+  if (dialogEl) {
+    dialogEl.style.setProperty('height', `${dialogHeight}px`, 'important')
+    dialogEl.style.setProperty('max-height', `${dialogHeight}px`, 'important')
+    dialogEl.style.setProperty('width', `${dialogWidth}px`, 'important')
+    dialogEl.style.setProperty('max-width', `${dialogWidth}px`, 'important')
+    dialogEl.style.setProperty('min-height', 'auto', 'important')
+    dialogEl.style.setProperty('margin', '0', 'important')
+    dialogEl.style.setProperty('margin-top', '-15vh', 'important')
+    dialogEl.style.setProperty('margin-bottom', '0', 'important')
+    dialogEl.style.setProperty('margin-left', 'auto', 'important')
+    dialogEl.style.setProperty('margin-right', 'auto', 'important')
+    dialogEl.style.setProperty('box-sizing', 'border-box', 'important')
+    dialogEl.style.setProperty('position', 'relative', 'important')
+    dialogEl.style.setProperty('top', 'auto', 'important')
+    dialogEl.style.setProperty('left', 'auto', 'important')
+    dialogEl.style.setProperty('transform', 'none', 'important')
+    dialogEl.style.setProperty('display', 'flex', 'important')
+    dialogEl.style.setProperty('flex-direction', 'column', 'important')
+  }
+  
+  if (dialogBodyEl) {
+    // body 高度 = 弹窗高度 - header 高度（约 60px）
+    const bodyHeight = dialogHeight - 60
+    dialogBodyEl.style.setProperty('height', `${bodyHeight}px`, 'important')
+    dialogBodyEl.style.setProperty('max-height', `${bodyHeight}px`, 'important')
+    dialogBodyEl.style.setProperty('overflow', 'hidden', 'important')
+    dialogBodyEl.style.setProperty('box-sizing', 'border-box', 'important')
+    dialogBodyEl.style.setProperty('flex', '1', 'important')
+    dialogBodyEl.style.setProperty('min-height', '0', 'important')
+  }
+  
+  // 弹窗样式设置完成后，更新按钮位置
+  // 使用多次延迟确保按钮已完全渲染
+  setTimeout(() => {
+    updateNavButtonPositions()
+    // 再次延迟确保按钮尺寸已计算
+    setTimeout(() => {
+      updateNavButtonPositions()
+    }, 100)
+  }, 100)
+}
+
+// 打开 iframe 弹窗
+const openIframeDialog = (url: string, title: string, sectionName: string, index: number) => {
+  currentUrl.value = url
+  currentTitle.value = title
+  currentSectionName.value = sectionName
+  currentItemIndex.value = index
+  iframeDialogVisible.value = true
+}
+
+// 窗口大小改变时的处理函数
+let resizeHandler: (() => void) | null = null
+
+// 监听弹窗打开状态，动态设置样式
+watch(iframeDialogVisible, (newVal) => {
+  if (newVal) {
+    // 滚动到页面顶部，确保弹窗完全可见
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+    
+    // 禁用 body 和 html 的滚动，防止出现滚动条
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.height = '100vh'
+    document.documentElement.style.height = '100vh'
+    
+    // 使用多重延迟确保弹窗完全渲染
+    nextTick(() => {
+      setTimeout(() => {
+        applyDialogStyles()
+        // 再次延迟确保样式生效
+        setTimeout(() => {
+          applyDialogStyles()
+          updateNavButtonPositions()
+        }, 50)
+      }, 50)
+    })
+    
+    // 添加窗口大小改变监听器
+    resizeHandler = () => {
+      applyDialogStyles()
+      updateNavButtonPositions()
+    }
+    window.addEventListener('resize', resizeHandler)
+  } else {
+    // 移除窗口大小改变监听器
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler)
+      resizeHandler = null
+    }
+    // 恢复 body 和 html 的滚动
+    document.body.style.overflow = ''
+    document.documentElement.style.overflow = ''
+    document.body.style.height = ''
+    document.documentElement.style.height = ''
+  }
+})
+
+// 关闭 iframe 弹窗
+const closeIframeDialog = () => {
+  iframeDialogVisible.value = false
+  // 恢复 body 和 html 的滚动
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
+  document.body.style.height = ''
+  document.documentElement.style.height = ''
+  // 延迟清空 URL，确保弹窗关闭动画完成
+  setTimeout(() => {
+    currentUrl.value = ''
+    currentTitle.value = ''
+    currentSectionName.value = ''
+    currentItemIndex.value = -1
+  }, 300)
+}
+
+// 获取上一个热点项
+const getPreviousItem = computed(() => {
+  if (!currentSectionName.value || currentItemIndex.value <= 0) {
+    return null
+  }
+  const sectionData = sectionDataMap.value.get(currentSectionName.value)
+  if (!sectionData || currentItemIndex.value - 1 >= sectionData.items.length) {
+    return null
+  }
+  return sectionData.items[currentItemIndex.value - 1]
+})
+
+// 获取下一个热点项
+const getNextItem = computed(() => {
+  if (!currentSectionName.value || currentItemIndex.value < 0) {
+    return null
+  }
+  const sectionData = sectionDataMap.value.get(currentSectionName.value)
+  if (!sectionData || currentItemIndex.value + 1 >= sectionData.items.length) {
+    return null
+  }
+  return sectionData.items[currentItemIndex.value + 1]
+})
+
+// 切换到上一个
+const goToPrevious = () => {
+  const prevItem = getPreviousItem.value
+  if (prevItem && currentItemIndex.value > 0) {
+    const newIndex = currentItemIndex.value - 1
+    currentUrl.value = prevItem.link
+    currentTitle.value = prevItem.title
+    currentItemIndex.value = newIndex
+    // 切换后更新按钮位置（因为按钮内容可能改变，宽度可能变化）
+    nextTick(() => {
+      setTimeout(() => {
+        updateNavButtonPositions()
+      }, 50)
+    })
+  }
+}
+
+// 切换到下一个
+const goToNext = () => {
+  const nextItem = getNextItem.value
+  if (nextItem && currentItemIndex.value >= 0) {
+    const newIndex = currentItemIndex.value + 1
+    currentUrl.value = nextItem.link
+    currentTitle.value = nextItem.title
+    currentItemIndex.value = newIndex
+    // 切换后更新按钮位置（因为按钮内容可能改变，宽度可能变化）
+    nextTick(() => {
+      setTimeout(() => {
+        updateNavButtonPositions()
+      }, 50)
+    })
+  }
+}
 
 // 滚动容器引用（使用Map存储每个标签页的容器）
 const scrollContainerRefs = ref<Map<string, HTMLElement>>(new Map())
@@ -395,7 +698,7 @@ const setScrollContainerRef = (el: HTMLElement | null, sectionName: string) => {
   }
 }
 
-// 格式化当前标签数据为微信分享格式
+// 格式化当前标签数据
 const formatForWeChat = (sectionName: string): string => {
   const sectionData = sectionDataMap.value.get(sectionName)
   if (!sectionData || sectionData.items.length === 0) {
@@ -414,7 +717,7 @@ const formatForWeChat = (sectionName: string): string => {
     // 序号和标题
     lines.push(`${index + 1}. ${item.title}`)
     
-    // 链接（微信会自动识别链接）
+    // 链接
     lines.push(item.link)
     
     // 描述（如果有，放在链接下方）
@@ -455,7 +758,7 @@ const copyCurrentSection = async () => {
     // 使用 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(formattedText)
-      ElMessage.success('已复制到剪贴板，可直接粘贴到微信')
+      ElMessage.success('已复制到剪贴板，可直接粘贴')
     } else {
       // 降级方案：使用传统方法
       const textArea = document.createElement('textarea')
@@ -466,11 +769,75 @@ const copyCurrentSection = async () => {
       textArea.select()
       document.execCommand('copy')
       document.body.removeChild(textArea)
-      ElMessage.success('已复制到剪贴板，可直接粘贴到微信')
+      ElMessage.success('已复制到剪贴板，可直接粘贴')
     }
   } catch (error) {
     ElMessage.error('复制失败，请重试')
     console.error('复制失败:', error)
+  }
+}
+
+// 格式化单个热点项
+const formatItemForWeChat = (item: { title: string; link: string; desc?: string }): string => {
+  const lines: string[] = []
+  
+  // 标题
+  lines.push(item.title)
+  lines.push('')
+  
+  // 链接
+  lines.push(item.link)
+  
+  // 描述（如果有）
+  if (item.desc) {
+    lines.push('')
+    lines.push(item.desc)
+  }
+  
+  return lines.join('\n')
+}
+
+// 复制单个热点项到剪贴板
+const copyHotItem = async (item: { title: string; link: string; desc?: string }, event?: Event) => {
+  // 阻止事件冒泡，避免触发卡片的点击事件
+  if (event) {
+    event.stopPropagation()
+  }
+  
+  try {
+    const formattedText = formatItemForWeChat(item)
+    
+    // 使用 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(formattedText)
+      ElMessage.success('已复制到剪贴板，可直接粘贴')
+    } else {
+      // 降级方案：使用传统方法
+      const textArea = document.createElement('textarea')
+      textArea.value = formattedText
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      ElMessage.success('已复制到剪贴板，可直接粘贴')
+    }
+  } catch (error) {
+    ElMessage.error('复制失败，请重试')
+    console.error('复制失败:', error)
+  }
+}
+
+// 在新标签页打开热点链接
+const openInNewTab = (url: string, event?: Event) => {
+  // 阻止事件冒泡，避免触发卡片的点击事件
+  if (event) {
+    event.stopPropagation()
+  }
+  
+  if (url) {
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 }
 
@@ -496,6 +863,11 @@ onUnmounted(() => {
   if (scrollTimer) {
     clearTimeout(scrollTimer)
     scrollTimer = null
+  }
+  // 清理窗口大小改变监听器
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+    resizeHandler = null
   }
 })
 </script>
@@ -583,13 +955,11 @@ onUnmounted(() => {
                           </div>
 
                           <div class="hot-items-list">
-                            <a
+                            <div
                               v-for="(item, index) in getSectionData(sectionName)?.items || []"
                               :key="index"
-                              :href="item.link"
-                              target="_blank"
-                              rel="noopener noreferrer"
                               class="hot-item"
+                              @click="openIframeDialog(item.link, item.title, sectionName, index)"
                             >
                               <div class="hot-item-content">
                                 <div class="hot-item-title">
@@ -599,7 +969,28 @@ onUnmounted(() => {
                                 <div v-if="item.heat" class="hot-item-heat">{{ item.heat }}</div>
                               </div>
                               <div v-if="item.desc" class="hot-item-desc">{{ item.desc }}</div>
-                            </a>
+                              <!-- 操作按钮组 -->
+                              <div class="hot-item-actions">
+                                <!-- 新标签页打开按钮 -->
+                                <el-button
+                                  class="hot-item-open-button"
+                                  :icon="Link"
+                                  size="small"
+                                  circle
+                                  @click="openInNewTab(item.link, $event)"
+                                  title="在新标签页打开"
+                                />
+                                <!-- 分享按钮 -->
+                                <el-button
+                                  class="hot-item-share-button"
+                                  :icon="Share"
+                                  size="small"
+                                  circle
+                                  @click="copyHotItem(item, $event)"
+                                  title="分享"
+                                />
+                              </div>
+                            </div>
                           </div>
                           
                           <!-- 加载更多提示 -->
@@ -640,6 +1031,58 @@ onUnmounted(() => {
           </el-tab-pane>
         </el-tabs>
       </el-card>
+    </div>
+    
+    <!-- iframe 弹窗 -->
+    <el-dialog
+      v-model="iframeDialogVisible"
+      :title="currentTitle"
+      width="65%"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      @close="closeIframeDialog"
+      class="iframe-dialog"
+    >
+      <div class="iframe-wrapper">
+        <div class="iframe-container">
+          <iframe
+            v-if="currentUrl"
+            :src="currentUrl"
+            frameborder="0"
+            class="content-iframe"
+            allowfullscreen
+          ></iframe>
+        </div>
+      </div>
+    </el-dialog>
+    
+    <!-- 导航按钮 - 在弹窗外部 -->
+    <div v-if="iframeDialogVisible" class="iframe-nav-buttons-wrapper">
+      <!-- 左侧箭头和标题 -->
+      <div 
+        v-if="getPreviousItem" 
+        class="iframe-nav-button iframe-nav-left"
+        @click="goToPrevious"
+      >
+        <el-icon class="nav-arrow-icon"><ArrowLeft /></el-icon>
+        <div class="nav-title-preview">
+          <div class="nav-title-label">上一个</div>
+          <div class="nav-title-text">{{ getPreviousItem.title }}</div>
+        </div>
+      </div>
+      
+      <!-- 右侧箭头和标题 -->
+      <div 
+        v-if="getNextItem" 
+        class="iframe-nav-button iframe-nav-right"
+        @click="goToNext"
+      >
+        <el-icon class="nav-arrow-icon"><ArrowRight /></el-icon>
+        <div class="nav-title-preview">
+          <div class="nav-title-label">下一个</div>
+          <div class="nav-title-text">{{ getNextItem.title }}</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -1101,6 +1544,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+  padding-right: 80px; /* 为右上角操作按钮组留出空间 */
 }
 
 .hot-item-title {
@@ -1172,6 +1616,55 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.hot-item-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 1;
+}
+
+.hot-item-share-button,
+.hot-item-open-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.hot-item-share-button {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--primary-color);
+}
+
+.hot-item-share-button:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: scale(1.1);
+}
+
+.hot-item-share-button:active {
+  transform: scale(0.95);
+}
+
+.hot-item-open-button {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+.hot-item-open-button:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: scale(1.1);
+}
+
+.hot-item-open-button:active {
+  transform: scale(0.95);
+}
+
 .loading-more,
 .no-more {
   display: flex;
@@ -1216,5 +1709,217 @@ onUnmounted(() => {
   font-size: 16px;
   color: var(--text-tertiary);
 }
+
+/* iframe 弹窗样式 - 基于屏幕尺寸，居中显示 */
+.iframe-dialog :deep(.el-overlay) {
+  z-index: 2000 !important;
+  overflow: hidden !important;
+  max-height: 100vh !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+.iframe-dialog :deep(.el-overlay-dialog) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  max-height: 100vh !important;
+  height: 100vh !important;
+  box-sizing: border-box !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+.iframe-dialog :deep(.el-dialog__wrapper) {
+  overflow: visible !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  max-height: 100vh !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.iframe-dialog :deep(.el-dialog) {
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  margin: 0 auto !important;
+  margin-top: -15vh !important;
+  margin-bottom: 0 !important;
+  min-height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 65% !important;
+  max-width: 1200px !important;
+  height: 70vh !important;
+  max-height: 70vh !important;
+  --el-dialog-margin-top: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.iframe-dialog :deep(.el-dialog__header) {
+  padding: 16px 20px;
+  background: rgba(248, 250, 252, 0.95);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  flex-shrink: 0;
+}
+
+.iframe-dialog :deep(.el-dialog__title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.iframe-dialog :deep(.el-dialog__body) {
+  padding: 0 !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.iframe-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #f8fafc;
+}
+
+.iframe-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.content-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* 导航按钮容器 - 在弹窗外部 */
+.iframe-nav-buttons-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 3000;
+}
+
+.iframe-nav-button {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 2px solid rgba(59, 130, 246, 0.4);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  max-width: 280px;
+  pointer-events: auto;
+  /* 确保按钮始终在弹窗上方 */
+  isolation: isolate;
+}
+
+.iframe-nav-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.iframe-nav-left {
+  /* 默认位置：屏幕左侧，JavaScript会动态调整 */
+  left: 20px;
+  right: auto;
+  flex-direction: row;
+}
+
+.iframe-nav-right {
+  /* 默认位置：屏幕右侧，JavaScript会动态调整 */
+  left: auto;
+  right: 20px;
+  flex-direction: row-reverse;
+}
+
+/* 小屏幕时，减小按钮宽度 */
+@media (max-width: 1200px) {
+  .iframe-nav-button {
+    max-width: 200px;
+    padding: 12px 16px;
+  }
+}
+
+.nav-arrow-icon {
+  font-size: 24px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.nav-title-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nav-title-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nav-title-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
 </style>
+
+
 

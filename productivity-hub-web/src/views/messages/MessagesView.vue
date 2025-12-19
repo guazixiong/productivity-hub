@@ -400,6 +400,8 @@ watch(
                         v-model="form.data[field.key]"
                         :placeholder="field.placeholder"
                         class="custom-input"
+                        :maxlength="field.maxlength || 200"
+                        show-word-limit
                       />
                       <div v-else-if="field.type === 'textarea'" class="textarea-wrapper">
                         <div v-if="showMarkdownPreview && field.key === 'content'" class="markdown-editor-layout">
@@ -410,6 +412,8 @@ watch(
                               :rows="field.rows ?? 3"
                               :placeholder="field.placeholder"
                               class="custom-textarea"
+                              :maxlength="field.maxlength || 2000"
+                              show-word-limit
                             />
                           </div>
                         </div>
@@ -420,6 +424,8 @@ watch(
                             :rows="field.rows ?? 3"
                             :placeholder="field.placeholder"
                             class="custom-textarea"
+                            :maxlength="field.maxlength || 2000"
+                            show-word-limit
                           />
                         </template>
                       </div>
@@ -434,7 +440,7 @@ watch(
                     </el-form-item>
                   </template>
                   <el-form-item class="form-actions">
-                    <el-button type="primary" :loading="messageStore.sending" @click="submitMessage">发送</el-button>
+                    <el-button type="primary" :loading="messageStore.sending" @click="submitMessage" v-button-lock>发送</el-button>
                     <el-button
                       v-if="showMarkdownPreview && form.data.content"
                       type="primary"

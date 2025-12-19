@@ -226,6 +226,8 @@ onMounted(() => {
                   :rows="(editingConfigs[config.id].value?.length || 0) > 100 ? 4 : 2"
                   placeholder="请输入配置值"
                   class="config-value-input"
+                  maxlength="2000"
+                  show-word-limit
                 />
               </el-form-item>
             </div>
@@ -236,7 +238,7 @@ onMounted(() => {
     <template #footer>
       <span class="drawer-footer">
         <el-button @click="editDrawerVisible = false">取消</el-button>
-        <el-button type="primary" :loading="configStore.loading" @click="handleEditSubmit">保存全部</el-button>
+        <el-button type="primary" :loading="configStore.loading" @click="handleEditSubmit" v-button-lock>保存全部</el-button>
       </span>
     </template>
   </el-drawer>

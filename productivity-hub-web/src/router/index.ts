@@ -194,6 +194,42 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/agents/AgentsView.vue'),
       },
       {
+        path: 'ai/prompt',
+        name: 'Prompt',
+        meta: { title: 'Prompt' },
+        component: () => import('@/views/ai/PromptView.vue'),
+      },
+      {
+        path: 'ai/knowledge-base',
+        name: 'KnowledgeBase',
+        meta: { title: '知识库' },
+        component: () => import('@/views/ai/KnowledgeBaseView.vue'),
+      },
+      {
+        path: 'ai/image-generation',
+        name: 'ImageGeneration',
+        meta: { title: 'AI生图' },
+        component: () => import('@/views/ai/ImageGenerationView.vue'),
+      },
+      {
+        path: 'ai/statistics',
+        name: 'AIStatistics',
+        meta: { title: 'AI统计报表' },
+        component: () => import('@/views/ai/StatisticsView.vue'),
+      },
+      {
+        path: 'ai/dify-assistant',
+        name: 'DifyAssistant',
+        meta: { title: 'Dify助手' },
+        component: () => import('@/views/ai/DifyAssistantView.vue'),
+      },
+      {
+        path: 'ai/assistant',
+        name: 'AIAssistant',
+        meta: { title: 'AI助手' },
+        component: () => import('@/views/ai/AssistantView.vue'),
+      },
+      {
         path: 'bookmark',
         name: 'Bookmark',
         meta: { title: '宝藏类网址' },

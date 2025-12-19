@@ -96,16 +96,36 @@ onMounted(fetchUsers)
   <el-dialog v-model="dialogVisible" title="新增用户" width="520px" destroy-on-close>
     <el-form ref="formRef" :model="formModel" :rules="rules" label-width="90px" label-position="left">
       <el-form-item label="用户名" prop="username">
-        <el-input v-model="formModel.username" placeholder="请输入登录用户名" />
+        <el-input 
+          v-model="formModel.username" 
+          placeholder="请输入登录用户名" 
+          maxlength="50"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="初始密码" prop="password">
-        <el-input v-model="formModel.password" placeholder="留空则使用默认密码 123456" />
+        <el-input 
+          v-model="formModel.password" 
+          placeholder="留空则使用默认密码 123456" 
+          maxlength="100"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="姓名" prop="name">
-        <el-input v-model="formModel.name" placeholder="请输入姓名" />
+        <el-input 
+          v-model="formModel.name" 
+          placeholder="请输入姓名" 
+          maxlength="50"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="邮箱">
-        <el-input v-model="formModel.email" placeholder="可选，用于通知" />
+        <el-input 
+          v-model="formModel.email" 
+          placeholder="可选，用于通知" 
+          maxlength="100"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="角色" prop="roles">
         <el-select v-model="formModel.roles" multiple placeholder="请选择角色" style="width: 100%">
@@ -119,7 +139,7 @@ onMounted(fetchUsers)
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleCreate">确认创建</el-button>
+        <el-button type="primary" :loading="loading" @click="handleCreate" v-button-lock>确认创建</el-button>
       </span>
     </template>
   </el-dialog>
