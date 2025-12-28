@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 创建或更新配置项请求 DTO（通过 module 和 key）.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

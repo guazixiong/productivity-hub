@@ -9,7 +9,7 @@ import java.io.Serializable;
  * API 统一响应格式（适配需求文档格式）.
  * 格式：{code, message, data}
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

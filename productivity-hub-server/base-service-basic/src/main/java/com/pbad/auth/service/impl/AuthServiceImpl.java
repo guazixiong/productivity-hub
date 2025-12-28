@@ -10,6 +10,7 @@ import com.pbad.auth.domain.vo.UserVO;
 import com.pbad.auth.mapper.UserMapper;
 import com.pbad.auth.service.AuthService;
 import com.pbad.auth.util.CaptchaUtil;
+import com.pbad.cache.service.UserCacheService;
 import common.exception.BusinessException;
 import common.util.JwtUtil;
 import common.util.RedisUtil;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 认证服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
@@ -37,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
     private final RedisUtil redisUtil;
+    private final UserCacheService userCacheService;
 
     /**
      * 默认密码
@@ -122,6 +124,9 @@ public class AuthServiceImpl implements AuthService {
         userVO.setId(userPO.getId());
         userVO.setName(userPO.getName());
         userVO.setEmail(userPO.getEmail());
+        userVO.setAvatar(userPO.getAvatar());
+        userVO.setBio(userPO.getBio());
+        userVO.setPhone(userPO.getPhone());
         // 解析角色 JSON 字符串
         if (userPO.getRoles() != null && !userPO.getRoles().isEmpty()) {
             try {
@@ -138,6 +143,19 @@ public class AuthServiceImpl implements AuthService {
         response.setToken(token);
         response.setRefreshToken(refreshToken);
         response.setUser(userVO);
+
+        // 登录成功后，先清理旧缓存（如果存在），再异步加载新缓存
+        // 这样可以确保缓存的一致性，避免使用过期数据
+        try {
+            // 先清理可能存在的旧缓存
+            userCacheService.clearUserCache(userPO.getId());
+            // 然后异步加载新缓存
+            userCacheService.loadUserCache(userPO.getId());
+            log.debug("[Auth] 已触发用户 {} 的缓存清理和加载", userPO.getId());
+        } catch (Exception e) {
+            // 缓存操作失败不影响登录流程，只记录日志
+            log.warn("[Auth] 用户 {} 缓存操作失败: {}", userPO.getId(), e.getMessage(), e);
+        }
 
         return response;
     }
@@ -168,6 +186,22 @@ public class AuthServiceImpl implements AuthService {
         response.setMessage("密码已重置为默认密码 " + DEFAULT_PASSWORD);
 
         return response;
+    }
+
+    @Override
+    public void logout(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            log.warn("[Auth] 用户ID为空，跳过缓存清理");
+            return;
+        }
+
+        try {
+            userCacheService.clearUserCache(userId);
+            log.info("[Auth] 用户 {} 退出登录，缓存已清理", userId);
+        } catch (Exception e) {
+            // 缓存清理失败不影响退出流程，只记录日志
+            log.warn("[Auth] 用户 {} 退出登录时缓存清理失败: {}", userId, e.getMessage(), e);
+        }
     }
 }
 

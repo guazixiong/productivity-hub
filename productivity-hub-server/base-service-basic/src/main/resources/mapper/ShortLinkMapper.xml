@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.shortlink.mapper.ShortLinkMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.shortlink.domain.po.ShortLinkPO">
+        <id column="id" property="id"/>
+        <result column="short_code" property="shortCode"/>
+        <result column="original_url" property="originalUrl"/>
+        <result column="short_link_url" property="shortLinkUrl"/>
+        <result column="access_count" property="accessCount"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByShortCode" resultMap="BaseResultMap">
+        SELECT id, short_code, original_url, short_link_url, access_count, created_at, updated_at
+        FROM sys_short_link
+        WHERE short_code = #{shortCode}
+    </select>
+
+    <select id="selectByOriginalUrl" resultMap="BaseResultMap">
+        SELECT id, short_code, original_url, short_link_url, access_count, created_at, updated_at
+        FROM sys_short_link
+        WHERE original_url = #{originalUrl}
+        LIMIT 1
+    </select>
+
+    <insert id="insert">
+        INSERT INTO sys_short_link (id, short_code, original_url, short_link_url, access_count, created_at, updated_at)
+        VALUES (#{id}, #{shortCode}, #{originalUrl}, #{shortLinkUrl}, #{accessCount}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="incrementAccessCount">
+        UPDATE sys_short_link
+        SET access_count = access_count + 1,
+            updated_at = NOW()
+        WHERE short_code = #{shortCode}
+    </update>
+
+</mapper>
+

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 16:55
  * @description: 查询基础传输类
  */

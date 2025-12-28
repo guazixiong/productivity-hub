@@ -3,7 +3,7 @@ package com.pbad.generator.api;
 /**
  * 分布式id生成api接口（基于 Snowflake 算法）.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 11:15
  * @version: 1.0
  */

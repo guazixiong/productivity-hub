@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 配置控制器.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

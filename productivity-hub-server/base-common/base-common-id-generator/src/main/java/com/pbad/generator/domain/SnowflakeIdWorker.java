@@ -3,7 +3,7 @@ package com.pbad.generator.domain;
 /**
  * 基于雪花算法生成唯一id.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 11:19
  * @version: 1.0
  */

@@ -9,7 +9,7 @@ import java.util.Date;
 /**
  * 查询基础域.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/11/15 00:01:24
  * @version: 1.0
  */

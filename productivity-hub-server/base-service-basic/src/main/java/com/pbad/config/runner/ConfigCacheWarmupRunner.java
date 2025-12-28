@@ -1,8 +1,5 @@
 package com.pbad.config.runner;
 
-import com.pbad.auth.domain.po.UserPO;
-import com.pbad.auth.mapper.UserMapper;
-import com.pbad.config.service.ConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -10,10 +7,11 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
- * 启动时为所有用户预热全局配置缓存.
+ * 配置缓存预热Runner.
+ * 
+ * 注意：根据需求，用户级缓存不再在启动时预热，而是在用户登录后按需加载。
+ * 此Runner保留用于未来可能的全局/系统级配置缓存预热。
  */
 @Slf4j
 @Component
@@ -21,26 +19,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConfigCacheWarmupRunner implements ApplicationRunner {
 
-    private final UserMapper userMapper;
-    private final ConfigService configService;
-
     @Override
     public void run(ApplicationArguments args) {
-        List<UserPO> users = userMapper.selectAll();
-        if (users == null || users.isEmpty()) {
-            log.info("[ConfigWarmup] 没有用户需要预热，全局配置缓存跳过。");
-            return;
-        }
-
-        log.info("[ConfigWarmup] 开始为 {} 个用户预热全局配置缓存。", users.size());
-        for (UserPO user : users) {
-            try {
-                configService.getConfigList(user.getId());
-            } catch (Exception ex) {
-                log.warn("[ConfigWarmup] 预热用户 {} 配置缓存失败: {}", user.getId(), ex.getMessage(), ex);
-            }
-        }
-        log.info("[ConfigWarmup] 全部用户配置缓存预热完成。");
+        log.info("[ConfigWarmup] 配置缓存预热已禁用，用户缓存将在登录后按需加载。");
+        // 用户级缓存不再在启动时预热，改为登录后加载
+        // 如需预热全局/系统级配置，可在此处添加相关逻辑
     }
 }
 

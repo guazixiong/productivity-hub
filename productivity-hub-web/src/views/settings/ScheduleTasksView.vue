@@ -27,7 +27,7 @@ const fetchTasks = async () => {
 
 const handleToggle = async (row: ScheduleTask) => {
   try {
-    const msg = await scheduleTaskApi.toggleTask({ id: row.id, enabled: row.enabled })
+    const msg = await scheduleTaskApi.toggleMyTask({ id: row.id, enabled: row.enabled })
     ElMessage.success(msg || '已更新任务开关')
     await fetchTasks()
   } catch (e) {
@@ -64,7 +64,7 @@ const handleTrigger = async (row: ScheduleTask) => {
 const handleEnableAll = async () => {
   bulkLoading.value = true
   try {
-    const msg = await scheduleTaskApi.enableAll()
+    const msg = await scheduleTaskApi.enableAllMyTasks()
     ElMessage.success(msg || '已启用所有任务')
     await fetchTasks()
   } catch (e) {
@@ -77,7 +77,7 @@ const handleEnableAll = async () => {
 const handleDisableAll = async () => {
   bulkLoading.value = true
   try {
-    const msg = await scheduleTaskApi.disableAll()
+    const msg = await scheduleTaskApi.disableAllMyTasks()
     ElMessage.success(msg || '已关闭所有任务')
     await fetchTasks()
   } catch (e) {

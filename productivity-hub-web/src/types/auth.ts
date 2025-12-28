@@ -10,6 +10,17 @@ export interface UserInfo {
   name: string
   roles: string[]
   email?: string
+  avatar?: string
+  bio?: string
+  phone?: string
+  gender?: string
+  birthday?: string
+  address?: string
+  company?: string
+  position?: string
+  website?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface AuthTokens {
@@ -37,5 +48,19 @@ export interface UserCreatePayload {
   name: string
   email?: string
   roles: string[]
+}
+
+export interface UserProfileUpdatePayload {
+  name?: string
+  email?: string
+  avatar?: string
+  bio?: string
+  phone?: string
+  gender?: string
+  birthday?: string
+  address?: string
+  company?: string
+  position?: string
+  website?: string
 }
 

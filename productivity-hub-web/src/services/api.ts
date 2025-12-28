@@ -1,11 +1,12 @@
 import http, { request } from './http'
-import type { LoginPayload, AuthResponse, ManagedUser, UserCreatePayload } from '@/types/auth'
+import type { LoginPayload, AuthResponse, ManagedUser, UserCreatePayload, UserInfo, UserProfileUpdatePayload } from '@/types/auth'
 import type { ConfigItem, ConfigUpdatePayload, ConfigCreateOrUpdatePayload } from '@/types/config'
 import type { BaseMessagePayload, MessageHistoryItem, MessageSendResult } from '@/types/messages'
 import type { NotificationItem } from '@/types/notifications'
 import type { AgentSummary, AgentInvocationPayload, AgentInvocationResult, AgentLogEntry } from '@/types/agents'
 import type { ToolStat } from '@/types/tools'
 import type { CursorCommodity } from '@/types/cursorShop'
+import type { LdxpGoodsItem, LdxpGoodsQuery } from '@/types/ldxpShop'
 import type { PageResult } from '@/types/common'
 import type { HotSection } from '@/types/hotSections'
 import type {
@@ -48,6 +49,37 @@ export const adminUserApi = {
       method: 'POST',
       data: payload,
     }),
+  delete: (id: string) =>
+    request<void>({
+      url: `/api/admin/users/${id}`,
+      method: 'DELETE',
+    }),
+}
+
+export const userApi = {
+  getProfile: () =>
+    request<UserInfo>({
+      url: '/api/user/profile',
+      method: 'GET',
+    }),
+  updateProfile: (payload: UserProfileUpdatePayload) =>
+    request<UserInfo>({
+      url: '/api/user/profile',
+      method: 'PUT',
+      data: payload,
+    }),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request<UserInfo>({
+      url: '/api/user/avatar',
+      method: 'POST',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 }
 
 export const configApi = {
@@ -143,6 +175,16 @@ export const cursorShopApi = {
     }),
 }
 
+export const ldxpShopApi = {
+  goodsList: (params: Partial<LdxpGoodsQuery> = {}) =>
+    request<LdxpGoodsItem[]>({
+      url: '/api/tools/cursor-shop/ldxp/goods',
+      method: 'POST',
+      data: params,
+      timeout: 15000,
+    }),
+}
+
 export const scheduleApi = {
   // 获取所有热点标签列表
   getHotSectionNames: () => {
@@ -179,6 +221,25 @@ export const scheduleApi = {
   },
 }
 
+export const shortLinkApi = {
+  // 创建短链
+  createShortLink: (originalUrl: string) => {
+    return request<{ shortCode: string; shortLinkUrl: string; originalUrl: string }>({
+      url: '/api/shortlink/create',
+      method: 'POST',
+      data: { originalUrl },
+    })
+  },
+  // 批量创建短链
+  batchCreateShortLink: (originalUrls: string[]) => {
+    return request<Array<{ shortCode: string; shortLinkUrl: string; originalUrl: string }>>({
+      url: '/api/shortlink/batch-create',
+      method: 'POST',
+      data: originalUrls.map(url => ({ originalUrl: url })),
+    })
+  },
+}
+
 export const scheduleTaskApi = {
   listTasks: () =>
     request<ScheduleTask[]>({
@@ -191,6 +252,12 @@ export const scheduleTaskApi = {
       method: 'POST',
       data: payload,
     }),
+  toggleMyTask: (payload: { id: string; enabled: boolean }) =>
+    request<string>({
+      url: '/api/schedule/manage/toggleMyTask',
+      method: 'POST',
+      data: payload,
+    }),
   enableAll: () =>
     request<string>({
       url: '/api/schedule/manage/enableAll',
@@ -199,6 +266,16 @@ export const scheduleTaskApi = {
   disableAll: () =>
     request<string>({
       url: '/api/schedule/manage/disableAll',
+      method: 'POST',
+    }),
+  enableAllMyTasks: () =>
+    request<string>({
+      url: '/api/schedule/manage/enableAllMyTasks',
+      method: 'POST',
+    }),
+  disableAllMyTasks: () =>
+    request<string>({
+      url: '/api/schedule/manage/disableAllMyTasks',
       method: 'POST',
     }),
   triggerTask: (id: string) =>
@@ -218,12 +295,40 @@ export interface WeatherInfo {
   humidity: string
 }
 
+export interface DailyQuote {
+  quote: string
+  from: string
+}
+
 export const homeApi = {
-  getWeather: (params?: { latitude?: number; longitude?: number; cityName?: string }) =>
+  getWeather: (params?: { latitude?: number; longitude?: number; cityName?: string; ip?: string }) =>
     request<WeatherInfo>({
       url: '/api/home/weather',
       method: 'GET',
       params,
+    }),
+  getDailyQuote: () =>
+    request<DailyQuote>({
+      url: '/api/home/daily-quote',
+      method: 'GET',
+    }),
+  refreshWeather: (params?: { latitude?: number; longitude?: number; cityName?: string; ip?: string }) =>
+    request<WeatherInfo>({
+      url: '/api/home/weather/refresh',
+      method: 'GET',
+      params,
+    }),
+  refreshDailyQuote: () =>
+    request<DailyQuote>({
+      url: '/api/home/daily-quote/refresh',
+      method: 'GET',
+    }),
+  // 使用天地图API获取位置信息
+  getLocationByIp: (ip: string) =>
+    request<WeatherInfo>({
+      url: '/api/home/location/tianditu',
+      method: 'GET',
+      params: { ip },
     }),
 }
 

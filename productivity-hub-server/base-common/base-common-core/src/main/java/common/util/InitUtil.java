@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 /**
  * 初始化工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/11/1 16:34
  * @version: 1.0
  */

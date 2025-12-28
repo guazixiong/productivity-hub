@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 更新配置项请求 DTO.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

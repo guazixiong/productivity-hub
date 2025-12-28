@@ -10,9 +10,11 @@ import com.pbad.bookmark.mapper.BookmarkUrlTagMapper;
 import com.pbad.bookmark.service.BookmarkTagService;
 import com.pbad.generator.api.IdGeneratorApi;
 import common.exception.BusinessException;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +24,7 @@ import java.util.stream.Collectors;
 /**
  * 标签服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -34,10 +36,22 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
     private final BookmarkUrlTagMapper urlTagMapper;
     private final IdGeneratorApi idGeneratorApi;
 
+    /**
+     * 获取当前用户ID
+     */
+    private String getCurrentUserId() {
+        String userId = RequestUserContext.getUserId();
+        if (!StringUtils.hasText(userId)) {
+            throw new BusinessException("401", "用户未登录");
+        }
+        return userId;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<BookmarkTagVO> getTagTree() {
-        List<BookmarkTagPO> allTags = tagMapper.selectAll();
+        String userId = getCurrentUserId();
+        List<BookmarkTagPO> allTags = tagMapper.selectAll(userId);
         
         // 按层级分组
         Map<Integer, List<BookmarkTagPO>> tagsByLevel = allTags.stream()
@@ -74,14 +88,16 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
     @Override
     @Transactional(readOnly = true)
     public List<BookmarkTagVO> getParentTags() {
-        List<BookmarkTagPO> parentTags = tagMapper.selectByLevel(1);
+        String userId = getCurrentUserId();
+        List<BookmarkTagPO> parentTags = tagMapper.selectByLevel(1, userId);
         return parentTags.stream().map(this::convertToVO).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BookmarkTagVO> getChildTags(String parentId) {
-        List<BookmarkTagPO> childTags = tagMapper.selectByParentId(parentId);
+        String userId = getCurrentUserId();
+        List<BookmarkTagPO> childTags = tagMapper.selectByParentId(parentId, userId);
         return childTags.stream().map(this::convertToVO).collect(Collectors.toList());
     }
 
@@ -96,9 +112,11 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
         // 判断层级
         Integer level = createDTO.getParentId() == null || createDTO.getParentId().trim().isEmpty() ? 1 : 2;
         
+        String userId = getCurrentUserId();
+
         // 如果是二级标签，验证父标签是否存在
         if (level == 2) {
-            BookmarkTagPO parentTag = tagMapper.selectById(createDTO.getParentId());
+            BookmarkTagPO parentTag = tagMapper.selectById(createDTO.getParentId(), userId);
             if (parentTag == null) {
                 throw new BusinessException("404", "父标签不存在");
             }
@@ -110,7 +128,8 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
         // 检查同名标签是否已存在
         BookmarkTagPO existingTag = tagMapper.selectByNameAndParentId(
                 createDTO.getName().trim(), 
-                createDTO.getParentId()
+                createDTO.getParentId(),
+                userId
         );
         if (existingTag != null) {
             throw new BusinessException("400", "该标签已存在");
@@ -119,6 +138,7 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
         // 创建标签
         BookmarkTagPO newTag = new BookmarkTagPO();
         newTag.setId(idGeneratorApi.generateId());
+        newTag.setUserId(userId);
         newTag.setName(createDTO.getName().trim());
         newTag.setParentId(level == 1 ? null : createDTO.getParentId());
         newTag.setLevel(level);
@@ -129,7 +149,7 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
             throw new BusinessException("500", "创建标签失败");
         }
 
-        BookmarkTagPO insertedTag = tagMapper.selectById(newTag.getId());
+        BookmarkTagPO insertedTag = tagMapper.selectById(newTag.getId(), userId);
         return convertToVO(insertedTag);
     }
 
@@ -144,8 +164,10 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
             throw new BusinessException("400", "标签名称不能为空");
         }
 
+        String userId = getCurrentUserId();
+
         // 查询标签
-        BookmarkTagPO tag = tagMapper.selectById(updateDTO.getId());
+        BookmarkTagPO tag = tagMapper.selectById(updateDTO.getId(), userId);
         if (tag == null) {
             throw new BusinessException("404", "标签不存在");
         }
@@ -153,7 +175,8 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
         // 检查同名标签是否已存在（排除自己）
         BookmarkTagPO existingTag = tagMapper.selectByNameAndParentId(
                 updateDTO.getName().trim(),
-                tag.getParentId()
+                tag.getParentId(),
+                userId
         );
         if (existingTag != null && !existingTag.getId().equals(updateDTO.getId())) {
             throw new BusinessException("400", "该标签名称已存在");
@@ -170,7 +193,7 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
             throw new BusinessException("500", "更新标签失败");
         }
 
-        BookmarkTagPO updatedTag = tagMapper.selectById(updateDTO.getId());
+        BookmarkTagPO updatedTag = tagMapper.selectById(updateDTO.getId(), userId);
         return convertToVO(updatedTag);
     }
 
@@ -182,28 +205,30 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
             throw new BusinessException("400", "标签ID不能为空");
         }
 
+        String userId = getCurrentUserId();
+
         // 查询标签
-        BookmarkTagPO tag = tagMapper.selectById(id);
+        BookmarkTagPO tag = tagMapper.selectById(id, userId);
         if (tag == null) {
             throw new BusinessException("404", "标签不存在");
         }
 
         // 如果是一级标签，检查是否有子标签
         if (tag.getLevel() == 1) {
-            List<BookmarkTagPO> childTags = tagMapper.selectByParentId(id);
+            List<BookmarkTagPO> childTags = tagMapper.selectByParentId(id, userId);
             if (!childTags.isEmpty()) {
                 throw new BusinessException("400", "该标签下存在子标签，无法删除");
             }
         }
 
         // 检查是否有网址关联
-        int urlCount = tagMapper.countUrlsByTagId(id);
+        int urlCount = tagMapper.countUrlsByTagId(id, userId);
         if (urlCount > 0) {
             throw new BusinessException("400", "该标签下存在网址，无法删除");
         }
 
         // 删除标签
-        int deleteCount = tagMapper.deleteTag(id);
+        int deleteCount = tagMapper.deleteTag(id, userId);
         if (deleteCount <= 0) {
             throw new BusinessException("500", "删除标签失败");
         }
@@ -217,6 +242,8 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
             throw new BusinessException("400", "标签ID列表不能为空");
         }
 
+        String userId = getCurrentUserId();
+
         // 构建更新列表
         List<BookmarkTagPO> tags = new ArrayList<>();
         for (int i = 0; i < sortDTO.getTagIds().size(); i++) {
@@ -228,7 +255,7 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
         }
 
         // 批量更新排序
-        int updateCount = tagMapper.batchUpdateSortOrder(tags);
+        int updateCount = tagMapper.batchUpdateSortOrder(tags, userId);
         if (updateCount <= 0) {
             throw new BusinessException("500", "更新排序失败");
         }
@@ -249,10 +276,10 @@ public class BookmarkTagServiceImpl implements BookmarkTagService {
         int urlCount;
         if (po.getLevel() == 1) {
             // 一级标签：统计该标签及其所有子标签的网址总数（去重）
-            urlCount = tagMapper.countUrlsByParentTagId(po.getId());
+            urlCount = tagMapper.countUrlsByParentTagId(po.getId(), po.getUserId());
         } else {
             // 二级标签：直接统计关联的网址数量
-            urlCount = tagMapper.countUrlsByTagId(po.getId());
+            urlCount = tagMapper.countUrlsByTagId(po.getId(), po.getUserId());
         }
         vo.setUrlCount(urlCount);
         

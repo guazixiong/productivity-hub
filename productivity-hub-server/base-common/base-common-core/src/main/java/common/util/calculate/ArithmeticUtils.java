@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 /**
  * 用于高精确处理常用的数学运算.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 14:57
  * @version: 1.0
  */

@@ -1,6 +1,5 @@
 package com.pbad.bookmark.runner;
 
-import com.pbad.bookmark.service.BookmarkUrlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -9,7 +8,10 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * 应用启动时预热宝藏网址缓存.
+ * 书签缓存预热Runner.
+ * 
+ * 注意：根据需求，用户级缓存不再在启动时预热，而是在用户登录后按需加载。
+ * 此Runner保留用于未来可能的全局/系统级书签缓存预热。
  */
 @Slf4j
 @Component
@@ -17,16 +19,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BookmarkCacheWarmupRunner implements ApplicationRunner {
 
-    private final BookmarkUrlService bookmarkUrlService;
-
     @Override
     public void run(ApplicationArguments args) {
-        try {
-            bookmarkUrlService.refreshBookmarkCache();
-            log.info("[BookmarkWarmup] 宝藏网址缓存预热完成");
-        } catch (Exception ex) {
-            log.warn("[BookmarkWarmup] 预热宝藏网址缓存失败: {}", ex.getMessage(), ex);
-        }
+        log.info("[BookmarkWarmup] 书签缓存预热已禁用，用户缓存将在登录后按需加载。");
+        // 用户级缓存不再在启动时预热，改为登录后加载
+        // 如需预热全局/系统级书签缓存，可在此处添加相关逻辑
     }
 }
 

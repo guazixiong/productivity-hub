@@ -8,7 +8,7 @@ import lombok.experimental.Accessors;
 /**
  * id生成信息.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 11:29
  * @version: 1.0
  */

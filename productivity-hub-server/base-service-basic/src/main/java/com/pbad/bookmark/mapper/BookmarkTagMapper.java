@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 标签 Mapper 接口.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -17,42 +17,47 @@ public interface BookmarkTagMapper {
     /**
      * 查询所有标签
      *
+     * @param userId 用户ID
      * @return 标签列表
      */
-    List<BookmarkTagPO> selectAll();
+    List<BookmarkTagPO> selectAll(@Param("userId") String userId);
 
     /**
      * 根据ID查询标签
      *
-     * @param id 标签ID
+     * @param id     标签ID
+     * @param userId 用户ID
      * @return 标签
      */
-    BookmarkTagPO selectById(@Param("id") String id);
+    BookmarkTagPO selectById(@Param("id") String id, @Param("userId") String userId);
 
     /**
      * 根据父标签ID查询子标签列表
      *
      * @param parentId 父标签ID
+     * @param userId   用户ID
      * @return 子标签列表
      */
-    List<BookmarkTagPO> selectByParentId(@Param("parentId") String parentId);
+    List<BookmarkTagPO> selectByParentId(@Param("parentId") String parentId, @Param("userId") String userId);
 
     /**
      * 根据层级查询标签列表
      *
-     * @param level 层级（1=一级标签，2=二级标签）
+     * @param level  层级（1=一级标签，2=二级标签）
+     * @param userId 用户ID
      * @return 标签列表
      */
-    List<BookmarkTagPO> selectByLevel(@Param("level") Integer level);
+    List<BookmarkTagPO> selectByLevel(@Param("level") Integer level, @Param("userId") String userId);
 
     /**
      * 根据名称和父标签ID查询标签（用于检查重复）
      *
      * @param name     标签名称
      * @param parentId 父标签ID
+     * @param userId   用户ID
      * @return 标签
      */
-    BookmarkTagPO selectByNameAndParentId(@Param("name") String name, @Param("parentId") String parentId);
+    BookmarkTagPO selectByNameAndParentId(@Param("name") String name, @Param("parentId") String parentId, @Param("userId") String userId);
 
     /**
      * 插入标签
@@ -73,33 +78,37 @@ public interface BookmarkTagMapper {
     /**
      * 删除标签
      *
-     * @param id 标签ID
+     * @param id     标签ID
+     * @param userId 用户ID
      * @return 删除行数
      */
-    int deleteTag(@Param("id") String id);
+    int deleteTag(@Param("id") String id, @Param("userId") String userId);
 
     /**
      * 批量更新标签排序顺序
      *
-     * @param tags 标签列表（包含id和sortOrder）
+     * @param tags   标签列表（包含id和sortOrder）
+     * @param userId 用户ID
      * @return 更新行数
      */
-    int batchUpdateSortOrder(@Param("tags") List<BookmarkTagPO> tags);
+    int batchUpdateSortOrder(@Param("tags") List<BookmarkTagPO> tags, @Param("userId") String userId);
 
     /**
      * 统计标签下的网址数量
      *
-     * @param tagId 标签ID
+     * @param tagId  标签ID
+     * @param userId 用户ID
      * @return 网址数量
      */
-    int countUrlsByTagId(@Param("tagId") String tagId);
+    int countUrlsByTagId(@Param("tagId") String tagId, @Param("userId") String userId);
 
     /**
      * 统计一级标签（包括其所有子标签）下的网址数量（去重）
      *
      * @param parentTagId 一级标签ID
+     * @param userId      用户ID
      * @return 网址数量
      */
-    int countUrlsByParentTagId(@Param("parentTagId") String parentTagId);
+    int countUrlsByParentTagId(@Param("parentTagId") String parentTagId, @Param("userId") String userId);
 }
 

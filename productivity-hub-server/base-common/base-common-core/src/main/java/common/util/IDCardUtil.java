@@ -10,7 +10,7 @@ import java.util.Date;
 /**
  * 身份证信息提取工具类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023-10-8 11:21:49
  * @version: 1.0
  */

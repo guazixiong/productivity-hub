@@ -3,7 +3,7 @@ package common.exception;
 /**
  * 异常基础服务接口类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 14:57
  * @version: 1.0
  */

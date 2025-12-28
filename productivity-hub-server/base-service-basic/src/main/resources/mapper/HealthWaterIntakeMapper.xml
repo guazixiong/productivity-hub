@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.health.mapper.HealthWaterIntakeMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.health.domain.po.HealthWaterIntakePO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="intakeDate" column="intake_date"/>
+        <result property="intakeTime" column="intake_time"/>
+        <result property="waterType" column="water_type"/>
+        <result property="volumeMl" column="volume_ml"/>
+        <result property="notes" column="notes"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, intake_date, intake_time, water_type, volume_ml, notes, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_water_intake
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="waterTypes != null and waterTypes.size() > 0">
+            AND water_type IN
+            <foreach collection="waterTypes" item="type" open="(" close=")" separator=",">
+                #{type}
+            </foreach>
+        </if>
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'intakeDate'">intake_date</when>
+                    <when test="sortField == 'intakeTime'">intake_time</when>
+                    <when test="sortField == 'volumeMl'">volume_ml</when>
+                    <otherwise>intake_date</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY intake_date DESC, intake_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="waterTypes != null and waterTypes.size() > 0">
+            AND water_type IN
+            <foreach collection="waterTypes" item="type" open="(" close=")" separator=",">
+                #{type}
+            </foreach>
+        </if>
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="com.pbad.health.domain.po.HealthWaterIntakePO">
+        INSERT INTO health_water_intake (
+            id, user_id, intake_date, intake_time, water_type, volume_ml, notes, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{intakeDate}, #{intakeTime}, #{waterType}, #{volumeMl}, #{notes},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="update" parameterType="com.pbad.health.domain.po.HealthWaterIntakePO">
+        UPDATE health_water_intake
+        SET
+            intake_date = #{intakeDate},
+            intake_time = #{intakeTime},
+            water_type = #{waterType},
+            volume_ml = #{volumeMl},
+            notes = #{notes},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM health_water_intake
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+    <delete id="batchDeleteByIds">
+        DELETE FROM health_water_intake
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" close=")" separator=",">
+              #{id}
+          </foreach>
+    </delete>
+
+    <!-- 统计指定日期范围内的总饮水量 -->
+    <select id="sumVolumeByDateRange" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(volume_ml), 0)
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 统计饮水数据（按日期范围） -->
+    <select id="statisticsByDateRange" resultType="java.util.HashMap">
+        SELECT
+            COALESCE(SUM(volume_ml), 0) AS totalIntakeMl,
+            COUNT(1) AS totalCount
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 统计指定日期的总饮水量 -->
+    <select id="sumVolumeByDate" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(volume_ml), 0)
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+          AND intake_date = #{intakeDate}
+    </select>
+
+    <!-- 按饮水类型分组统计 -->
+    <select id="statisticsByType" resultType="java.util.HashMap">
+        SELECT
+            water_type AS waterType,
+            COUNT(1) AS count,
+            COALESCE(SUM(volume_ml), 0) AS totalVolume
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+        GROUP BY water_type
+        ORDER BY totalVolume DESC
+    </select>
+
+    <!-- 查询趋势数据（按日期分组） -->
+    <select id="queryTrendData" resultType="java.util.HashMap">
+        SELECT
+            DATE_FORMAT(intake_date, '%Y-%m-%d') AS date,
+            COALESCE(SUM(volume_ml), 0) AS totalVolume
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND intake_date &gt;= DATE(#{startDate})
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= DATE(#{endDate})
+        </if>
+        GROUP BY DATE_FORMAT(intake_date, '%Y-%m-%d')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 查询有记录的日期列表 -->
+    <select id="queryDatesWithRecords" resultType="java.util.Date">
+        SELECT DISTINCT intake_date
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+        ORDER BY intake_date ASC
+    </select>
+
+    <!-- 查询所有符合条件的记录（用于导出） -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_water_intake
+        WHERE user_id = #{userId}
+        <if test="waterTypes != null and waterTypes.size() > 0">
+            AND water_type IN
+            <foreach collection="waterTypes" item="type" open="(" close=")" separator=",">
+                #{type}
+            </foreach>
+        </if>
+        <if test="startDate != null">
+            AND intake_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND intake_date &lt;= #{endDate}
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'intakeDate'">intake_date</when>
+                    <when test="sortField == 'intakeTime'">intake_time</when>
+                    <when test="sortField == 'volumeMl'">volume_ml</when>
+                    <otherwise>intake_date</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY intake_date DESC, intake_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>
+

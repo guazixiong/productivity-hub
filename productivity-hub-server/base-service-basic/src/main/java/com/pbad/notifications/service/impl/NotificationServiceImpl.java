@@ -42,7 +42,8 @@ public class NotificationServiceImpl implements com.pbad.notifications.service.N
         }
         // 1. 写入数据库
         NotificationPO po = new NotificationPO();
-        po.setId(idGeneratorApi.generateId());
+        String notificationId = idGeneratorApi.generateId();
+        po.setId(notificationId);
         po.setUserId(dto.getUserId());
         po.setTitle(dto.getTitle());
         po.setContent(dto.getContent());
@@ -51,8 +52,8 @@ public class NotificationServiceImpl implements com.pbad.notifications.service.N
         po.setExtraData(toJsonSafe(dto.getExtra()));
         notificationMapper.insert(po);
 
-        // 2. 组装 WebSocket 消息并推送
-        Map<String, Object> payload = buildWsPayload(dto);
+        // 2. 组装 WebSocket 消息并推送（包含通知 ID）
+        Map<String, Object> payload = buildWsPayload(dto, notificationId);
         String messageJson = toJsonSafe(payload);
 
         MessageDTO messageDTO = new MessageDTO()
@@ -108,10 +109,11 @@ public class NotificationServiceImpl implements com.pbad.notifications.service.N
         return vo;
     }
 
-    private Map<String, Object> buildWsPayload(NotificationPublishDTO dto) {
+    private Map<String, Object> buildWsPayload(NotificationPublishDTO dto, String notificationId) {
         Map<String, Object> extra = dto.getExtra() == null ? Collections.emptyMap() : dto.getExtra();
         return new java.util.LinkedHashMap<String, Object>() {{
             put("type", WS_TYPE_NOTIFICATION);
+            put("id", notificationId);
             put("title", dto.getTitle());
             put("content", dto.getContent());
             put("path", dto.getPath());

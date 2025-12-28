@@ -18,7 +18,7 @@ import java.util.Base64;
 /**
  * 提供基于 AEAD_AES_256_GCM 算法的加解密工具类。.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 14:48
  * @version: 1.0
  */

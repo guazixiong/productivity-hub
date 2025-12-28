@@ -3,7 +3,7 @@ package common.core.domain;
 /**
  * 字段变更信息类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2025-11-27 18:25:59
  * @version: 1.0
  */

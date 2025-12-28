@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 /**
  * MD5工具类，提供MD5加密和解密功能.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 14:58
  * @version: 1.0
  */

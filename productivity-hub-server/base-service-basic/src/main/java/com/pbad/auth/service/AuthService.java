@@ -8,7 +8,7 @@ import com.pbad.auth.domain.vo.ResetPasswordResponseVO;
 /**
  * 认证服务接口.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
@@ -36,5 +36,12 @@ public interface AuthService {
      * @return 重置密码响应
      */
     ResetPasswordResponseVO resetPassword(String userId);
+
+    /**
+     * 退出登录（清理用户缓存）
+     *
+     * @param userId 用户ID
+     */
+    void logout(String userId);
 }
 

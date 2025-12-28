@@ -13,7 +13,7 @@ import VChart from 'vue-echarts'
 import { ElMessage } from 'element-plus'
 import { Bell, ArrowDownBold } from '@element-plus/icons-vue'
 import { todoApi } from '@/services/todoApi'
-import type { TodoModule, TodoTask } from '@/types/todo'
+import type { TodoModule, TodoTask, TodoStats } from '@/types/todo'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notifications'
 
@@ -104,13 +104,26 @@ watch(
   },
 )
 
-// 当前执行中的任务（按截止时间最近的一个）
+// 临时存储最新获取的执行中任务（用于状态变更后的立即更新）
+const latestActiveTask = ref<TodoTask | null>(null)
+
+// 当前执行中的任务（最近一条执行中的任务，用于倒计时）
 const currentExecutingTask = computed(() => {
-  const inProgress = props.tasks.filter((t) => t.status === 'IN_PROGRESS' && t.dueDate)
+  // 优先使用临时存储的最新任务
+  if (latestActiveTask.value) {
+    return latestActiveTask.value
+  }
+  // 否则从props.tasks中查找
+  const inProgress = props.tasks.filter((t) => t.status === 'IN_PROGRESS')
   if (inProgress.length === 0) return null
+  // 按 lastEventAt 或 activeStartAt 排序，获取最近的一条
   return inProgress
     .slice()
-    .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())[0]
+    .sort((a, b) => {
+      const aTime = a.activeStartAt ? new Date(a.activeStartAt).getTime() : 0
+      const bTime = b.activeStartAt ? new Date(b.activeStartAt).getTime() : 0
+      return bTime - aTime // 降序，最新的在前
+    })[0]
 })
 
 interface CountdownState {
@@ -137,6 +150,7 @@ let countdownTimer: number | null = null
 
 const updateCountdown = () => {
   const task = currentExecutingTask.value
+  // 如果没有执行中的任务，或者任务没有截止日期，则不显示倒计时
   if (!task || !task.dueDate) {
     countdown.value = {
       years: '00',
@@ -195,6 +209,17 @@ const updateCountdown = () => {
   }
 }
 
+// 监听props.tasks变化，当父组件刷新数据后，清空临时存储，使用最新的props数据
+watch(
+  () => props.tasks,
+  () => {
+    // 父组件刷新数据后，清空临时存储，使用最新的props数据
+    latestActiveTask.value = null
+    updateCountdown()
+  },
+  { deep: true },
+)
+
 watch(
   () => currentExecutingTask.value?.id,
   () => {
@@ -203,6 +228,8 @@ watch(
 )
 
 onMounted(() => {
+  // 初始化时获取最新的执行中任务
+  refreshActiveTask()
   updateCountdown()
   countdownTimer = window.setInterval(updateCountdown, 1000)
 })
@@ -214,12 +241,22 @@ onBeforeUnmount(() => {
 })
 
 const headerStats = computed(() => {
-  const stats = props.stats
+  const total = props.tasks.length
+  let inProgress = 0
+  let completed = 0
+  let interrupted = 0
+
+  props.tasks.forEach((task) => {
+    if (task.status === 'IN_PROGRESS') inProgress += 1
+    if (task.status === 'COMPLETED') completed += 1
+    if (task.status === 'INTERRUPTED') interrupted += 1
+  })
+
   return {
-    total: stats?.totalTasks ?? 0,
-    inProgress: stats?.inProgressTasks ?? 0,
-    completed: stats?.completedTasks ?? 0,
-    interrupted: stats?.interruptedTasks ?? 0,
+    total,
+    inProgress,
+    completed,
+    interrupted,
   }
 })
 
@@ -459,8 +496,10 @@ const formatDuration = (ms: number) => {
 // 任务操作：开始 / 暂停 / 完成（操作完成后通知父组件刷新数据）
 const handleStart = async (task: TodoTask) => {
   try {
-    await todoApi.startTask(task.id)
+    const updatedTask = await todoApi.startTask(task.id)
     ElMessage.success('任务已开始')
+    // 立即获取最新的执行中任务，更新倒计时
+    await refreshActiveTask()
     emit('refresh')
   } catch (error) {
     ElMessage.error('开始任务失败，请稍后重试')
@@ -471,6 +510,8 @@ const handlePause = async (task: TodoTask) => {
   try {
     await todoApi.pauseTask(task.id)
     ElMessage.success('任务已暂停')
+    // 立即获取最新的执行中任务，更新倒计时
+    await refreshActiveTask()
     emit('refresh')
   } catch (error) {
     ElMessage.error('暂停任务失败，请稍后重试')
@@ -481,9 +522,25 @@ const handleComplete = async (task: TodoTask) => {
   try {
     await todoApi.completeTask(task.id)
     ElMessage.success('任务已完成')
+    // 立即获取最新的执行中任务，更新倒计时
+    await refreshActiveTask()
     emit('refresh')
   } catch (error) {
     ElMessage.error('完成任务失败，请稍后重试')
+  }
+}
+
+// 刷新当前执行中的任务，用于更新倒计时
+const refreshActiveTask = async () => {
+  try {
+    const activeTask = await todoApi.getActiveTask()
+    // 立即更新临时存储的任务，触发倒计时更新
+    latestActiveTask.value = activeTask
+    // 触发倒计时立即更新
+    updateCountdown()
+  } catch (error) {
+    // 如果获取失败，清空临时存储，使用props.tasks中的数据
+    latestActiveTask.value = null
   }
 }
 </script>

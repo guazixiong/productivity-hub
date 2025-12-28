@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.health.mapper.HealthExerciseRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.health.domain.po.HealthExerciseRecordPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="exerciseType" column="exercise_type"/>
+        <result property="exerciseDate" column="exercise_date"/>
+        <result property="durationMinutes" column="duration_minutes"/>
+        <result property="caloriesBurned" column="calories_burned"/>
+        <result property="distanceKm" column="distance_km"/>
+        <result property="heartRateAvg" column="heart_rate_avg"/>
+        <result property="heartRateMax" column="heart_rate_max"/>
+        <result property="trainingPlanId" column="training_plan_id"/>
+        <result property="exerciseActionRefUrl" column="exercise_action_ref_url"/>
+        <result property="notes" column="notes"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, exercise_type, exercise_date, duration_minutes, calories_burned,
+        distance_km, heart_rate_avg, heart_rate_max, training_plan_id, exercise_action_ref_url,
+        notes, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_exercise_record
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="exerciseTypes != null and exerciseTypes.size() > 0">
+            AND exercise_type IN
+            <foreach collection="exerciseTypes" item="type" open="(" close=")" separator=",">
+                #{type}
+            </foreach>
+        </if>
+        <if test="startDate != null">
+            AND exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= #{endDate}
+        </if>
+        <if test="trainingPlanId != null and trainingPlanId != ''">
+            AND training_plan_id = #{trainingPlanId}
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'exerciseDate'">exercise_date</when>
+                    <when test="sortField == 'durationMinutes'">duration_minutes</when>
+                    <when test="sortField == 'caloriesBurned'">calories_burned</when>
+                    <otherwise>exercise_date</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY exercise_date DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="exerciseTypes != null and exerciseTypes.size() > 0">
+            AND exercise_type IN
+            <foreach collection="exerciseTypes" item="type" open="(" close=")" separator=",">
+                #{type}
+            </foreach>
+        </if>
+        <if test="startDate != null">
+            AND exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= #{endDate}
+        </if>
+        <if test="trainingPlanId != null and trainingPlanId != ''">
+            AND training_plan_id = #{trainingPlanId}
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="com.pbad.health.domain.po.HealthExerciseRecordPO">
+        INSERT INTO health_exercise_record (
+            id, user_id, exercise_type, exercise_date, duration_minutes, calories_burned,
+            distance_km, heart_rate_avg, heart_rate_max, training_plan_id, exercise_action_ref_url,
+            notes, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{exerciseType}, #{exerciseDate}, #{durationMinutes}, #{caloriesBurned},
+            #{distanceKm}, #{heartRateAvg}, #{heartRateMax}, #{trainingPlanId}, #{exerciseActionRefUrl},
+            #{notes},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="update" parameterType="com.pbad.health.domain.po.HealthExerciseRecordPO">
+        UPDATE health_exercise_record
+        SET
+            exercise_type = #{exerciseType},
+            exercise_date = #{exerciseDate},
+            duration_minutes = #{durationMinutes},
+            calories_burned = #{caloriesBurned},
+            distance_km = #{distanceKm},
+            heart_rate_avg = #{heartRateAvg},
+            heart_rate_max = #{heartRateMax},
+            training_plan_id = #{trainingPlanId},
+            exercise_action_ref_url = #{exerciseActionRefUrl},
+            notes = #{notes},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM health_exercise_record
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+    <delete id="batchDeleteByIds">
+        DELETE FROM health_exercise_record
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" close=")" separator=",">
+              #{id}
+          </foreach>
+    </delete>
+
+    <!-- 统计运动数据（按日期范围） -->
+    <select id="statisticsByDateRange" resultType="java.util.HashMap">
+        SELECT
+            COALESCE(SUM(duration_minutes), 0) AS totalDuration,
+            COUNT(1) AS totalCount,
+            COALESCE(SUM(calories_burned), 0) AS totalCalories,
+            COALESCE(SUM(distance_km), 0) AS totalDistance
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 按运动类型分组统计 -->
+    <select id="statisticsByType" resultType="java.util.HashMap">
+        SELECT
+            exercise_type AS exerciseType,
+            COUNT(1) AS count,
+            COALESCE(SUM(duration_minutes), 0) AS totalDuration,
+            COALESCE(SUM(calories_burned), 0) AS totalCalories,
+            COALESCE(SUM(distance_km), 0) AS totalDistance
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= #{endDate}
+        </if>
+        GROUP BY exercise_type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 按训练计划分组统计 -->
+    <select id="statisticsByPlan" resultType="java.util.HashMap">
+        SELECT
+            e.training_plan_id AS planId,
+            p.plan_name AS planName,
+            COUNT(1) AS count,
+            COALESCE(SUM(e.duration_minutes), 0) AS totalDuration,
+            COALESCE(SUM(e.calories_burned), 0) AS totalCalories
+        FROM health_exercise_record e
+        LEFT JOIN health_training_plan p ON e.training_plan_id = p.id AND e.user_id = p.user_id
+        WHERE e.user_id = #{userId}
+          AND e.training_plan_id IS NOT NULL
+        <if test="startDate != null">
+            AND e.exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND e.exercise_date &lt;= #{endDate}
+        </if>
+        GROUP BY e.training_plan_id, p.plan_name
+        ORDER BY count DESC
+    </select>
+
+    <!-- 查询趋势数据（按日期分组） -->
+    <select id="queryTrendData" resultType="java.util.HashMap">
+        SELECT
+            DATE_FORMAT(exercise_date, '%Y-%m-%d') AS date,
+            <choose>
+                <when test="type == 'duration'">
+                    COALESCE(SUM(duration_minutes), 0) AS value
+                </when>
+                <when test="type == 'count'">
+                    COUNT(1) AS value
+                </when>
+                <when test="type == 'calories'">
+                    COALESCE(SUM(calories_burned), 0) AS value
+                </when>
+                <otherwise>
+                    COALESCE(SUM(duration_minutes), 0) AS value
+                </otherwise>
+            </choose>
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND exercise_date &gt;= DATE(#{startDate})
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= DATE(#{endDate})
+        </if>
+        GROUP BY DATE_FORMAT(exercise_date, '%Y-%m-%d')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 查询有记录的日期列表 -->
+    <select id="queryDatesWithRecords" resultType="java.util.Date">
+        SELECT DISTINCT exercise_date
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= #{endDate}
+        </if>
+        ORDER BY exercise_date ASC
+    </select>
+
+    <!-- 查询所有符合条件的记录（用于导出） -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_exercise_record
+        WHERE user_id = #{userId}
+        <if test="exerciseTypes != null and exerciseTypes.size() > 0">
+            AND exercise_type IN
+            <foreach collection="exerciseTypes" item="type" open="(" close=")" separator=",">
+                #{type}
+            </foreach>
+        </if>
+        <if test="startDate != null">
+            AND exercise_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND exercise_date &lt;= #{endDate}
+        </if>
+        <if test="trainingPlanId != null and trainingPlanId != ''">
+            AND training_plan_id = #{trainingPlanId}
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'exerciseDate'">exercise_date</when>
+                    <when test="sortField == 'durationMinutes'">duration_minutes</when>
+                    <when test="sortField == 'caloriesBurned'">calories_burned</when>
+                    <otherwise>exercise_date</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY exercise_date DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>
+

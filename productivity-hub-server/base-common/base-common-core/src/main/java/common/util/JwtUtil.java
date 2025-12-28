@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * JWT 工具类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

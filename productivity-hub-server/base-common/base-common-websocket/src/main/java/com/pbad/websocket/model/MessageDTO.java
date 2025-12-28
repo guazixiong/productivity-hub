@@ -14,7 +14,7 @@ import java.util.Map;
  * ClassName: MessageDto
  * description: 消息推送类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023-9-11 10:31:37
  * @version: 1.0
  */

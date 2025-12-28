@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * API 全局异常处理器（使用 ApiResponse 格式）.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

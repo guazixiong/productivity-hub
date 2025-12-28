@@ -12,7 +12,7 @@ import javax.websocket.server.ServerEndpoint;
  * ClassName: WebSocketEndpoint
  * description: websocket监听类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/21 9:56
  * @version: 1.0
  */

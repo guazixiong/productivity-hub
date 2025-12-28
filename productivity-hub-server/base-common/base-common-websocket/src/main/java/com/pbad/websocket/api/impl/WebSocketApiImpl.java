@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * ClassName: pushWebSocket
  * description: WebSocket消息推送接口实现类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/21 14:09
  * @version: 1.0
  */

@@ -1,0 +1,91 @@
+package com.pbad.announcement.domain.vo;
+
+import lombok.Data;
+
+/**
+ * 公告 VO（视图对象）.
+ */
+@Data
+public class AnnouncementVO {
+
+    /**
+     * 主键 ID.
+     */
+    private String id;
+
+    /**
+     * 公告标题.
+     */
+    private String title;
+
+    /**
+     * 公告内容（纯文本）.
+     */
+    private String content;
+
+    /**
+     * 公告富文本内容（HTML）.
+     */
+    private String richContent;
+
+    /**
+     * 点击后跳转路径.
+     */
+    private String link;
+
+    /**
+     * 公告类型：NORMAL-普通，URGENT-紧急.
+     */
+    private String type;
+
+    /**
+     * 优先级（数字越大优先级越高）.
+     */
+    private Integer priority;
+
+    /**
+     * 状态：DRAFT-草稿，PUBLISHED-已发布，WITHDRAWN-已撤回.
+     */
+    private String status;
+
+    /**
+     * 推送策略：IMMEDIATE-立即推送，LOGIN-登录时推送.
+     */
+    private String pushStrategy;
+
+    /**
+     * 是否需要确认（0-否，1-是）.
+     */
+    private Integer requireConfirm;
+
+    /**
+     * 生效时间.
+     */
+    private String effectiveTime;
+
+    /**
+     * 失效时间.
+     */
+    private String expireTime;
+
+    /**
+     * 定时发布时间.
+     */
+    private String scheduledTime;
+
+    /**
+     * 创建时间.
+     */
+    private String createdAt;
+
+    /**
+     * 修改时间.
+     */
+    private String updatedAt;
+
+    /**
+     * 是否已读（用户查看时使用）.
+     */
+    private Boolean read;
+}
+

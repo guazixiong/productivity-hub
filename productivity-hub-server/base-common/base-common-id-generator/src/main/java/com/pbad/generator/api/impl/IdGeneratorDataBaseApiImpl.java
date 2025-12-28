@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * 基于入参的分布式id生成api接口实现类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 11:16
  * @version: 1.0
  */

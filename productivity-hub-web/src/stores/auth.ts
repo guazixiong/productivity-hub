@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import type { LoginPayload, UserInfo, AuthResponse } from '@/types/auth'
-import { authApi } from '@/services/api'
+import type { LoginPayload, UserInfo, AuthResponse, UserProfileUpdatePayload } from '@/types/auth'
+import { authApi, userApi } from '@/services/api'
 import { useConfigStore } from '@/stores/config'
 
 const TOKEN_KEY = 'phub/token'
@@ -71,6 +71,12 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem(TOKEN_KEY, response.token)
       localStorage.setItem(REFRESH_KEY, response.refreshToken)
       localStorage.setItem(USER_KEY, JSON.stringify(response.user))
+    },
+    async updateUserInfo(payload: UserProfileUpdatePayload) {
+      const updatedUser = await userApi.updateProfile(payload)
+      this.user = updatedUser
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+      return updatedUser
     },
   },
 })

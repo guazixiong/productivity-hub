@@ -3,7 +3,7 @@ package com.pbad.generator.enums;
 /**
  * 状态枚举类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 11:38
  * @version: 1.0
  */

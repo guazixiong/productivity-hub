@@ -11,7 +11,7 @@ import javax.imageio.ImageIO;
 /**
  * 验证码工具类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */

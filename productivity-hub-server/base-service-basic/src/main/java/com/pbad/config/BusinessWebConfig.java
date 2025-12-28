@@ -1,6 +1,11 @@
 package com.pbad.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.File;
 
 /**
  * 业务特定的 Web 配置（扩展 base-common-web 的通用配置）.
@@ -23,13 +28,46 @@ import org.springframework.context.annotation.Configuration;
  * }
  * </pre>
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
 @Configuration
-public class BusinessWebConfig {
-    // 当前使用 base-common-web 的默认配置
-    // 如需自定义，请参考上面的注释
+public class BusinessWebConfig implements WebMvcConfigurer {
+
+    @Value("${app.upload.avatar-dir:uploads/avatars}")
+    private String avatarUploadDir;
+
+    @Value("${app.upload.avatar-path-prefix:/uploads/avatars}")
+    private String avatarPathPrefix;
+
+    @Value("${app.image.base-dir:uploads/images}")
+    private String imageBaseDir;
+
+    @Value("${app.image.url-prefix:/uploads/images}")
+    private String imageUrlPrefix;
+
+    /**
+     * 配置静态资源访问
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 头像文件访问路径映射
+        String avatarPath = new File(avatarUploadDir).getAbsolutePath();
+        registry.addResourceHandler(avatarPathPrefix + "/**")
+                .addResourceLocations("file:" + avatarPath + File.separator)
+                .setCachePeriod(7 * 24 * 60 * 60); // 缓存7天
+
+        // 图片文件访问路径映射（原图和缩略图）
+        String imagePath = new File(imageBaseDir).getAbsolutePath();
+        registry.addResourceHandler(imageUrlPrefix + "/**")
+                .addResourceLocations("file:" + imagePath + File.separator)
+                .setCachePeriod(7 * 24 * 60 * 60); // 原图缓存7天
+
+        // 缩略图单独配置，缓存时间更长
+        registry.addResourceHandler(imageUrlPrefix + "/**/thumbnails/**")
+                .addResourceLocations("file:" + imagePath + File.separator)
+                .setCachePeriod(30 * 24 * 60 * 60); // 缩略图缓存30天
+    }
 }
 

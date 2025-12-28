@@ -4,7 +4,7 @@ import java.lang.annotation.*;
 /**
  * 操作日志记录自定义注解.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/10/9 14:01
  * @version: 1.0
  */

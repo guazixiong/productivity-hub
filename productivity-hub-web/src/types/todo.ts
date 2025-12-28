@@ -61,6 +61,23 @@ export interface TodoStats {
   timeline: TodoDailyStat[]
 }
 
+export interface TodoImportItem {
+  moduleName: string
+  title: string
+  description?: string
+  priority?: TodoTask['priority']
+  tags?: string[]
+  dueDate?: string
+}
+
+export interface TodoImportResult {
+  total: number
+  success: number
+  failed: number
+  createdModules: number
+  errors: string[]
+}
+
 export interface TodoModuleCreateDTO {
   name: string
   description?: string

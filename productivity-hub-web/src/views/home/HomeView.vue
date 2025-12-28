@@ -28,6 +28,7 @@ const location = ref<{ city?: string; province?: string; address?: string }>({
   address: '郑州市',
 })
 const loadingLocation = ref(false)
+const userIp = ref<string | null>(null)
 
 // 天气信息（默认郑州）
 const weather = ref<{ temp?: number; type?: string; desc?: string; wind?: string; humidity?: string }>({
@@ -241,16 +242,66 @@ const loadHotToolStats = async () => {
   }
 }
 
+// 获取用户IP地址
+const getUserIp = async (): Promise<string | null> => {
+  if (userIp.value) {
+    return userIp.value
+  }
+  
+  try {
+    // 尝试多个IP获取服务，提高成功率
+    const ipServices = [
+      'https://api.ipify.org?format=json',
+      'https://api64.ipify.org?format=json',
+      'https://ipapi.co/json/',
+    ]
+    
+    for (const service of ipServices) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 3000)
+        
+        const response = await fetch(service, { 
+          signal: controller.signal
+        } as RequestInit)
+        
+        clearTimeout(timeoutId)
+        
+        if (response.ok) {
+          const data = await response.json()
+          const ip = data.ip || data.query
+          if (ip) {
+            userIp.value = ip
+            return ip
+          }
+        }
+      } catch (e) {
+        // 继续尝试下一个服务
+        continue
+      }
+    }
+  } catch (error) {
+    console.warn('获取IP地址失败:', error)
+  }
+  
+  return null
+}
+
 // 获取位置和天气信息（统一使用后端接口）
-const fetchWeather = async () => {
+// 优化：先快速获取数据（不等待定位），然后异步获取定位并刷新
+const fetchWeather = async (forceRefresh = false, useLocation = false) => {
   loadingLocation.value = true
   loadingWeather.value = true
   try {
-    // 尝试从浏览器获取当前位置的经纬度
     let latitude: number | undefined
     let longitude: number | undefined
+    let ip: string | null = null
     
-    if (navigator.geolocation) {
+    // 优先获取IP地址（用于天地图API）
+    ip = await getUserIp()
+    
+    // 如果需要使用定位，尝试从浏览器获取当前位置的经纬度
+    if (useLocation && navigator.geolocation) {
       try {
         await new Promise<void>((resolve) => {
           navigator.geolocation.getCurrentPosition(
@@ -263,7 +314,7 @@ const fetchWeather = async () => {
               // 定位失败，使用默认值（郑州）
               resolve()
             },
-            { timeout: 5000, enableHighAccuracy: false }
+            { timeout: 3000, enableHighAccuracy: false }
           )
         })
       } catch {
@@ -271,14 +322,35 @@ const fetchWeather = async () => {
       }
     }
     
-    // 调用后端天气接口（后端会根据经纬度自动获取位置和天气信息）
-    // 只传递有效的经纬度值，避免传递undefined
-    const params: { latitude?: number; longitude?: number } = {}
-    if (latitude !== undefined && longitude !== undefined) {
+    // 调用后端天气接口（后端会根据IP、经纬度自动获取位置和天气信息）
+    // 优化：如果有具体的城市名（从之前的API调用中获取的真实数据），传递给后端，避免后端调用反向地理编码API
+    const params: { latitude?: number; longitude?: number; cityName?: string; ip?: string } = {}
+    
+    // 优先使用IP地址（天地图API）
+    if (ip) {
+      params.ip = ip
+    } else if (latitude !== undefined && longitude !== undefined) {
+      // 其次使用经纬度
       params.latitude = latitude
       params.longitude = longitude
+    } else {
+      // 检查是否有真实的城市名（不是初始默认值）
+      // 如果location是从API返回的真实数据，应该包含有效的city信息
+      // 只有当city存在且不是默认的'郑州'时，才认为是真实数据
+      const hasRealCity = location.value?.city && 
+                         location.value.city.trim() !== '' && 
+                         location.value.city !== '郑州'
+      if (hasRealCity) {
+        // 如果有已存储的具体城市名，传递给后端
+        params.cityName = location.value.city
+      }
+      // 如果没有真实的城市名，不传cityName参数，让后端根据IP、经纬度或使用默认值处理
     }
-    const weatherData = await homeApi.getWeather(params)
+    
+    // 根据是否强制刷新选择不同的接口
+    const weatherData = forceRefresh 
+      ? await homeApi.refreshWeather(params)
+      : await homeApi.getWeather(params)
     
     if (weatherData) {
       // 更新位置信息
@@ -313,6 +385,7 @@ const fetchWeather = async () => {
     }
   } catch (error) {
     console.error('获取位置和天气信息失败:', error)
+    ElMessage.error('获取天气信息失败，请稍后重试')
     // 使用默认值
     location.value = {
       city: '郑州',
@@ -332,98 +405,54 @@ const fetchWeather = async () => {
   }
 }
 
-// 获取每日一签（带缓存，每天一换）
+// 刷新天气信息
+const handleRefreshWeather = async () => {
+  await fetchWeather(true, true) // 刷新时使用定位
+  ElMessage.success('天气信息已刷新')
+}
+
+// 获取每日一签（使用后端接口，带缓存）
 const fetchDailyFortune = async (forceRefresh = false) => {
   loadingFortune.value = true
   try {
-    // 检查缓存
-    const cacheKey = 'daily_fortune_cache'
-    const cacheDateKey = 'daily_fortune_date'
-    const today = new Date().toISOString().split('T')[0]
-    const cachedDate = localStorage.getItem(cacheDateKey)
-    const cachedFortune = localStorage.getItem(cacheKey)
+    // 根据是否强制刷新选择不同的接口
+    const dailyQuote = forceRefresh 
+      ? await homeApi.refreshDailyQuote()
+      : await homeApi.getDailyQuote()
     
-    // 如果不强制刷新，且缓存存在且是今天的，直接使用
-    if (!forceRefresh && cachedDate === today && cachedFortune) {
-      try {
-        fortune.value = JSON.parse(cachedFortune)
-        loadingFortune.value = false
-        return
-      } catch {
-        // 缓存解析失败，继续获取新的
+    if (dailyQuote) {
+      // 后端返回的是DailyQuote格式，需要转换为FortuneData格式
+      fortune.value = {
+        name: '每日一言',
+        description: dailyQuote.quote || '今日运势良好',
+        advice: dailyQuote.from || '保持积极心态',
+      }
+    } else {
+      // 如果API失败，使用默认值
+      fortune.value = {
+        name: '每日一言',
+        description: '今日运势良好',
+        advice: '保持积极心态',
       }
     }
-    
-    // 使用免费的API获取每日一签（带超时处理）
-    const dateStr = today.replace(/-/g, '')
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5秒超时
-    
-    try {
-      const response = await fetch(`https://api.vvhan.com/api/fortune?date=${dateStr}`, {
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data) {
-          const fortuneData = {
-            name: data.data.name || '未知',
-            description: data.data.description || '今日运势良好',
-            advice: data.data.advice || '保持积极心态',
-          }
-          fortune.value = fortuneData
-          // 保存到缓存
-          localStorage.setItem(cacheKey, JSON.stringify(fortuneData))
-          localStorage.setItem(cacheDateKey, today)
-          return
-        }
-      }
-    } catch (error) {
-      clearTimeout(timeoutId)
-      // 静默处理错误，不输出到控制台
-      // 网络错误、超时等都会在这里被捕获
-    }
-    
-    // API 失败时使用备用方案
-    generateFallbackFortune()
   } catch (error) {
-    // 静默处理所有错误，使用备用方案
-    generateFallbackFortune()
+    console.error('获取每日一签失败:', error)
+    ElMessage.error('获取每日一签失败，请稍后重试')
+    // 使用默认值
+    fortune.value = {
+      name: '每日一言',
+      description: '今日运势良好',
+      advice: '保持积极心态',
+    }
   } finally {
     loadingFortune.value = false
   }
 }
 
-// 生成备用卦签（基于日期生成固定随机数，确保每天相同）
-const generateFallbackFortune = () => {
-  const fortunes = [
-    { name: '乾卦', description: '天行健，君子以自强不息', advice: '今日宜积极进取，保持努力' },
-    { name: '坤卦', description: '地势坤，君子以厚德载物', advice: '今日宜包容谦逊，以德服人' },
-    { name: '震卦', description: '雷声震，君子以恐惧修省', advice: '今日宜谨慎行事，反省自身' },
-    { name: '巽卦', description: '随风巽，君子以申命行事', advice: '今日宜顺势而为，灵活变通' },
-    { name: '坎卦', description: '水洊至，君子以常德行', advice: '今日宜持之以恒，保持德行' },
-    { name: '离卦', description: '明两作，君子以继明照于四方', advice: '今日宜光明正大，照亮他人' },
-    { name: '艮卦', description: '兼山艮，君子以思不出其位', advice: '今日宜专注本职，脚踏实地' },
-    { name: '兑卦', description: '丽泽兑，君子以朋友讲习', advice: '今日宜交流学习，共同进步' },
-  ]
-  // 基于日期生成固定随机数，确保每天相同
-  const today = new Date().toISOString().split('T')[0]
-  const dateHash = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  const index = dateHash % fortunes.length
-  const fortuneData = fortunes[index]
-  fortune.value = fortuneData
-  // 保存到缓存
-  const cacheKey = 'daily_fortune_cache'
-  const cacheDateKey = 'daily_fortune_date'
-  localStorage.setItem(cacheKey, JSON.stringify(fortuneData))
-  localStorage.setItem(cacheDateKey, today)
-}
-
 // 刷新每日一签
 const handleRefreshFortune = async () => {
   await fetchDailyFortune(true)
+  ElMessage.success('每日一签已刷新')
 }
 
 // 格式化倒计时显示
@@ -653,24 +682,48 @@ const navigateToTool = (path: string) => {
 }
 
 onMounted(async () => {
-  // 配置加载失败不影响页面显示
-  await configStore.fetchConfigs()
-  getOffWorkTime()
-  getLunchBreakTime()
-  getSalaryPayDay()
+  // 立即初始化UI，不等待任何异步操作
+  calculateCountdown()
+  calculateLunchCountdown()
+  updateSalaryDates()
+  
   // 先设置默认工具，确保页面有内容显示
   const defaultTools = toolList.slice(0, MAX_QUICK_TOOLS).map(tool => ({
     ...tool,
     icon: markRaw(tool.icon)
   }))
   quickTools.value = ensureQuickToolPresence(defaultTools)
-  // 然后加载热门工具并更新
+  
+  // 并行加载所有数据，不阻塞渲染
+  // 1. 配置加载（不阻塞）
+  configStore.fetchConfigs().then(() => {
+    getOffWorkTime()
+    getLunchBreakTime()
+    getSalaryPayDay()
+  }).catch(() => {
+    // 配置加载失败不影响页面显示
+  })
+  
+  // 2. 并行加载天气和每日一签（先快速获取，不等待定位）
+  Promise.all([
+    fetchWeather(false, false), // 不等待定位，快速获取
+    fetchDailyFortune()
+  ]).catch(() => {
+    // 错误已在各自函数中处理
+  })
+  
+  // 3. 异步加载热门工具
   void loadHotToolStats()
-  await fetchWeather()
-  await fetchDailyFortune()
-  calculateCountdown()
-  calculateLunchCountdown()
-  updateSalaryDates()
+  
+  // 4. 异步获取定位并刷新天气（不阻塞）
+  if (navigator.geolocation) {
+    // 延迟一点再获取定位，避免影响首次渲染
+    setTimeout(() => {
+      void fetchWeather(false, true).catch(() => {
+        // 定位失败不影响已显示的数据
+      })
+    }, 100)
+  }
   
   // 每秒更新倒计时
   countdownInterval.value = window.setInterval(() => {
@@ -706,8 +759,18 @@ onUnmounted(() => {
         <el-card class="info-card location-weather-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <el-icon><Location /></el-icon>
-              <span>当前位置 & 天气</span>
+              <div class="card-header-left">
+                <el-icon><Location /></el-icon>
+                <span>当前位置 & 天气</span>
+              </div>
+              <el-button
+                class="refresh-btn"
+                :icon="RefreshRight"
+                circle
+                size="small"
+                :loading="loadingWeather || loadingLocation"
+                @click="handleRefreshWeather"
+              />
             </div>
           </template>
           <el-skeleton :loading="loadingLocation || loadingWeather" animated>

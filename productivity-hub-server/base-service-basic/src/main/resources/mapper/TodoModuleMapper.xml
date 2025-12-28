@@ -35,6 +35,15 @@
         LIMIT 1
     </select>
 
+    <select id="selectByName" resultMap="TodoModuleResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM todo_module
+        WHERE user_id = #{userId}
+          AND name = #{name}
+        LIMIT 1
+    </select>
+
     <insert id="insert" parameterType="com.pbad.todo.domain.po.TodoModulePO">
         INSERT INTO todo_module
         (id, user_id, name, description, status, sort_order, created_at, updated_at)

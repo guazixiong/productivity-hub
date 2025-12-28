@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 校验参数工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/8/30 15:43
  * @version: 1.0
  */

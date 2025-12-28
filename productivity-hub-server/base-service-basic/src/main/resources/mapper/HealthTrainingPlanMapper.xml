@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.health.mapper.HealthTrainingPlanMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.health.domain.po.HealthTrainingPlanPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="planName" column="plan_name"/>
+        <result property="planType" column="plan_type"/>
+        <result property="targetDurationDays" column="target_duration_days"/>
+        <result property="targetCaloriesPerDay" column="target_calories_per_day"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, plan_name, plan_type, target_duration_days, target_calories_per_day,
+        description, status, start_date, end_date, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_training_plan
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_training_plan
+        WHERE user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="planType != null and planType != ''">
+            AND plan_type = #{planType}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="countExerciseRecords" resultType="long">
+        SELECT COUNT(1)
+        FROM health_exercise_record
+        WHERE training_plan_id = #{planId}
+          AND user_id = #{userId}
+    </select>
+
+    <insert id="insert" parameterType="com.pbad.health.domain.po.HealthTrainingPlanPO">
+        INSERT INTO health_training_plan (
+            id, user_id, plan_name, plan_type, target_duration_days, target_calories_per_day,
+            description, status, start_date, end_date, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{planName}, #{planType}, #{targetDurationDays}, #{targetCaloriesPerDay},
+            #{description}, #{status}, #{startDate}, #{endDate},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="update" parameterType="com.pbad.health.domain.po.HealthTrainingPlanPO">
+        UPDATE health_training_plan
+        SET
+            plan_name = #{planName},
+            plan_type = #{planType},
+            target_duration_days = #{targetDurationDays},
+            target_calories_per_day = #{targetCaloriesPerDay},
+            description = #{description},
+            status = #{status},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM health_training_plan
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+</mapper>
+

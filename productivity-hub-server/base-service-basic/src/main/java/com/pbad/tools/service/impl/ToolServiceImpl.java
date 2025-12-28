@@ -1,5 +1,7 @@
 package com.pbad.tools.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pbad.tools.domain.dto.ToolTrackDTO;
 import com.pbad.tools.domain.po.ToolStatPO;
 import com.pbad.tools.domain.vo.ToolStatVO;
@@ -8,6 +10,7 @@ import com.pbad.tools.service.ToolService;
 import common.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -19,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * 工具服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
@@ -34,12 +37,49 @@ public class ToolServiceImpl implements ToolService {
 
     private final ToolStatMapper toolStatMapper;
     private final RedisUtil redisUtil;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
     public List<ToolStatVO> getToolStats() {
         // 先从Redis缓存获取
-        Object cachedStats = redisUtil.getValue(REDIS_STATS_CACHE_KEY);
+        Object cachedStats = null;
+        try {
+            cachedStats = redisUtil.getValue(REDIS_STATS_CACHE_KEY);
+        } catch (Exception e) {
+            // 检查是否是序列化异常（可能被包装在RuntimeException中）
+            Throwable cause = e.getCause();
+            if (e instanceof SerializationException || 
+                (cause != null && cause instanceof SerializationException)) {
+                // 处理序列化异常：尝试获取原始字符串并手动解析
+                log.warn("Redis反序列化失败，尝试手动解析JSON: {}", e.getMessage());
+                try {
+                    String rawJson = redisUtil.getRawStringValue(REDIS_STATS_CACHE_KEY);
+                    if (rawJson != null && !rawJson.isEmpty()) {
+                        // 尝试解析JSON（可能是普通JSON或带类型信息的JSON）
+                        List<Map<String, Object>> cachedList = parseRawJson(rawJson);
+                        if (cachedList != null) {
+                            // 解析成功，删除旧缓存并重新存储（使用正确的序列化方式）
+                            redisUtil.delete(REDIS_STATS_CACHE_KEY);
+                            List<ToolStatVO> result = cachedList.stream()
+                                    .map(this::mapToVO)
+                                    .sorted((a, b) -> b.getClicks().compareTo(a.getClicks()))
+                                    .collect(Collectors.toList());
+                            // 重新缓存数据
+                            updateStatsCache(result);
+                            return result;
+                        }
+                    }
+                } catch (Exception parseException) {
+                    log.warn("手动解析Redis JSON失败，删除缓存并从数据库获取", parseException);
+                    // 删除有问题的缓存
+                    redisUtil.delete(REDIS_STATS_CACHE_KEY);
+                }
+            } else {
+                log.warn("从Redis缓存读取工具统计失败，将从数据库获取", e);
+            }
+        }
+
         if (cachedStats != null) {
             try {
                 @SuppressWarnings("unchecked")
@@ -163,6 +203,36 @@ public class ToolServiceImpl implements ToolService {
             return Integer.parseInt(clicksObj.toString());
         } catch (NumberFormatException e) {
             log.warn("无法解析点击次数: {}", clicksObj);
+            return null;
+        }
+    }
+
+    /**
+     * 解析原始JSON字符串
+     * 支持两种格式：
+     * 1. 普通JSON数组: [{"name":"workday",...}]
+     * 2. 带类型信息的JSON: ["java.util.ArrayList",[{"name":"workday",...}]]
+     *
+     * @param rawJson 原始JSON字符串
+     * @return 解析后的列表，如果解析失败返回null
+     */
+    private List<Map<String, Object>> parseRawJson(String rawJson) {
+        try {
+            // 先尝试作为普通JSON数组解析
+            return objectMapper.readValue(rawJson, new TypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception e) {
+            // 如果失败，尝试解析带类型信息的格式
+            try {
+                List<Object> typeInfoArray = objectMapper.readValue(rawJson, new TypeReference<List<Object>>() {});
+                if (typeInfoArray != null && typeInfoArray.size() == 2 && typeInfoArray.get(1) instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> dataList = (List<Map<String, Object>>) typeInfoArray.get(1);
+                    return dataList;
+                }
+            } catch (Exception e2) {
+                log.warn("解析带类型信息的JSON也失败", e2);
+            }
+            log.warn("无法解析原始JSON: {}", rawJson.substring(0, Math.min(200, rawJson.length())));
             return null;
         }
     }

@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * bean深拷贝工具(基于 cglib 性能优异)
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023-8-29 11:36:02
  * @version: 1.0
  */

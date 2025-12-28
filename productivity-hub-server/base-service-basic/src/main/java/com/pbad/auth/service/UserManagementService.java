@@ -22,5 +22,13 @@ public interface UserManagementService {
      * @param operator 当前操作人ID
      */
     ManagedUserVO createUser(UserCreateDTO dto, String operator);
+
+    /**
+     * 删除用户及其所有相关数据
+     *
+     * @param userId   要删除的用户ID
+     * @param operator 当前操作人ID
+     */
+    void deleteUser(String userId, String operator);
 }
 

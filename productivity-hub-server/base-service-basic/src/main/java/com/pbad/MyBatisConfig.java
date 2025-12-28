@@ -16,7 +16,15 @@ import org.springframework.context.annotation.Configuration;
         "com.pbad.messages.mapper",
         "com.pbad.agents.mapper",
         "com.pbad.todo.mapper",
-        "com.pbad.notifications.mapper"
+        "com.pbad.notifications.mapper",
+        // Announcements
+        "com.pbad.announcement.mapper",
+        // Short links
+        "com.pbad.shortlink.mapper",
+        // Image management
+        "com.pbad.image.mapper",
+        // Health
+        "com.pbad.health.mapper"
 })
 public class MyBatisConfig {
 }

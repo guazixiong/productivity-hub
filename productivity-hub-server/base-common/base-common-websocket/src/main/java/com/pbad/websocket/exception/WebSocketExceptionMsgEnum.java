@@ -3,7 +3,7 @@ package com.pbad.websocket.exception;
 /**
  * 异常枚举类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/8/30 15:53
  * @version: 1.0
  */

@@ -10,7 +10,7 @@ import java.io.Serializable;
 /**
  * 响应信息主体.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/8/30 17:15
  * @version: 1.0
  */

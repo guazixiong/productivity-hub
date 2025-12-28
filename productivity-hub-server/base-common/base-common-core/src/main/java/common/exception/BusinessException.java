@@ -3,7 +3,7 @@ package common.exception;
 /**
  * 业务异常类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/8/30 15:46
  * @version: 1.0
  */

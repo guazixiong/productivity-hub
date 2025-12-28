@@ -11,6 +11,8 @@ public interface TodoModuleMapper {
 
     TodoModulePO selectById(@Param("id") String id, @Param("userId") String userId);
 
+    TodoModulePO selectByName(@Param("userId") String userId, @Param("name") String name);
+
     int insert(TodoModulePO module);
 
     int update(TodoModulePO module);

@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * JWT 认证拦截器.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

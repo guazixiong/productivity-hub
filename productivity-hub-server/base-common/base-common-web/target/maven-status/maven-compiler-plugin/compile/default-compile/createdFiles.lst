@@ -1,3 +1,0 @@
-common\web\advice\ApiGlobalExceptionHandler.class
-common\web\interceptor\JwtAuthInterceptor.class
-common\web\config\WebMvcConfig.class

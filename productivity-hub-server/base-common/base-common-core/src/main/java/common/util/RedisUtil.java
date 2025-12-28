@@ -1,6 +1,7 @@
 package common.util;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * redis 工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/25 15:48
  * @version: 1.0
  */
@@ -69,6 +70,34 @@ public class RedisUtil {
      */
     public Object getValue(String key) {
         return redisTemplate.opsForValue().get(key);
+    }
+
+    /**
+     * 获取key对应的原始字符串值（不进行反序列化）.
+     * 用于处理序列化异常的情况，可以手动解析JSON
+     *
+     * @param key 键值
+     * @return 原始字符串值，如果key不存在或获取失败则返回null
+     */
+    public String getRawStringValue(String key) {
+        try {
+            @SuppressWarnings("unchecked")
+            org.springframework.data.redis.serializer.RedisSerializer<String> keySerializer = 
+                (org.springframework.data.redis.serializer.RedisSerializer<String>) redisTemplate.getKeySerializer();
+            byte[] keyBytes = keySerializer.serialize(key);
+            if (keyBytes == null) {
+                return null;
+            }
+            byte[] rawBytes = redisTemplate.execute((RedisCallback<byte[]>) connection -> {
+                return connection.get(keyBytes);
+            });
+            if (rawBytes != null) {
+                return new String(rawBytes, java.nio.charset.StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            // 忽略异常，返回null
+        }
+        return null;
     }
 
     /**
@@ -143,5 +172,18 @@ public class RedisUtil {
      */
     public java.util.Set<String> keys(String pattern) {
         return redisTemplate.keys(pattern);
+    }
+
+    /**
+     * 如果key不存在则设置（SETNX操作，原子性）
+     *
+     * @param key      键值
+     * @param value    value值
+     * @param timeout  过期时间
+     * @param timeUnit 时间单位
+     * @return true表示设置成功（key不存在），false表示key已存在
+     */
+    public Boolean setIfAbsent(String key, Object value, long timeout, TimeUnit timeUnit) {
+        return redisTemplate.opsForValue().setIfAbsent(key, value, timeout, timeUnit);
     }
 }

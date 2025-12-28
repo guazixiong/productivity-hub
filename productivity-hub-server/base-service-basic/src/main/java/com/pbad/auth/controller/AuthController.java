@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 认证控制器.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
@@ -63,6 +63,22 @@ public class AuthController {
         }
         ResetPasswordResponseVO response = authService.resetPassword(userId);
         return ApiResponse.ok(response.getMessage(), response);
+    }
+
+    /**
+     * 退出登录（清理用户缓存）
+     *
+     * @return 退出登录响应
+     */
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout() {
+        String userId = RequestUserContext.getUserId();
+        if (userId == null) {
+            // 即使未登录也返回成功，避免前端重复调用
+            return ApiResponse.ok("退出成功");
+        }
+        authService.logout(userId);
+        return ApiResponse.ok("退出成功");
     }
 }
 

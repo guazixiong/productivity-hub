@@ -1,10 +1,14 @@
 package com.pbad.schedule;
 
+import com.pbad.auth.domain.po.UserPO;
+import com.pbad.auth.mapper.UserMapper;
+import com.pbad.auth.util.UserRoleUtil;
 import com.pbad.config.service.ConfigService;
 import com.pbad.messages.domain.dto.MessageSendDTO;
 import com.pbad.messages.service.MessageService;
 import com.pbad.thirdparty.api.DailyQuoteApi;
 import com.pbad.thirdparty.api.HotDataApi;
+import com.pbad.thirdparty.api.ShortLinkApi;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -35,27 +39,76 @@ public class DailyTechDigestTask {
     private final HotDataApi hotDataApi;
     private final DailyQuoteApi dailyQuoteApi;
     private final ConfigService configService;
+    private final ShortLinkApi shortLinkApi;
+    private final UserMapper userMapper;
+    private final UserRoleUtil userRoleUtil;
 
     @Scheduled(cron = "0 0 7,12,18 * * ?", zone = "Asia/Shanghai")
     public void sendDailyDigest() {
+        sendDailyDigest(null);
+    }
+
+    /**
+     * 发送每日热点新闻
+     * 
+     * @param targetUserId 目标用户ID，如果为null则推送给所有开启了定时任务的用户
+     */
+    public void sendDailyDigest(String targetUserId) {
         if (!isTaskEnabled("dailyTechDigest.enabled")) {
             log.info("每日热点新闻任务（Resend 邮箱）已被关闭，跳过执行");
             return;
         }
         log.info("开始执行每日热点新闻任务（Resend 邮箱）");
         try {
+            // 先获取开启了定时任务的用户
+            List<UserPO> enabledUsers = getEnabledUsers("dailyTechDigest.enabled", targetUserId);
+            if (enabledUsers == null || enabledUsers.isEmpty()) {
+                log.info("没有开启了定时任务的用户，跳过执行");
+                return;
+            }
+
+            // 数据信息只获取一次
             DigestData digestData = buildDigestData();
             String subject = "每日热点速览 | " + LocalDate.now().format(DATE_FMT);
-
             String html = renderHtml(digestData);
-            Map<String, Object> resendPayload = new HashMap<>();
-            resendPayload.put("title", subject);
-            resendPayload.put("html", html);
-            MessageSendDTO resendDto = new MessageSendDTO();
-            resendDto.setChannel("resend");
-            resendDto.setData(resendPayload);
-            messageService.sendMessage(resendDto, "system");
-            log.info("Resend 邮箱推送完成");
+
+            int successCount = 0;
+            int failCount = 0;
+
+            // 分别推送给不同的用户
+            for (UserPO user : enabledUsers) {
+                String userId = user.getId();
+                
+                // 跳过超级管理员（用户名是 admin）
+                if (userRoleUtil.isSuperAdmin(userId)) {
+                    log.debug("用户 {} 是超级管理员，跳过推送", userId);
+                    continue;
+                }
+                
+                // 检查用户是否配置了 resend 邮箱
+                String toEmail = getConfigValueSafely("resend", "resend.toEmail", userId);
+                if (toEmail == null || toEmail.trim().isEmpty()) {
+                    log.debug("用户 {} 未配置 Resend 邮箱地址，跳过推送", userId);
+                    continue;
+                }
+
+                try {
+                    Map<String, Object> resendPayload = new HashMap<>();
+                    resendPayload.put("title", subject);
+                    resendPayload.put("html", html);
+                    MessageSendDTO resendDto = new MessageSendDTO();
+                    resendDto.setChannel("resend");
+                    resendDto.setData(resendPayload);
+                    messageService.sendMessage(resendDto, userId);
+                    successCount++;
+                    log.debug("已向用户 {} 发送每日热点推送", userId);
+                } catch (Exception e) {
+                    failCount++;
+                    log.error("向用户 {} 发送每日热点推送失败: {}", userId, e.getMessage(), e);
+                }
+            }
+
+            log.info("每日热点新闻推送任务执行完成，成功：{}，失败：{}", successCount, failCount);
         } catch (Exception e) {
             log.error("每日热点新闻推送失败: {}", e.getMessage(), e);
         }
@@ -68,6 +121,82 @@ public class DailyTechDigestTask {
         } catch (Exception ex) {
             // 如果配置不存在或读取失败，默认视为开启
             return true;
+        }
+    }
+
+    /**
+     * 获取开启了定时任务的用户列表
+     * 
+     * @param configKey 定时任务配置键（如：dailyTechDigest.enabled）
+     * @param targetUserId 目标用户ID，如果为null则返回所有开启了定时任务的用户
+     * @return 开启了定时任务的用户列表
+     */
+    private List<UserPO> getEnabledUsers(String configKey, String targetUserId) {
+        // 先检查全局开关
+        if (!isTaskEnabled(configKey)) {
+            return new ArrayList<>();
+        }
+        
+        // 如果指定了目标用户，只返回该用户（如果开启了定时任务）
+        if (targetUserId != null && !targetUserId.trim().isEmpty()) {
+            UserPO user = userMapper.selectById(targetUserId);
+            if (user != null && isUserTaskEnabled(configKey, targetUserId)) {
+                List<UserPO> result = new ArrayList<>();
+                result.add(user);
+                return result;
+            }
+            return new ArrayList<>();
+        }
+        
+        // 查询所有用户
+        List<UserPO> allUsers = userMapper.selectAll();
+        if (allUsers == null || allUsers.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 过滤出开启了定时任务的用户
+        List<UserPO> enabledUsers = new ArrayList<>();
+        for (UserPO user : allUsers) {
+            String userId = user.getId();
+            if (isUserTaskEnabled(configKey, userId)) {
+                enabledUsers.add(user);
+            }
+        }
+        
+        return enabledUsers;
+    }
+
+    /**
+     * 检查用户是否开启了定时任务
+     * 优先检查用户级别的配置，如果没有则使用全局配置
+     * 
+     * @param configKey 定时任务配置键
+     * @param userId 用户ID
+     * @return 是否开启
+     */
+    private boolean isUserTaskEnabled(String configKey, String userId) {
+        try {
+            // 先尝试获取用户级别的配置
+            String userValue = getConfigValueSafely("schedule", configKey, userId);
+            if (userValue != null) {
+                return !"false".equalsIgnoreCase(userValue) && !"0".equals(userValue);
+            }
+            // 如果用户没有配置，则使用全局配置
+            return isTaskEnabled(configKey);
+        } catch (Exception ex) {
+            // 如果读取失败，默认使用全局配置
+            return isTaskEnabled(configKey);
+        }
+    }
+
+    /**
+     * 安全地获取配置值，如果配置不存在则返回null而不是抛出异常
+     */
+    private String getConfigValueSafely(String module, String key, String userId) {
+        try {
+            return configService.getConfigValue(module, key, userId);
+        } catch (Exception ex) {
+            return null;
         }
     }
 
@@ -113,8 +242,17 @@ public class DailyTechDigestTask {
             sb.append("<div class=\"section\">")
                     .append("<div class=\"section-title\">").append(escape(section.getName())).append("</div>");
             for (HotItem item : section.getItems()) {
+                // 将原始URL转换为短链（失败时直接使用原始URL）
+                String linkUrl = item.getLink();
+                try {
+                    linkUrl = shortLinkApi.createShortLink(item.getLink());
+                } catch (Exception e) {
+                    log.warn("创建短链失败，使用原始URL: {}", item.getLink(), e);
+                    linkUrl = item.getLink();
+                }
+                
                 sb.append("<div class=\"card\">")
-                        .append("<div class=\"title\"><a href=\"").append(item.getLink()).append("\" target=\"_blank\">")
+                        .append("<div class=\"title\"><a href=\"").append(linkUrl).append("\" target=\"_blank\">")
                         .append(escape(item.getTitle()))
                         .append("</a>");
                 if (!isBlank(item.getHeat())) {

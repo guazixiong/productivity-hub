@@ -3,7 +3,7 @@ package common.constant;
 /**
  * 公共正则.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/12 10:05
  * @version: 1.1
  */

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * ClassName: SpringContext
  * description: 获取 Spring 上下文信息
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/21 9:30
  * @version: 1.0
  */

@@ -15,6 +15,7 @@ import {
   FolderOpened,
   Timer,
   Shop,
+  Goods,
 } from '@element-plus/icons-vue'
 
 export interface ToolMeta {
@@ -52,12 +53,12 @@ export const toolList: ToolMeta[] = [
     keywords: ['时钟', '时间', '全屏', '屏幕'],
   },
   {
-    id: 'cursor-shop',
-    name: 'Cursor商店库存',
-    description: '实时查看Cursor邮箱自助小店商品库存状态和销售情况',
+    id: 'cursor-inventory',
+    name: 'Cursor库存',
+    description: '统一查看 Cursor 邮箱小店与链动小铺的库存与限购信息',
     icon: Shop,
-    path: '/tools/cursor-shop',
-    keywords: ['cursor', '商店', '库存', '商品'],
+    path: '/tools/cursor-inventory',
+    keywords: ['cursor', '库存', '链动', '商品'],
   },
   {
     id: 'json',
@@ -146,6 +147,14 @@ export const toolList: ToolMeta[] = [
     icon: Switch,
     path: '/tools/unit-converter',
     keywords: ['单位', '换算', '转换', '长度', '面积', '体积', '温度'],
+  },
+  {
+    id: 'worth-buying',
+    name: '值不值得买',
+    description: '通过问卷评估商品购买价值，帮你理性消费决策',
+    icon: Goods,
+    path: '/tools/worth-buying',
+    keywords: ['购物', '消费', '决策', '评估', '值不值得'],
   },
 ]
 

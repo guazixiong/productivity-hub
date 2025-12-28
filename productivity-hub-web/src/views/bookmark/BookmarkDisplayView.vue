@@ -97,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Link, Setting } from '@element-plus/icons-vue'
@@ -145,7 +145,17 @@ const loadParentTags = async () => {
 // 加载子标签
 const loadChildTags = async (parentId: string, autoSelectFirst: boolean = true) => {
   try {
-    childTags.value = await bookmarkApi.getChildTags(parentId)
+    const newChildTags = await bookmarkApi.getChildTags(parentId)
+    // 清空当前一级标签下的旧数据，避免显示混乱
+    const childTagIds = new Set(newChildTags.map(tag => tag.id))
+    Object.keys(urlsByTag.value).forEach(tagId => {
+      if (!childTagIds.has(tagId)) {
+        delete urlsByTag.value[tagId]
+      }
+    })
+    childTags.value = newChildTags
+    // 等待响应式更新
+    await nextTick()
     // 加载所有子标签的网址
     for (const childTag of childTags.value) {
       if (!urlsByTag.value[childTag.id]) {
@@ -154,7 +164,14 @@ const loadChildTags = async (parentId: string, autoSelectFirst: boolean = true) 
     }
     // 如果启用自动选择，且当前没有选中的子标签，则选中第一个
     if (autoSelectFirst && childTags.value.length > 0 && !selectedChildTagId.value) {
-      selectedChildTagId.value = childTags.value[0].id
+      // 确保第一个子标签的网址已加载
+      const firstChildTag = childTags.value[0]
+      if (!urlsByTag.value[firstChildTag.id]) {
+        await loadUrlsByTag(firstChildTag.id)
+      }
+      // 等待网址加载完成后再设置选中状态
+      await nextTick()
+      selectedChildTagId.value = firstChildTag.id
     }
   } catch (error) {
     ElMessage.error('加载子标签失败')
@@ -173,8 +190,14 @@ const loadUrlsByTag = async (tagId: string) => {
 
 // 点击大标签
 const handleParentTagClick = async (parentTag: BookmarkTag) => {
+  // 如果点击的是当前已选中的标签，则不处理
+  if (selectedParentTagId.value === parentTag.id) {
+    return
+  }
   selectedParentTagId.value = parentTag.id
   selectedChildTagId.value = null
+  // 等待响应式更新
+  await nextTick()
   await loadChildTags(parentTag.id, true)
 }
 

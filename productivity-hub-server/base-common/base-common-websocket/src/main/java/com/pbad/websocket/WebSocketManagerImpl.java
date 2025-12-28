@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * ClassName: WebSocketManagerImpl
  * description: WebSocketManager实现类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/21 9:30
  * @version: 1.0
  */

@@ -1,0 +1,100 @@
+# 本地开发环境配置
+server:
+  port: 9881
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/productivity_hub?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false
+    username: root
+    password: root
+    type: com.alibaba.druid.pool.DruidDataSource
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    # 本地Redis通常不需要密码
+    # password: 
+    database: 2
+    template:
+      keySerializer: org.springframework.data.redis.serializer.StringRedisSerializer
+      valueSerializer: org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
+
+# MyBatis 配置 - 本地环境开启 SQL 日志
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 文件上传配置
+app:
+  upload:
+    avatar-dir: uploads/avatars
+    avatar-path-prefix: /uploads/avatars
+  # 图片管理配置
+  image:
+    base-dir: uploads/images
+    url-prefix: /uploads/images
+    max-file-size: 1048576  # 1MB (单位：字节)
+    allowed-types:
+      - image/jpeg
+      - image/jpg
+      - image/png
+      - image/gif
+      - image/webp
+      - image/bmp
+    allowed-extensions:
+      - jpg
+      - jpeg
+      - png
+      - gif
+      - webp
+      - bmp
+    thumbnail-width: 200
+    thumbnail-height: 200
+    compress-quality: 0.8
+    batch-max-count: 10
+    enable-access-statistics: true
+    cache-days-original: 7
+    cache-days-thumbnail: 30
+    categories:
+      - avatar
+      - bookmark
+      - todo
+      - health
+      - article
+      - other
+
+# 日志配置 - 本地环境详细日志
+logging:
+  level:
+    root: info  # 根日志级别设置为INFO，减少不必要的DEBUG日志
+    org.springframework.boot.autoconfigure: error
+    org.springframework.web: info  # Spring MVC日志级别
+    org.springframework.core: warn  # Spring核心日志级别
+    org.springframework.context: warn  # Spring上下文日志级别
+    org.springframework.jdbc: warn  # JDBC日志级别
+    org.springframework.data.redis: warn  # Redis日志级别
+    io.lettuce.core: warn  # Lettuce Redis客户端日志级别
+    io.netty: warn  # Netty日志级别
+    org.apache.catalina: info  # Tomcat日志级别
+    org.apache.tomcat: info  # Tomcat日志级别
+    com.productivityhub: debug  # 业务代码保持DEBUG级别
+  config: classpath:logback.xml
+
+# 短链第三方配置
+shortlink:
+  shortio:
+    api:
+      url: https://api.short.io/links
+      key: sk_wVYaVbwwUICsz214
+
+# 天地图第三方配置
+tianditu:
+  api:
+    key: 40070907c045e3716ba06236e87531b6
+

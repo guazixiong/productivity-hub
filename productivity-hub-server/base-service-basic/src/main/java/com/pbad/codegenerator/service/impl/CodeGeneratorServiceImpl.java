@@ -27,7 +27,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * 代码生成器服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -44,10 +44,11 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public List<CompanyTemplateVO> getAllCompanyTemplates() {
-        List<CompanyTemplatePO> poList = companyTemplateMapper.selectAll();
+    public List<CompanyTemplateVO> getAllCompanyTemplates(String userId) {
+        List<CompanyTemplatePO> poList = companyTemplateMapper.selectByUserId(userId);
         if (poList.isEmpty()) {
-            CompanyTemplatePO defaultTemplate = createDefaultCompanyTemplate("system");
+            CompanyTemplatePO defaultTemplate = createDefaultCompanyTemplate(userId);
+            companyTemplateMapper.insert(defaultTemplate);
             poList = Collections.singletonList(defaultTemplate);
         }
         return poList.stream().map(this::convertToTemplateVO).collect(Collectors.toList());
@@ -55,10 +56,10 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
 
     @Override
     @Transactional(readOnly = true)
-    public CompanyTemplateVO getCompanyTemplateById(String id) {
-        CompanyTemplatePO po = companyTemplateMapper.selectById(id);
+    public CompanyTemplateVO getCompanyTemplateById(String id, String userId) {
+        CompanyTemplatePO po = companyTemplateMapper.selectByIdAndUserId(id, userId);
         if (po == null) {
-            throw new BusinessException("404", "模板不存在");
+            throw new BusinessException("404", "模板不存在或无权限访问");
         }
         return convertToTemplateVO(po);
     }
@@ -73,11 +74,12 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         CompanyTemplatePO po = new CompanyTemplatePO();
         if (StringUtils.hasText(dto.getId())) {
             // 更新
-            CompanyTemplatePO existing = companyTemplateMapper.selectById(dto.getId());
+            CompanyTemplatePO existing = companyTemplateMapper.selectByIdAndUserId(dto.getId(), userId);
             if (existing == null) {
-                throw new BusinessException("404", "模板不存在");
+                throw new BusinessException("404", "模板不存在或无权限访问");
             }
             po.setId(dto.getId());
+            po.setCreatedBy(existing.getCreatedBy()); // 保持原有的创建人
         } else {
             // 创建
             po.setId(idGeneratorApi.generateId());
@@ -92,7 +94,11 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         po.setUpdatedBy(userId);
 
         if (StringUtils.hasText(dto.getId())) {
-            companyTemplateMapper.update(po);
+            // 使用带用户ID验证的更新方法
+            int updated = companyTemplateMapper.updateByIdAndUserId(po);
+            if (updated == 0) {
+                throw new BusinessException("403", "无权限更新该模板");
+            }
         } else {
             companyTemplateMapper.insert(po);
         }
@@ -102,32 +108,31 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteCompanyTemplate(String id) {
+    public void deleteCompanyTemplate(String id, String userId) {
         if (!StringUtils.hasText(id)) {
             throw new BusinessException("400", "模板ID不能为空");
         }
-        CompanyTemplatePO po = companyTemplateMapper.selectById(id);
-        if (po == null) {
-            throw new BusinessException("404", "模板不存在");
+        int deleted = companyTemplateMapper.deleteByIdAndUserId(id, userId);
+        if (deleted == 0) {
+            throw new BusinessException("404", "模板不存在或无权限删除");
         }
-        companyTemplateMapper.deleteById(id);
     }
 
     // ========== 数据库配置管理 ==========
 
     @Override
     @Transactional(readOnly = true)
-    public List<DatabaseConfigVO> getAllDatabaseConfigs() {
-        List<DatabaseConfigPO> poList = databaseConfigMapper.selectAll();
+    public List<DatabaseConfigVO> getAllDatabaseConfigs(String userId) {
+        List<DatabaseConfigPO> poList = databaseConfigMapper.selectByUserId(userId);
         return poList.stream().map(this::convertToConfigVO).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public DatabaseConfigVO getDatabaseConfigById(String id) {
-        DatabaseConfigPO po = databaseConfigMapper.selectById(id);
+    public DatabaseConfigVO getDatabaseConfigById(String id, String userId) {
+        DatabaseConfigPO po = databaseConfigMapper.selectByIdAndUserId(id, userId);
         if (po == null) {
-            throw new BusinessException("404", "数据库配置不存在");
+            throw new BusinessException("404", "数据库配置不存在或无权限访问");
         }
         return convertToConfigVO(po);
     }
@@ -143,11 +148,12 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         DatabaseConfigPO po = new DatabaseConfigPO();
         if (StringUtils.hasText(dto.getId())) {
             // 更新
-            DatabaseConfigPO existing = databaseConfigMapper.selectById(dto.getId());
+            DatabaseConfigPO existing = databaseConfigMapper.selectByIdAndUserId(dto.getId(), userId);
             if (existing == null) {
-                throw new BusinessException("404", "数据库配置不存在");
+                throw new BusinessException("404", "数据库配置不存在或无权限访问");
             }
             po.setId(dto.getId());
+            po.setCreatedBy(existing.getCreatedBy()); // 保持原有的创建人
         } else {
             // 创建
             po.setId(idGeneratorApi.generateId());
@@ -166,7 +172,11 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         po.setUpdatedBy(userId);
 
         if (StringUtils.hasText(dto.getId())) {
-            databaseConfigMapper.update(po);
+            // 使用带用户ID验证的更新方法
+            int updated = databaseConfigMapper.updateByIdAndUserId(po);
+            if (updated == 0) {
+                throw new BusinessException("403", "无权限更新该配置");
+            }
         } else {
             databaseConfigMapper.insert(po);
         }
@@ -176,29 +186,28 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteDatabaseConfig(String id) {
+    public void deleteDatabaseConfig(String id, String userId) {
         if (!StringUtils.hasText(id)) {
             throw new BusinessException("400", "配置ID不能为空");
         }
-        DatabaseConfigPO po = databaseConfigMapper.selectById(id);
-        if (po == null) {
-            throw new BusinessException("404", "数据库配置不存在");
+        int deleted = databaseConfigMapper.deleteByIdAndUserId(id, userId);
+        if (deleted == 0) {
+            throw new BusinessException("404", "数据库配置不存在或无权限删除");
         }
-        databaseConfigMapper.deleteById(id);
     }
 
     // ========== 表结构解析 ==========
 
     @Override
     @Transactional(readOnly = true)
-    public List<TableInfoVO> parseTableStructure(ParseTableRequestDTO request) {
+    public List<TableInfoVO> parseTableStructure(ParseTableRequestDTO request, String userId) {
         if (request == null || !StringUtils.hasText(request.getDatabaseConfigId())) {
             throw new BusinessException("400", "数据库配置ID不能为空");
         }
 
-        DatabaseConfigPO config = databaseConfigMapper.selectById(request.getDatabaseConfigId());
+        DatabaseConfigPO config = databaseConfigMapper.selectByIdAndUserId(request.getDatabaseConfigId(), userId);
         if (config == null) {
-            throw new BusinessException("404", "数据库配置不存在");
+            throw new BusinessException("404", "数据库配置不存在或无权限访问");
         }
 
         Connection connection = null;
@@ -252,15 +261,15 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<GeneratedCodeVO> generateCode(GenerateCodeRequestDTO request) {
+    public List<GeneratedCodeVO> generateCode(GenerateCodeRequestDTO request, String userId) {
         if (request == null || !StringUtils.hasText(request.getCompanyTemplateId())
                 || request.getTableInfo() == null) {
             throw new BusinessException("400", "模板ID和表信息不能为空");
         }
 
-        CompanyTemplatePO templatePO = companyTemplateMapper.selectById(request.getCompanyTemplateId());
+        CompanyTemplatePO templatePO = companyTemplateMapper.selectByIdAndUserId(request.getCompanyTemplateId(), userId);
         if (templatePO == null) {
-            throw new BusinessException("404", "模板不存在");
+            throw new BusinessException("404", "模板不存在或无权限访问");
         }
 
         // 解析模板JSON
@@ -292,8 +301,8 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] generateCodeZip(GenerateCodeRequestDTO request) {
-        List<GeneratedCodeVO> codes = generateCode(request);
+    public byte[] generateCodeZip(GenerateCodeRequestDTO request, String userId) {
+        List<GeneratedCodeVO> codes = generateCode(request, userId);
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              ZipOutputStream zos = new ZipOutputStream(baos)) {
             for (GeneratedCodeVO code : codes) {

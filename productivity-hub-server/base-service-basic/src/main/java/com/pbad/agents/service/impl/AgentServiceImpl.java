@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 /**
  * 智能体服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

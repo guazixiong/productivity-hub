@@ -138,6 +138,17 @@ http.interceptors.response.use(
       return Promise.reject(new Error('登录已过期，请重新登录'))
     }
 
+    // 处理400错误（请求错误），显示弹窗提示
+    if (error.response?.status === 400) {
+      const errorMessage = error.response?.data?.message ?? '请求参数错误'
+      // 全局统一弹窗提示，不受 silent 选项影响
+      await ElMessageBox.alert(errorMessage, '错误提示', {
+        type: 'error',
+        confirmButtonText: '确定',
+      })
+      return Promise.reject(new Error(errorMessage))
+    }
+
     const isTimeout =
       error.code === 'ECONNABORTED' ||
       (typeof error.message === 'string' && error.message.toLowerCase().includes('timeout'))
@@ -158,6 +169,17 @@ export const request = async <T = unknown>(config: RequestConfig) => {
   if (payload?.code === 0) {
     return payload.data
   }
+  
+  // 处理 code 400 错误，显示弹窗提示
+  if (payload?.code === 400) {
+    const errorMessage = payload?.message ?? '请求失败'
+    // 全局统一弹窗提示，不受 silent 选项影响
+    await ElMessageBox.alert(errorMessage, '错误提示', {
+      type: 'error',
+      confirmButtonText: '确定',
+    })
+  }
+  
   throw new Error(payload?.message ?? '请求失败')
 }
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage, ElDialog } from 'element-plus'
-import { DocumentCopy, Share, ArrowLeft, ArrowRight, Link } from '@element-plus/icons-vue'
-import { scheduleApi } from '@/services/api'
+import { DocumentCopy, Share, ArrowLeft, ArrowRight, Link, Loading } from '@element-plus/icons-vue'
+import { scheduleApi, shortLinkApi } from '@/services/api'
 import type { HotSection } from '@/types/hotSections'
 
 // 顶级标签页
@@ -70,6 +70,7 @@ const hotSectionsLoading = ref(false)
 const mainActiveTab = ref<MainTab>('生活')
 const activeTab = ref<string>('')
 const loadingMore = ref(false)
+const copying = ref(false)
 
 // iframe 弹窗相关状态
 const iframeDialogVisible = ref(false)
@@ -699,13 +700,31 @@ const setScrollContainerRef = (el: HTMLElement | null, sectionName: string) => {
 }
 
 // 格式化当前标签数据
-const formatForWeChat = (sectionName: string): string => {
+const formatForWeChat = async (sectionName: string): Promise<string> => {
   const sectionData = sectionDataMap.value.get(sectionName)
   if (!sectionData || sectionData.items.length === 0) {
     return ''
   }
 
   const items = sectionData.items
+  
+  // 批量创建短链
+  const originalUrls = items.map(item => item.link)
+  let shortLinkMap = new Map<string, string>()
+  
+  try {
+    const responses = await shortLinkApi.batchCreateShortLink(originalUrls)
+    responses.forEach(response => {
+      shortLinkMap.set(response.originalUrl, response.shortLinkUrl)
+    })
+  } catch (error) {
+    console.error('批量创建短链失败，使用原始URL', error)
+    // 如果创建短链失败，使用原始URL
+    items.forEach(item => {
+      shortLinkMap.set(item.link, item.link)
+    })
+  }
+  
   const lines: string[] = []
   
   // 标题
@@ -717,8 +736,9 @@ const formatForWeChat = (sectionName: string): string => {
     // 序号和标题
     lines.push(`${index + 1}. ${item.title}`)
     
-    // 链接
-    lines.push(item.link)
+    // 链接（使用短链）
+    const linkUrl = shortLinkMap.get(item.link) || item.link
+    lines.push(linkUrl)
     
     // 描述（如果有，放在链接下方）
     if (item.desc) {
@@ -753,7 +773,8 @@ const copyCurrentSection = async () => {
   }
   
   try {
-    const formattedText = formatForWeChat(activeTab.value)
+    copying.value = true
+    const formattedText = await formatForWeChat(activeTab.value)
     
     // 使用 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -774,19 +795,28 @@ const copyCurrentSection = async () => {
   } catch (error) {
     ElMessage.error('复制失败，请重试')
     console.error('复制失败:', error)
+  } finally {
+    copying.value = false
   }
 }
 
 // 格式化单个热点项
-const formatItemForWeChat = (item: { title: string; link: string; desc?: string }): string => {
+const formatItemForWeChat = async (item: { title: string; link: string; desc?: string }): Promise<string> => {
   const lines: string[] = []
   
   // 标题
   lines.push(item.title)
   lines.push('')
   
-  // 链接
-  lines.push(item.link)
+  // 链接（使用短链）
+  let linkUrl = item.link
+  try {
+    const response = await shortLinkApi.createShortLink(item.link)
+    linkUrl = response.shortLinkUrl
+  } catch (error) {
+    console.error('创建短链失败，使用原始URL', error)
+  }
+  lines.push(linkUrl)
   
   // 描述（如果有）
   if (item.desc) {
@@ -805,7 +835,8 @@ const copyHotItem = async (item: { title: string; link: string; desc?: string },
   }
   
   try {
-    const formattedText = formatItemForWeChat(item)
+    copying.value = true
+    const formattedText = await formatItemForWeChat(item)
     
     // 使用 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -826,6 +857,8 @@ const copyHotItem = async (item: { title: string; link: string; desc?: string },
   } catch (error) {
     ElMessage.error('复制失败，请重试')
     console.error('复制失败:', error)
+  } finally {
+    copying.value = false
   }
 }
 
@@ -875,7 +908,7 @@ onUnmounted(() => {
 <template>
   <div class="hot-sections-container">
     <div class="content-wrapper">
-      <el-card class="hot-sections-card" shadow="hover">
+      <el-card class="hot-sections-card" shadow="hover" v-loading="copying">
         <!-- 主标签页：生活 / 技术 -->
         <el-tabs
           v-model="mainActiveTab"
@@ -949,7 +982,7 @@ onUnmounted(() => {
                             class="pull-refresh-indicator"
                           >
                             <div class="pull-refresh-content">
-                              <el-icon class="is-loading"><TrendCharts /></el-icon>
+                              <el-icon class="is-loading"><Loading /></el-icon>
                               <span>刷新中...</span>
                             </div>
                           </div>
@@ -999,7 +1032,7 @@ onUnmounted(() => {
                               v-if="loadingMore || getSectionData(sectionName)?.loading"
                               class="loading-more"
                             >
-                              <el-icon class="is-loading"><TrendCharts /></el-icon>
+                              <el-icon class="is-loading"><Loading /></el-icon>
                               <span>加载中...</span>
                             </div>
                             <div
@@ -1012,7 +1045,7 @@ onUnmounted(() => {
                               v-else-if="(getSectionData(sectionName)?.items.length || 0) === 0 && !getSectionData(sectionName)?.loading"
                               class="hot-sections-empty"
                             >
-                              <el-icon><TrendCharts /></el-icon>
+                              <el-icon><Loading /></el-icon>
                               <span>暂无热点数据</span>
                             </div>
                           </template>

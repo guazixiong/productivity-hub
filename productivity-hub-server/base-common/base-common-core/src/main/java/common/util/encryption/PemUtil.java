@@ -15,7 +15,7 @@ import java.util.Base64;
 /**
  * 证书工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 14:50
  * @version: 1.0
  */

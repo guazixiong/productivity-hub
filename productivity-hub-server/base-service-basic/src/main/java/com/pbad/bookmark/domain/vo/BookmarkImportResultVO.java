@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * Excel导入结果视图对象.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */

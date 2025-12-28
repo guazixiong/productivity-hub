@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 /**
  * Object对象转换工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/19 17:22
  * @version: 1.1
  */

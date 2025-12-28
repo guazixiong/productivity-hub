@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Async;
  * ClassName: WebSocketApi
  * description: WebSocket消息推送接口
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023-9-11 10:30:20
  * @version: 1.0
  */

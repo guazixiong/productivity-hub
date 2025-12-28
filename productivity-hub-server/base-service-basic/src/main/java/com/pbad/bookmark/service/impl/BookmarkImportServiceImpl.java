@@ -7,6 +7,7 @@ import com.pbad.bookmark.mapper.BookmarkTagMapper;
 import com.pbad.bookmark.service.BookmarkImportService;
 import com.pbad.bookmark.service.BookmarkUrlService;
 import common.exception.BusinessException;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -23,7 +24,7 @@ import java.util.List;
 /**
  * Excel导入服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -36,8 +37,20 @@ public class BookmarkImportServiceImpl implements BookmarkImportService {
     private final BookmarkTagMapper tagMapper;
     private final com.pbad.bookmark.service.BookmarkTagService tagService;
 
+    /**
+     * 获取当前用户ID
+     */
+    private String getCurrentUserId() {
+        String userId = RequestUserContext.getUserId();
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new BusinessException("401", "用户未登录");
+        }
+        return userId;
+    }
+
     @Override
     public BookmarkImportResultVO importFromExcel(MultipartFile file) {
+        String userId = getCurrentUserId();
         if (file == null || file.isEmpty()) {
             throw new BusinessException("400", "文件不能为空");
         }
@@ -149,12 +162,12 @@ public class BookmarkImportServiceImpl implements BookmarkImportService {
                     List<String> tagIds = new ArrayList<>();
                     if (parentTagName != null && !parentTagName.trim().isEmpty()) {
                         // 查找或创建一级标签
-                        BookmarkTagPO parentTag = findOrCreateParentTag(parentTagName.trim());
+                        BookmarkTagPO parentTag = findOrCreateParentTag(parentTagName.trim(), userId);
                         tagIds.add(parentTag.getId());
 
                         // 如果有二级标签，查找或创建二级标签
                         if (childTagName != null && !childTagName.trim().isEmpty()) {
-                            BookmarkTagPO childTag = findOrCreateChildTag(childTagName.trim(), parentTag.getId());
+                            BookmarkTagPO childTag = findOrCreateChildTag(childTagName.trim(), parentTag.getId(), userId);
                             tagIds.add(childTag.getId());
                         }
                     }
@@ -242,9 +255,9 @@ public class BookmarkImportServiceImpl implements BookmarkImportService {
     /**
      * 查找或创建一级标签
      */
-    private BookmarkTagPO findOrCreateParentTag(String tagName) {
+    private BookmarkTagPO findOrCreateParentTag(String tagName, String userId) {
         // 查找是否存在
-        BookmarkTagPO tag = tagMapper.selectByNameAndParentId(tagName, null);
+        BookmarkTagPO tag = tagMapper.selectByNameAndParentId(tagName, null, userId);
         if (tag != null && tag.getLevel() == 1) {
             return tag;
         }
@@ -267,9 +280,9 @@ public class BookmarkImportServiceImpl implements BookmarkImportService {
     /**
      * 查找或创建二级标签
      */
-    private BookmarkTagPO findOrCreateChildTag(String tagName, String parentId) {
+    private BookmarkTagPO findOrCreateChildTag(String tagName, String parentId, String userId) {
         // 查找是否存在
-        BookmarkTagPO tag = tagMapper.selectByNameAndParentId(tagName, parentId);
+        BookmarkTagPO tag = tagMapper.selectByNameAndParentId(tagName, parentId, userId);
         if (tag != null && tag.getLevel() == 2) {
             return tag;
         }

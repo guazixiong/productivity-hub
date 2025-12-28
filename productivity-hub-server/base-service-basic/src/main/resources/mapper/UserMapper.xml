@@ -8,13 +8,22 @@
         <result property="password" column="password"/>
         <result property="name" column="name"/>
         <result property="email" column="email"/>
+        <result property="avatar" column="avatar"/>
+        <result property="bio" column="bio"/>
+        <result property="phone" column="phone"/>
+        <result property="gender" column="gender"/>
+        <result property="birthday" column="birthday"/>
+        <result property="address" column="address"/>
+        <result property="company" column="company"/>
+        <result property="position" column="position"/>
+        <result property="website" column="website"/>
         <result property="roles" column="roles"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, username, password, name, email, roles, created_at, updated_at
+        id, username, password, name, email, avatar, bio, phone, gender, birthday, address, company, position, website, roles, created_at, updated_at
     </sql>
 
     <select id="selectByUsername" parameterType="string" resultMap="UserResultMap">
@@ -45,11 +54,35 @@
         where id = #{id}
     </update>
 
+    <update id="updateProfile" parameterType="com.pbad.auth.domain.po.UserPO">
+        update sys_user
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="bio != null">bio = #{bio},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="birthday != null">birthday = #{birthday},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="company != null">company = #{company},</if>
+            <if test="position != null">position = #{position},</if>
+            <if test="website != null">website = #{website},</if>
+            updated_at = now()
+        </set>
+        where id = #{id}
+    </update>
+
     <insert id="insertUser" parameterType="com.pbad.auth.domain.po.UserPO">
         insert into sys_user
-        (id, username, password, name, email, roles, created_at, updated_at)
+        (id, username, password, name, email, avatar, bio, phone, gender, birthday, address, company, position, website, roles, created_at, updated_at)
         values
-        (#{id}, #{username}, #{password}, #{name}, #{email}, #{roles}, now(), now())
+        (#{id}, #{username}, #{password}, #{name}, #{email}, #{avatar}, #{bio}, #{phone}, #{gender}, #{birthday}, #{address}, #{company}, #{position}, #{website}, #{roles}, now(), now())
     </insert>
+
+    <delete id="deleteById" parameterType="string">
+        delete from sys_user
+        where id = #{id}
+    </delete>
 </mapper>
 

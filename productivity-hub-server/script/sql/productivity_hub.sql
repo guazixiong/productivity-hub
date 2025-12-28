@@ -312,6 +312,7 @@ INSERT INTO `sys_config` VALUES ('1451277643507826688', 'template', 'schedule', 
 INSERT INTO `sys_config` VALUES ('1451277652156481536', 'template', 'schedule', 'dingTalkDigest.enabled', 'true', '定时任务开关：每日热点速览（钉钉）', '2025-12-18 18:19:15', '2025-12-19 08:46:30', 'system');
 INSERT INTO `sys_config` VALUES ('1451277653926477824', 'template', 'schedule', 'cursorShop.enabled', 'true', '定时任务开关：Cursor 小店库存播报', '2025-12-18 18:19:16', '2025-12-19 08:46:30', 'system');
 INSERT INTO `sys_config` VALUES ('1451277654895362048', 'template', 'schedule', 'toolStatSync.enabled', 'true', '定时任务开关：工具统计数据落库', '2025-12-18 18:19:16', '2025-12-19 08:46:30', 'system');
+INSERT INTO `sys_config` VALUES ('cfg_20', 'template', 'schedule', '_module.description', '定时任务管理', '模块描述', '2025-12-19 08:46:30', '2025-12-19 08:46:30', 'system');
 INSERT INTO `sys_config` VALUES ('cfg_1', 'template', 'auth', 'token.expireDays', '7', '登录态 Token 过期时间（单位：天）', '2025-11-20 09:00', '2025-12-05 11:05', 'admin');
 INSERT INTO `sys_config` VALUES ('cfg_10', 'template', 'resend', 'resend.fromEmail', 'onboarding@resend.dev', 'Resend 发件人邮箱地址（Resend平台）', '2025-11-20 09:00', '2025-12-05 14:54', 'admin');
 INSERT INTO `sys_config` VALUES ('cfg_11', 'template', 'resend', 'resend.toEmail', 'pbad0606@163.com', 'Resend 收件人邮箱地址（与 apiKey 对应，仅作展示）', '2025-11-20 09:00', '2025-12-05 14:54', 'admin');
@@ -663,5 +664,22 @@ INSERT INTO `todo_task` VALUES ('1451138398109564928', '1448364349860085760', '1
 INSERT INTO `todo_task` VALUES ('1451138482373132288', '1448364349860085760', '1451138253183778816', '警情处理', NULL, 'P2', '[]', 'IN_PROGRESS', '2025-12-25', '2025-12-18 17:07:13', NULL, '2025-12-18 17:07:17', NULL, 1328, 3394, '2025-12-18 17:07:17', '2025-12-18 09:06:15', '2025-12-18 17:07:17');
 INSERT INTO `todo_task` VALUES ('1451138535267500032', '1448364349860085760', '1451138253183778816', '警情数据同步', NULL, 'P2', '[]', 'PENDING', '2025-12-29', NULL, NULL, NULL, NULL, 0, 0, '2025-12-18 09:06:28', '2025-12-18 09:06:28', '2025-12-18 09:06:28');
 INSERT INTO `todo_task` VALUES ('1451138594218442752', '1448364349860085760', '1451138253183778816', '监控中心', NULL, 'P2', '[]', 'PAUSED', '2025-12-30', '2025-12-18 09:22:34', NULL, NULL, '2025-12-18 09:56:55', 2060528, 0, '2025-12-18 09:56:55', '2025-12-18 09:06:42', '2025-12-18 09:56:55');
+
+-- ----------------------------
+-- Table structure for sys_short_link
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_short_link`;
+CREATE TABLE `sys_short_link`  (
+  `id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '短链ID',
+  `short_code` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '短链代码（唯一，用于系统内部路由）',
+  `original_url` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '原始URL',
+  `short_link_url` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '第三方短链完整URL（由第三方API返回）',
+  `access_count` bigint(20) NULL DEFAULT 0 COMMENT '访问次数',
+  `created_at` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `updated_at` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_short_code`(`short_code`) USING BTREE,
+  INDEX `idx_original_url`(`original_url`(255)) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '短链表' ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * 用户 Mapper 接口.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
@@ -44,11 +44,27 @@ public interface UserMapper {
     int updatePassword(@Param("id") String id, @Param("password") String password);
 
     /**
+     * 更新用户个人信息
+     *
+     * @param user 用户实体
+     * @return 更新行数
+     */
+    int updateProfile(UserPO user);
+
+    /**
      * 新增用户
      *
      * @param user 用户实体
      * @return 插入行数
      */
     int insertUser(UserPO user);
+
+    /**
+     * 根据用户ID删除用户
+     *
+     * @param id 用户ID
+     * @return 删除行数
+     */
+    int deleteById(@Param("id") String id);
 }
 

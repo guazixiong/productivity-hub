@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 网址实体类（PO）.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -15,6 +15,11 @@ public class BookmarkUrlPO {
      * 网址ID
      */
     private String id;
+
+    /**
+     * 用户ID
+     */
+    private String userId;
 
     /**
      * 网址标题

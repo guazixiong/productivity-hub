@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.health.mapper.HealthWeightRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.health.domain.po.HealthWeightRecordPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="recordTime" column="record_time"/>
+        <result property="weightKg" column="weight_kg"/>
+        <result property="bodyFatPercentage" column="body_fat_percentage"/>
+        <result property="muscleMassKg" column="muscle_mass_kg"/>
+        <result property="heightCm" column="height_cm"/>
+        <result property="bmi" column="bmi"/>
+        <result property="healthStatus" column="health_status"/>
+        <result property="notes" column="notes"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, record_date, record_time, weight_kg, body_fat_percentage, muscle_mass_kg,
+        height_cm, bmi, health_status, notes, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_weight_record
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'recordDate'">record_date</when>
+                    <when test="sortField == 'recordTime'">record_time</when>
+                    <when test="sortField == 'weightKg'">weight_kg</when>
+                    <when test="sortField == 'bmi'">bmi</when>
+                    <otherwise>record_date</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY record_date DESC, record_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="com.pbad.health.domain.po.HealthWeightRecordPO">
+        INSERT INTO health_weight_record (
+            id, user_id, record_date, record_time, weight_kg, body_fat_percentage, muscle_mass_kg,
+            height_cm, bmi, health_status, notes, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{recordDate}, #{recordTime}, #{weightKg}, #{bodyFatPercentage},
+            #{muscleMassKg}, #{heightCm}, #{bmi}, #{healthStatus}, #{notes},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="update" parameterType="com.pbad.health.domain.po.HealthWeightRecordPO">
+        UPDATE health_weight_record
+        SET
+            record_date = #{recordDate},
+            record_time = #{recordTime},
+            weight_kg = #{weightKg},
+            body_fat_percentage = #{bodyFatPercentage},
+            muscle_mass_kg = #{muscleMassKg},
+            height_cm = #{heightCm},
+            bmi = #{bmi},
+            health_status = #{healthStatus},
+            notes = #{notes},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM health_weight_record
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+    <delete id="batchDeleteByIds">
+        DELETE FROM health_weight_record
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" close=")" separator=",">
+              #{id}
+          </foreach>
+    </delete>
+
+    <!-- 查询趋势数据（按日期分组，返回每日最新体重） -->
+    <!-- 兼容 MySQL 5.7，使用子查询替代窗口函数 -->
+    <select id="queryTrendData" resultType="java.util.HashMap">
+        SELECT
+            DATE_FORMAT(h1.record_date, '%Y-%m-%d') AS date,
+            h1.weight_kg AS weightKg,
+            h1.bmi,
+            h1.health_status AS healthStatus
+        FROM health_weight_record h1
+        INNER JOIN (
+            SELECT
+                DATE_FORMAT(record_date, '%Y-%m-%d') AS date_str,
+                MAX(record_time) AS max_time
+            FROM health_weight_record
+            WHERE user_id = #{userId}
+            <if test="startDate != null">
+                AND record_date &gt;= DATE(#{startDate})
+            </if>
+            <if test="endDate != null">
+                AND record_date &lt;= DATE(#{endDate})
+            </if>
+            GROUP BY DATE_FORMAT(record_date, '%Y-%m-%d')
+        ) AS latest ON DATE_FORMAT(h1.record_date, '%Y-%m-%d') = latest.date_str
+            AND h1.record_time = latest.max_time
+        WHERE h1.user_id = #{userId}
+        <if test="startDate != null">
+            AND h1.record_date &gt;= DATE(#{startDate})
+        </if>
+        <if test="endDate != null">
+            AND h1.record_date &lt;= DATE(#{endDate})
+        </if>
+        ORDER BY date ASC
+    </select>
+
+    <!-- 查询指定日期范围内的最新体重记录 -->
+    <select id="selectLatestByDateRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        ORDER BY record_date DESC, record_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询指定日期范围内的最早体重记录 -->
+    <select id="selectEarliestByDateRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        ORDER BY record_date ASC, record_time ASC
+        LIMIT 1
+    </select>
+
+    <!-- 统计体重数据（按日期范围） -->
+    <select id="statisticsByDateRange" resultType="java.util.HashMap">
+        SELECT
+            COALESCE(AVG(weight_kg), 0) AS averageWeight,
+            COALESCE(MAX(weight_kg), 0) AS maxWeight,
+            COALESCE(MIN(weight_kg), 0) AS minWeight,
+            COUNT(1) AS recordCount
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <!-- 查询有记录的日期列表 -->
+    <select id="queryDatesWithRecords" resultType="java.util.Date">
+        SELECT DISTINCT record_date
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        ORDER BY record_date ASC
+    </select>
+
+    <!-- 查询所有符合条件的记录（用于导出） -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_weight_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != ''">
+                ORDER BY
+                <choose>
+                    <when test="sortField == 'recordDate'">record_date</when>
+                    <when test="sortField == 'recordTime'">record_time</when>
+                    <when test="sortField == 'weightKg'">weight_kg</when>
+                    <when test="sortField == 'bmi'">bmi</when>
+                    <otherwise>record_date</otherwise>
+                </choose>
+                <choose>
+                    <when test="sortOrder != null and sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY record_date DESC, record_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 批量更新BMI（根据新的身高重新计算所有历史记录的BMI） -->
+    <update id="batchUpdateBmiByHeight">
+        UPDATE health_weight_record
+        SET
+            bmi = ROUND(weight_kg / (POWER(#{heightCm} / 100, 2)), 2),
+            health_status = CASE
+                WHEN weight_kg / (POWER(#{heightCm} / 100, 2)) &lt; 18.5 THEN '偏瘦'
+                WHEN weight_kg / (POWER(#{heightCm} / 100, 2)) &lt; 24 THEN '正常'
+                WHEN weight_kg / (POWER(#{heightCm} / 100, 2)) &lt; 28 THEN '偏胖'
+                ELSE '肥胖'
+            END,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND weight_kg IS NOT NULL
+          AND weight_kg &gt; 0
+    </update>
+
+</mapper>
+

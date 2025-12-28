@@ -36,6 +36,27 @@
             created_at DESC
     </select>
 
+    <!-- 根据用户ID查询模板列表 -->
+    <select id="selectByUserId" parameterType="string" resultMap="CompanyTemplateResultMap">
+        SELECT
+            id,
+            name,
+            description,
+            base_package,
+            author,
+            templates_json,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM
+            code_generator_company_template
+        WHERE
+            created_by = #{userId}
+        ORDER BY
+            created_at DESC
+    </select>
+
     <!-- 根据ID查询 -->
     <select id="selectById" parameterType="string" resultMap="CompanyTemplateResultMap">
         SELECT
@@ -53,6 +74,26 @@
             code_generator_company_template
         WHERE
             id = #{id}
+    </select>
+
+    <!-- 根据ID和用户ID查询模板（用于权限验证） -->
+    <select id="selectByIdAndUserId" resultMap="CompanyTemplateResultMap">
+        SELECT
+            id,
+            name,
+            description,
+            base_package,
+            author,
+            templates_json,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM
+            code_generator_company_template
+        WHERE
+            id = #{id}
+            AND created_by = #{userId}
     </select>
 
     <!-- 插入模板 -->
@@ -97,9 +138,31 @@
             id = #{id}
     </update>
 
+    <!-- 根据ID和用户ID更新模板（用于权限验证） -->
+    <update id="updateByIdAndUserId" parameterType="com.pbad.codegenerator.domain.po.CompanyTemplatePO">
+        UPDATE code_generator_company_template
+        SET
+            name = #{name},
+            description = #{description},
+            base_package = #{basePackage},
+            author = #{author},
+            templates_json = #{templatesJson},
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        WHERE
+            id = #{id}
+            AND created_by = #{createdBy}
+    </update>
+
     <!-- 删除模板 -->
     <delete id="deleteById" parameterType="string">
         DELETE FROM code_generator_company_template WHERE id = #{id}
+    </delete>
+
+    <!-- 根据ID和用户ID删除模板（用于权限验证） -->
+    <delete id="deleteByIdAndUserId">
+        DELETE FROM code_generator_company_template 
+        WHERE id = #{id} AND created_by = #{userId}
     </delete>
 
 </mapper>

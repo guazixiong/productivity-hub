@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  *
  * @param <T> 源 PageInfo 中元素的类型。
  * @param <R> 目标 PageInfo 中元素的类型。
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 17:41
  * @version: 1.0
  */

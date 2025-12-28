@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 /**
  * 正则工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/10/19 18:03
  * @version: 1.0
  */

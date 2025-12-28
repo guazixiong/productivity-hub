@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 配置项 Mapper 接口.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

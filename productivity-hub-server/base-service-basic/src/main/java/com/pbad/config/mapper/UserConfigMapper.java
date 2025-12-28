@@ -41,5 +41,13 @@ public interface UserConfigMapper {
      * 更新配置项
      */
     int updateConfig(UserConfigPO config);
+
+    /**
+     * 根据用户ID删除所有配置
+     *
+     * @param userId 用户ID
+     * @return 删除行数
+     */
+    int deleteByUserId(@Param("userId") String userId);
 }
 

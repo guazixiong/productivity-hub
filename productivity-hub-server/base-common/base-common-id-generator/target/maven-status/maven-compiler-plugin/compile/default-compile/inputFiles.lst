@@ -1,9 +1,0 @@
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\domain\po\IdGeneratorInfoPO.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\exception\IdExceptionMsgEnum.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\enums\StatusEnum.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\domain\SnowflakeIdWorker.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\api\IdGeneratorDataBaseApi.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\api\impl\IdGeneratorDataBaseApiImpl.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\api\impl\IdGeneratorApiImpl.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\api\IdGeneratorApi.java
-D:\repo\productivity-hub\productivity-hub-server\base-common\base-common-id-generator\src\main\java\com\pbad\generator\mapper\IdGeneratorMapper.java

@@ -6,6 +6,7 @@ import com.pbad.generator.api.IdGeneratorApi;
 import com.pbad.todo.domain.dto.TodoTaskCreateDTO;
 import com.pbad.todo.domain.dto.TodoTaskInterruptDTO;
 import com.pbad.todo.domain.dto.TodoTaskUpdateDTO;
+import com.pbad.todo.domain.dto.TodoImportItemDTO;
 import com.pbad.todo.domain.enums.TodoEventType;
 import com.pbad.todo.domain.enums.TodoPriority;
 import com.pbad.todo.domain.enums.TodoStatus;
@@ -17,6 +18,7 @@ import com.pbad.todo.domain.po.TodoTaskPO;
 import com.pbad.todo.domain.vo.TodoEventVO;
 import com.pbad.todo.domain.vo.TodoStatsVO;
 import com.pbad.todo.domain.vo.TodoTaskVO;
+import com.pbad.todo.domain.vo.TodoImportResultVO;
 import com.pbad.todo.mapper.TodoEventMapper;
 import com.pbad.todo.mapper.TodoModuleMapper;
 import com.pbad.todo.mapper.TodoTaskMapper;
@@ -35,9 +37,12 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -151,6 +156,7 @@ public class TodoTaskServiceImpl implements TodoTaskService {
         if (dto.getTags() != null) {
             task.setTagsJson(serializeTags(dto.getTags()));
         }
+        // 如果 dueDate 不为 null（包括空字符串），则更新（parseDueDate 会处理空字符串并返回 null，从而清空日期）
         if (dto.getDueDate() != null) {
             task.setDueDate(parseDueDate(dto.getDueDate()));
         }
@@ -172,6 +178,27 @@ public class TodoTaskServiceImpl implements TodoTaskService {
         int deleted = taskMapper.deleteTask(id, userId);
         if (deleted <= 0) {
             throw new BusinessException("500", "删除任务失败");
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchDeleteTasks(List<String> ids, String userId) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException("400", "任务ID列表不能为空");
+        }
+        // 检查是否有进行中的任务
+        List<TodoTaskPO> tasks = new ArrayList<>();
+        for (String id : ids) {
+            TodoTaskPO task = requireTask(id, userId);
+            if (TodoStatus.IN_PROGRESS.name().equals(task.getStatus())) {
+                throw new BusinessException("400", "任务「" + task.getTitle() + "」正在进行中，不能删除，请先暂停或完成");
+            }
+            tasks.add(task);
+        }
+        int deleted = taskMapper.batchDeleteTasks(ids, userId);
+        if (deleted <= 0) {
+            throw new BusinessException("500", "批量删除任务失败");
         }
     }
 
@@ -326,6 +353,94 @@ public class TodoTaskServiceImpl implements TodoTaskService {
         return events.stream().map(this::convertEventToVO).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TodoImportResultVO importTasks(String userId, List<TodoImportItemDTO> items) {
+        TodoImportResultVO result = new TodoImportResultVO();
+        if (items == null || items.isEmpty()) {
+            return result;
+        }
+        result.setTotal(items.size());
+
+        // 缓存已存在/已创建的模块，避免重复查询与创建
+        Map<String, TodoModulePO> moduleCache = new HashMap<>();
+        int createdModuleCount = 0;
+
+        for (int i = 0; i < items.size(); i++) {
+            TodoImportItemDTO item = items.get(i);
+            String indexPrefix = "第" + (i + 1) + "行：";
+            try {
+                if (item == null) {
+                    result.getErrors().add(indexPrefix + "记录为空");
+                    continue;
+                }
+                if (!StringUtils.hasText(item.getTitle())) {
+                    result.getErrors().add(indexPrefix + "任务标题不能为空");
+                    continue;
+                }
+                if (!StringUtils.hasText(item.getModuleName())) {
+                    result.getErrors().add(indexPrefix + "模块名称不能为空");
+                    continue;
+                }
+
+                // 获取或创建模块
+                String moduleName = item.getModuleName().trim();
+                TodoModulePO module = moduleCache.get(moduleName);
+                if (module == null) {
+                    module = moduleMapper.selectByName(userId, moduleName);
+                    if (module == null) {
+                        module = new TodoModulePO();
+                        module.setId(idGeneratorApi.generateId());
+                        module.setUserId(userId);
+                        module.setName(moduleName);
+                        module.setDescription(null);
+                        module.setStatus("ENABLED");
+                        module.setSortOrder(0);
+                        Date now = new Date();
+                        module.setCreatedAt(now);
+                        module.setUpdatedAt(now);
+                        moduleMapper.insert(module);
+                        createdModuleCount++;
+                    }
+                    moduleCache.put(moduleName, module);
+                }
+
+                // 构造任务
+                TodoTaskPO task = new TodoTaskPO();
+                task.setId(idGeneratorApi.generateId());
+                task.setUserId(userId);
+                task.setModuleId(module.getId());
+                task.setTitle(item.getTitle().trim());
+                task.setDescription(StringUtils.hasText(item.getDescription()) ? item.getDescription().trim() : null);
+                task.setPriority(normalizePriority(item.getPriority()).name());
+                task.setDueDate(parseDueDate(item.getDueDate()));
+                task.setTagsJson(serializeTags(item.getTags()));
+                task.setStatus(TodoStatus.PENDING.name());
+                Date now = new Date();
+                task.setCreatedAt(now);
+                task.setUpdatedAt(now);
+                task.setLastEventAt(now);
+                task.setDurationMs(0L);
+                task.setPausedDurationMs(0L);
+
+                int inserted = taskMapper.insertTask(task);
+                if (inserted <= 0) {
+                    result.getErrors().add(indexPrefix + "保存任务失败");
+                    continue;
+                }
+                recordEvent(task.getId(), userId, TodoEventType.CREATE, now, "import");
+                result.setSuccess(result.getSuccess() + 1);
+            } catch (Exception ex) {
+                log.warn("导入待办任务失败, index={}", i, ex);
+                result.getErrors().add(indexPrefix + "导入失败：" + ex.getMessage());
+            }
+        }
+
+        result.setCreatedModules(createdModuleCount);
+        result.setFailed(result.getTotal() - result.getSuccess());
+        return result;
+    }
+
     private TodoEventVO convertEventToVO(TodoEventPO po) {
         TodoEventVO vo = new TodoEventVO();
         vo.setId(po.getId());
@@ -464,14 +579,19 @@ public class TodoTaskServiceImpl implements TodoTaskService {
     }
 
     /**
-     * 解析截止日期字符串（yyyy-MM-dd）为 Date，null 或空字符串返回 null。
+     * 解析截止日期字符串（支持 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss 格式）为 Date，null 或空字符串返回 null。
      */
     private Date parseDueDate(String dueDateStr) {
         if (!StringUtils.hasText(dueDateStr)) {
             return null;
         }
         try {
-            LocalDate localDate = LocalDate.parse(dueDateStr.trim());
+            String trimmed = dueDateStr.trim();
+            // 如果包含空格，说明可能是带时间的格式，提取日期部分（前10个字符）
+            if (trimmed.length() > 10 && trimmed.charAt(10) == ' ') {
+                trimmed = trimmed.substring(0, 10);
+            }
+            LocalDate localDate = LocalDate.parse(trimmed);
             return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
         } catch (Exception ex) {
             // 不抛异常，避免因为一个字段格式问题影响所有操作

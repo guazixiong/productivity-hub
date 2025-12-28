@@ -6,6 +6,7 @@
 
     <resultMap id="BookmarkTagResultMap" type="com.pbad.bookmark.domain.po.BookmarkTagPO">
         <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
         <result property="name" column="name"/>
         <result property="parentId" column="parent_id"/>
         <result property="level" column="level"/>
@@ -14,10 +15,11 @@
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
-    <!-- 查询所有标签 -->
+    <!-- 查询所有标签（按用户ID过滤） -->
     <select id="selectAll" resultMap="BookmarkTagResultMap">
         SELECT
             id,
+            user_id,
             name,
             parent_id,
             level,
@@ -26,15 +28,18 @@
             updated_at
         FROM
             bookmark_tag
+        WHERE
+            user_id = #{userId}
         ORDER BY
             sort_order ASC,
             created_at DESC
     </select>
 
-    <!-- 根据ID查询 -->
-    <select id="selectById" parameterType="string" resultMap="BookmarkTagResultMap">
+    <!-- 根据ID查询（按用户ID过滤） -->
+    <select id="selectById" resultMap="BookmarkTagResultMap">
         SELECT
             id,
+            user_id,
             name,
             parent_id,
             level,
@@ -45,12 +50,14 @@
             bookmark_tag
         WHERE
             id = #{id}
+            AND user_id = #{userId}
     </select>
 
-    <!-- 根据父标签ID查询子标签 -->
-    <select id="selectByParentId" parameterType="string" resultMap="BookmarkTagResultMap">
+    <!-- 根据父标签ID查询子标签（按用户ID过滤） -->
+    <select id="selectByParentId" resultMap="BookmarkTagResultMap">
         SELECT
             id,
+            user_id,
             name,
             parent_id,
             level,
@@ -61,15 +68,17 @@
             bookmark_tag
         WHERE
             parent_id = #{parentId}
+            AND user_id = #{userId}
         ORDER BY
             sort_order ASC,
             created_at DESC
     </select>
 
-    <!-- 根据层级查询标签 -->
-    <select id="selectByLevel" parameterType="int" resultMap="BookmarkTagResultMap">
+    <!-- 根据层级查询标签（按用户ID过滤） -->
+    <select id="selectByLevel" resultMap="BookmarkTagResultMap">
         SELECT
             id,
+            user_id,
             name,
             parent_id,
             level,
@@ -80,15 +89,17 @@
             bookmark_tag
         WHERE
             level = #{level}
+            AND user_id = #{userId}
         ORDER BY
             sort_order ASC,
             created_at DESC
     </select>
 
-    <!-- 根据名称和父标签ID查询（用于重复校验） -->
+    <!-- 根据名称和父标签ID查询（用于重复校验，按用户ID过滤） -->
     <select id="selectByNameAndParentId" resultMap="BookmarkTagResultMap">
         SELECT
             id,
+            user_id,
             name,
             parent_id,
             level,
@@ -100,6 +111,7 @@
         WHERE
             name = #{name}
             AND parent_id = #{parentId}
+            AND user_id = #{userId}
         LIMIT 1
     </select>
 
@@ -107,6 +119,7 @@
     <insert id="insertTag" parameterType="com.pbad.bookmark.domain.po.BookmarkTagPO">
         INSERT INTO bookmark_tag (
             id,
+            user_id,
             name,
             parent_id,
             level,
@@ -115,6 +128,7 @@
             updated_at
         ) VALUES (
             #{id},
+            #{userId},
             #{name},
             #{parentId},
             #{level},
@@ -124,7 +138,7 @@
         )
     </insert>
 
-    <!-- 更新标签 -->
+    <!-- 更新标签（按用户ID过滤） -->
     <update id="updateTag" parameterType="com.pbad.bookmark.domain.po.BookmarkTagPO">
         UPDATE bookmark_tag
         SET
@@ -135,14 +149,17 @@
             updated_at = #{updatedAt}
         WHERE
             id = #{id}
+            AND user_id = #{userId}
     </update>
 
-    <!-- 删除标签 -->
-    <delete id="deleteTag" parameterType="string">
-        DELETE FROM bookmark_tag WHERE id = #{id}
+    <!-- 删除标签（按用户ID过滤） -->
+    <delete id="deleteTag">
+        DELETE FROM bookmark_tag 
+        WHERE id = #{id}
+            AND user_id = #{userId}
     </delete>
 
-    <!-- 批量更新排序 -->
+    <!-- 批量更新排序（按用户ID过滤） -->
     <update id="batchUpdateSortOrder" parameterType="java.util.List">
         UPDATE bookmark_tag
         SET
@@ -152,29 +169,35 @@
             </foreach>
             END
         WHERE
-            id IN
+            user_id = #{userId}
+            AND id IN
             <foreach collection="tags" item="tag" open="(" close=")" separator=",">
                 #{tag.id}
             </foreach>
     </update>
 
-    <!-- 统计标签下网址数量 -->
-    <select id="countUrlsByTagId" parameterType="string" resultType="int">
+    <!-- 统计标签下网址数量（按用户ID过滤） -->
+    <select id="countUrlsByTagId" resultType="int">
         SELECT COUNT(1)
-        FROM bookmark_url_tag
-        WHERE tag_id = #{tagId}
+        FROM bookmark_url_tag ut
+        INNER JOIN bookmark_url u ON ut.url_id = u.id
+        WHERE ut.tag_id = #{tagId}
+            AND u.user_id = #{userId}
     </select>
 
-    <!-- 统计一级标签（包括其所有子标签）下的网址数量（去重） -->
-    <select id="countUrlsByParentTagId" parameterType="string" resultType="int">
-        SELECT COUNT(DISTINCT url_id)
-        FROM bookmark_url_tag
-        WHERE tag_id = #{parentTagId}
-           OR tag_id IN (
-               SELECT id 
-               FROM bookmark_tag 
-               WHERE parent_id = #{parentTagId}
-           )
+    <!-- 统计一级标签（包括其所有子标签）下的网址数量（去重，按用户ID过滤） -->
+    <select id="countUrlsByParentTagId" resultType="int">
+        SELECT COUNT(DISTINCT ut.url_id)
+        FROM bookmark_url_tag ut
+        INNER JOIN bookmark_url u ON ut.url_id = u.id
+        WHERE u.user_id = #{userId}
+            AND (ut.tag_id = #{parentTagId}
+                OR ut.tag_id IN (
+                    SELECT id 
+                    FROM bookmark_tag 
+                    WHERE parent_id = #{parentTagId}
+                        AND user_id = #{userId}
+                ))
     </select>
 
 </mapper>

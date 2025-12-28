@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * XML操作工具类，提供XML和Map之间的转换功能.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/7 14:52
  * @version: 1.0
  */

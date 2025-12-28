@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 /**
  * 下拉列表类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023-9-12 10:11:42
  * @version: 1.0
  */

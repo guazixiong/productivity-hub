@@ -70,5 +70,10 @@
         where id = #{id}
           and user_id = #{userId}
     </update>
+
+    <delete id="deleteByUserId" parameterType="string">
+        delete from sys_user_config
+        where user_id = #{userId}
+    </delete>
 </mapper>
 

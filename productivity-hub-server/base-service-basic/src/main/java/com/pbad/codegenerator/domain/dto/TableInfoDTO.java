@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * 表信息DTO.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */

@@ -19,6 +19,17 @@ public interface WeatherApi {
     WeatherInfo getWeatherInfoByCoordinates(Double latitude, Double longitude, String cityName);
 
     /**
+     * 根据IP地址获取天气信息（优先使用天地图API获取位置）.
+     *
+     * @param ip        IP地址
+     * @param latitude  纬度（可选，如果IP定位失败则使用）
+     * @param longitude 经度（可选，如果IP定位失败则使用）
+     * @param cityName  城市名称（可选，用于显示）
+     * @return 天气信息
+     */
+    WeatherInfo getWeatherInfoByIp(String ip, Double latitude, Double longitude, String cityName);
+
+    /**
      * 天气信息VO.
      */
     class WeatherInfo {

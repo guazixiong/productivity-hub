@@ -19,6 +19,7 @@ import com.pbad.bookmark.service.BookmarkUrlService;
 import com.pbad.generator.api.IdGeneratorApi;
 import common.exception.BusinessException;
 import common.util.RedisUtil;
+import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ import java.util.stream.Collectors;
 /**
  * 网址服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -44,9 +45,34 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BookmarkUrlServiceImpl implements BookmarkUrlService {
 
-    private static final String BOOKMARK_URL_CACHE_KEY = "phub:bookmark:urls:all";
-    private static final String BOOKMARK_GROUP_CACHE_KEY = "phub:bookmark:groups";
+    private static final String BOOKMARK_URL_CACHE_KEY_PREFIX = "phub:bookmark:urls:";
+    private static final String BOOKMARK_GROUP_CACHE_KEY_PREFIX = "phub:bookmark:groups:";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    /**
+     * 获取当前用户ID
+     */
+    private String getCurrentUserId() {
+        String userId = RequestUserContext.getUserId();
+        if (!StringUtils.hasText(userId)) {
+            throw new BusinessException("401", "用户未登录");
+        }
+        return userId;
+    }
+
+    /**
+     * 获取用户专属的缓存key
+     */
+    private String getUrlCacheKey(String userId) {
+        return BOOKMARK_URL_CACHE_KEY_PREFIX + userId;
+    }
+
+    /**
+     * 获取用户专属的分组缓存key
+     */
+    private String getGroupCacheKey(String userId) {
+        return BOOKMARK_GROUP_CACHE_KEY_PREFIX + userId;
+    }
 
     private final BookmarkUrlMapper urlMapper;
     private final BookmarkTagMapper tagMapper;
@@ -57,22 +83,24 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
     @Override
     @Transactional(readOnly = true)
     public List<BookmarkGroupVO> getUrlGroups() {
-        List<BookmarkGroupVO> cachedGroups = getCachedGroups();
+        String userId = getCurrentUserId();
+        List<BookmarkGroupVO> cachedGroups = getCachedGroups(userId);
         if (cachedGroups != null) {
             return cachedGroups;
         }
 
         // 缓存缺失时，立即回源构建并写入缓存
-        List<BookmarkUrlVO> urlList = loadAllUrlVOs();
-        List<BookmarkGroupVO> groups = buildUrlGroups(urlList);
-        cacheBookmarkData(groups, urlList);
+        List<BookmarkUrlVO> urlList = loadAllUrlVOs(userId);
+        List<BookmarkGroupVO> groups = buildUrlGroups(urlList, userId);
+        cacheBookmarkData(groups, urlList, userId);
         return groups;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BookmarkUrlVO> getUrlsByTagId(String tagId) {
-        List<BookmarkUrlVO> allUrls = getCachedUrlList();
+        String userId = getCurrentUserId();
+        List<BookmarkUrlVO> allUrls = getCachedUrlList(userId);
         if (allUrls == null) {
             return new ArrayList<>();
         }
@@ -85,11 +113,12 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
     @Override
     @Transactional(readOnly = true)
     public List<BookmarkUrlVO> searchUrls(String keyword) {
+        String userId = getCurrentUserId();
         if (keyword == null || keyword.trim().isEmpty()) {
             return new ArrayList<>();
         }
         String normalized = keyword.trim().toLowerCase();
-        List<BookmarkUrlVO> allUrls = getCachedUrlList();
+        List<BookmarkUrlVO> allUrls = getCachedUrlList(userId);
         if (allUrls == null) {
             return new ArrayList<>();
         }
@@ -105,7 +134,8 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
     @Override
     @Transactional(readOnly = true)
     public BookmarkUrlVO getUrlById(String id) {
-        List<BookmarkUrlVO> allUrls = getCachedUrlList();
+        String userId = getCurrentUserId();
+        List<BookmarkUrlVO> allUrls = getCachedUrlList(userId);
         if (allUrls != null) {
             for (BookmarkUrlVO url : allUrls) {
                 if (id.equals(url.getId())) {
@@ -115,58 +145,68 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         }
 
         // 兜底直接查库，避免缓存异常导致的404
-        BookmarkUrlPO url = urlMapper.selectById(id);
+        BookmarkUrlPO url = urlMapper.selectById(id, userId);
         if (url == null) {
             throw new BusinessException("404", "网址不存在");
         }
-        return convertUrlToVO(url);
+        return convertUrlToVO(url, userId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BookmarkUrlVO createUrl(BookmarkUrlCreateDTO createDTO) {
-        BookmarkUrlVO vo = doCreateUrl(createDTO);
-        refreshBookmarkCache();
+        String userId = getCurrentUserId();
+        BookmarkUrlVO vo = doCreateUrl(createDTO, userId);
+        refreshBookmarkCache(userId);
         return vo;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BookmarkUrlVO updateUrl(BookmarkUrlUpdateDTO updateDTO) {
-        BookmarkUrlVO vo = doUpdateUrl(updateDTO);
-        refreshBookmarkCache();
+        String userId = getCurrentUserId();
+        BookmarkUrlVO vo = doUpdateUrl(updateDTO, userId);
+        refreshBookmarkCache(userId);
         return vo;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUrl(String id) {
-        doDeleteUrl(id);
-        refreshBookmarkCache();
+        String userId = getCurrentUserId();
+        doDeleteUrl(id, userId);
+        refreshBookmarkCache(userId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchDeleteUrls(List<String> ids) {
-        doBatchDeleteUrls(ids);
-        refreshBookmarkCache();
+        String userId = getCurrentUserId();
+        doBatchDeleteUrls(ids, userId);
+        refreshBookmarkCache(userId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchUpdateUrlTags(BookmarkUrlBatchUpdateDTO batchUpdateDTO) {
-        doBatchUpdateUrlTags(batchUpdateDTO);
-        refreshBookmarkCache();
+        String userId = getCurrentUserId();
+        doBatchUpdateUrlTags(batchUpdateDTO, userId);
+        refreshBookmarkCache(userId);
     }
 
     @Override
     public void refreshBookmarkCache() {
-        List<BookmarkUrlVO> urlList = loadAllUrlVOs();
-        List<BookmarkGroupVO> groups = buildUrlGroups(urlList);
-        cacheBookmarkData(groups, urlList);
+        String userId = getCurrentUserId();
+        refreshBookmarkCache(userId);
     }
 
-    private BookmarkUrlVO doCreateUrl(BookmarkUrlCreateDTO createDTO) {
+    private void refreshBookmarkCache(String userId) {
+        List<BookmarkUrlVO> urlList = loadAllUrlVOs(userId);
+        List<BookmarkGroupVO> groups = buildUrlGroups(urlList, userId);
+        cacheBookmarkData(groups, urlList, userId);
+    }
+
+    private BookmarkUrlVO doCreateUrl(BookmarkUrlCreateDTO createDTO, String userId) {
         if (createDTO == null) {
             throw new BusinessException("400", "参数不能为空");
         }
@@ -186,7 +226,7 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         }
 
         for (String tagId : createDTO.getTagIds()) {
-            BookmarkTagPO tag = tagMapper.selectById(tagId);
+            BookmarkTagPO tag = tagMapper.selectById(tagId, userId);
             if (tag == null) {
                 throw new BusinessException("404", "标签不存在: " + tagId);
             }
@@ -194,6 +234,7 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
 
         BookmarkUrlPO newUrl = new BookmarkUrlPO();
         newUrl.setId(idGeneratorApi.generateId());
+        newUrl.setUserId(userId);
         newUrl.setTitle(createDTO.getTitle().trim());
         newUrl.setUrl(url);
         newUrl.setIconUrl(StringUtils.hasText(createDTO.getIconUrl()) ? createDTO.getIconUrl().trim() : null);
@@ -204,13 +245,13 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
             throw new BusinessException("500", "创建网址失败");
         }
 
-        createUrlTagRelations(newUrl.getId(), createDTO.getTagIds());
+        createUrlTagRelations(newUrl.getId(), createDTO.getTagIds(), userId);
 
-        BookmarkUrlPO insertedUrl = urlMapper.selectById(newUrl.getId());
-        return convertUrlToVO(insertedUrl);
+        BookmarkUrlPO insertedUrl = urlMapper.selectById(newUrl.getId(), userId);
+        return convertUrlToVO(insertedUrl, userId);
     }
 
-    private BookmarkUrlVO doUpdateUrl(BookmarkUrlUpdateDTO updateDTO) {
+    private BookmarkUrlVO doUpdateUrl(BookmarkUrlUpdateDTO updateDTO, String userId) {
         if (updateDTO == null || updateDTO.getId() == null || updateDTO.getId().trim().isEmpty()) {
             throw new BusinessException("400", "网址ID不能为空");
         }
@@ -221,7 +262,7 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
             throw new BusinessException("400", "网址URL不能为空");
         }
 
-        BookmarkUrlPO url = urlMapper.selectById(updateDTO.getId());
+        BookmarkUrlPO url = urlMapper.selectById(updateDTO.getId(), userId);
         if (url == null) {
             throw new BusinessException("404", "网址不存在");
         }
@@ -243,7 +284,7 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
 
         if (updateDTO.getTagIds() != null) {
             for (String tagId : updateDTO.getTagIds()) {
-                BookmarkTagPO tag = tagMapper.selectById(tagId);
+                BookmarkTagPO tag = tagMapper.selectById(tagId, userId);
                 if (tag == null) {
                     throw new BusinessException("404", "标签不存在: " + tagId);
                 }
@@ -251,33 +292,33 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
 
             urlTagMapper.deleteByUrlId(updateDTO.getId());
             if (!updateDTO.getTagIds().isEmpty()) {
-                createUrlTagRelations(updateDTO.getId(), updateDTO.getTagIds());
+                createUrlTagRelations(updateDTO.getId(), updateDTO.getTagIds(), userId);
             }
         }
 
-        BookmarkUrlPO updatedUrl = urlMapper.selectById(updateDTO.getId());
-        return convertUrlToVO(updatedUrl);
+        BookmarkUrlPO updatedUrl = urlMapper.selectById(updateDTO.getId(), userId);
+        return convertUrlToVO(updatedUrl, userId);
     }
 
-    private void doDeleteUrl(String id) {
+    private void doDeleteUrl(String id, String userId) {
         if (id == null || id.trim().isEmpty()) {
             throw new BusinessException("400", "网址ID不能为空");
         }
 
-        BookmarkUrlPO url = urlMapper.selectById(id);
+        BookmarkUrlPO url = urlMapper.selectById(id, userId);
         if (url == null) {
             throw new BusinessException("404", "网址不存在");
         }
 
         urlTagMapper.deleteByUrlId(id);
 
-        int deleteCount = urlMapper.deleteUrl(id);
+        int deleteCount = urlMapper.deleteUrl(id, userId);
         if (deleteCount <= 0) {
             throw new BusinessException("500", "删除网址失败");
         }
     }
 
-    private void doBatchDeleteUrls(List<String> ids) {
+    private void doBatchDeleteUrls(List<String> ids, String userId) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException("400", "网址ID列表不能为空");
         }
@@ -286,13 +327,13 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
             urlTagMapper.deleteByUrlId(id);
         }
 
-        int deleteCount = urlMapper.batchDeleteUrls(ids);
+        int deleteCount = urlMapper.batchDeleteUrls(ids, userId);
         if (deleteCount <= 0) {
             throw new BusinessException("500", "批量删除网址失败");
         }
     }
 
-    private void doBatchUpdateUrlTags(BookmarkUrlBatchUpdateDTO batchUpdateDTO) {
+    private void doBatchUpdateUrlTags(BookmarkUrlBatchUpdateDTO batchUpdateDTO, String userId) {
         if (batchUpdateDTO == null || batchUpdateDTO.getUrlIds() == null || batchUpdateDTO.getUrlIds().isEmpty()) {
             throw new BusinessException("400", "网址ID列表不能为空");
         }
@@ -300,9 +341,9 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         if (batchUpdateDTO.getAddTagIds() != null && !batchUpdateDTO.getAddTagIds().isEmpty()) {
             for (String urlId : batchUpdateDTO.getUrlIds()) {
                 for (String tagId : batchUpdateDTO.getAddTagIds()) {
-                    List<String> existingTagIds = urlTagMapper.selectTagIdsByUrlId(urlId);
+                    List<String> existingTagIds = urlTagMapper.selectTagIdsByUrlId(urlId, userId);
                     if (!existingTagIds.contains(tagId)) {
-                        BookmarkTagPO tag = tagMapper.selectById(tagId);
+                        BookmarkTagPO tag = tagMapper.selectById(tagId, userId);
                         if (tag == null) {
                             throw new BusinessException("404", "标签不存在: " + tagId);
                         }
@@ -324,19 +365,20 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         }
     }
 
-    private List<BookmarkUrlVO> getCachedUrlList() {
-        List<BookmarkUrlVO> cached = getCachedUrlListInternal(true);
+    private List<BookmarkUrlVO> getCachedUrlList(String userId) {
+        List<BookmarkUrlVO> cached = getCachedUrlListInternal(userId, true);
         if (cached != null) {
             return cached;
         }
-        refreshBookmarkCache();
-        return getCachedUrlListInternal(false);
+        refreshBookmarkCache(userId);
+        return getCachedUrlListInternal(userId, false);
     }
 
     @SuppressWarnings("unchecked")
-    private List<BookmarkUrlVO> getCachedUrlListInternal(boolean allowRefresh) {
+    private List<BookmarkUrlVO> getCachedUrlListInternal(String userId, boolean allowRefresh) {
         try {
-            Object cache = redisUtil.getValue(BOOKMARK_URL_CACHE_KEY);
+            String cacheKey = getUrlCacheKey(userId);
+            Object cache = redisUtil.getValue(cacheKey);
             List<BookmarkUrlVO> converted = safeConvertCache(cache, new TypeReference<List<BookmarkUrlVO>>() {
             });
             if (converted != null) {
@@ -346,15 +388,16 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
             log.warn("读取网址缓存失败，将尝试{}刷新", allowRefresh ? "重新" : "跳过", ex);
         }
         if (allowRefresh) {
-            refreshBookmarkCache();
+            refreshBookmarkCache(userId);
         }
         return null;
     }
 
     @SuppressWarnings("unchecked")
-    private List<BookmarkGroupVO> getCachedGroups() {
+    private List<BookmarkGroupVO> getCachedGroups(String userId) {
         try {
-            Object cache = redisUtil.getValue(BOOKMARK_GROUP_CACHE_KEY);
+            String cacheKey = getGroupCacheKey(userId);
+            Object cache = redisUtil.getValue(cacheKey);
             List<BookmarkGroupVO> converted = safeConvertCache(cache, new TypeReference<List<BookmarkGroupVO>>() {
             });
             if (converted != null) {
@@ -366,19 +409,21 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         return null;
     }
 
-    private void cacheBookmarkData(List<BookmarkGroupVO> groups, List<BookmarkUrlVO> urls) {
-        redisUtil.defaultSetKeyNoExpiration(BOOKMARK_URL_CACHE_KEY, urls);
-        redisUtil.defaultSetKeyNoExpiration(BOOKMARK_GROUP_CACHE_KEY, groups);
+    private void cacheBookmarkData(List<BookmarkGroupVO> groups, List<BookmarkUrlVO> urls, String userId) {
+        String urlCacheKey = getUrlCacheKey(userId);
+        String groupCacheKey = getGroupCacheKey(userId);
+        redisUtil.defaultSetKeyNoExpiration(urlCacheKey, urls);
+        redisUtil.defaultSetKeyNoExpiration(groupCacheKey, groups);
     }
 
-    private List<BookmarkUrlVO> loadAllUrlVOs() {
-        List<BookmarkUrlPO> allUrls = urlMapper.selectAll();
-        return allUrls.stream().map(this::convertUrlToVO).collect(Collectors.toList());
+    private List<BookmarkUrlVO> loadAllUrlVOs(String userId) {
+        List<BookmarkUrlPO> allUrls = urlMapper.selectAll(userId);
+        return allUrls.stream().map(url -> convertUrlToVO(url, userId)).collect(Collectors.toList());
     }
 
-    private List<BookmarkGroupVO> buildUrlGroups(List<BookmarkUrlVO> allUrls) {
-        List<BookmarkTagPO> parentTags = tagMapper.selectByLevel(1);
-        List<BookmarkTagPO> childTags = tagMapper.selectByLevel(2);
+    private List<BookmarkGroupVO> buildUrlGroups(List<BookmarkUrlVO> allUrls, String userId) {
+        List<BookmarkTagPO> parentTags = tagMapper.selectByLevel(1, userId);
+        List<BookmarkTagPO> childTags = tagMapper.selectByLevel(2, userId);
 
         Map<String, List<BookmarkUrlVO>> urlsByTagId = new HashMap<>();
         for (BookmarkUrlVO url : allUrls) {
@@ -430,7 +475,7 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         return result;
     }
 
-    private void createUrlTagRelations(String urlId, List<String> tagIds) {
+    private void createUrlTagRelations(String urlId, List<String> tagIds, String userId) {
         if (tagIds == null || tagIds.isEmpty()) {
             return;
         }
@@ -443,7 +488,7 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
             return;
         }
 
-        List<String> existingTagIds = urlTagMapper.selectTagIdsByUrlId(urlId);
+        List<String> existingTagIds = urlTagMapper.selectTagIdsByUrlId(urlId, userId);
         Set<String> existingTagIdSet = existingTagIds != null && !existingTagIds.isEmpty()
                 ? existingTagIds.stream().collect(Collectors.toSet())
                 : new java.util.HashSet<>();
@@ -510,13 +555,13 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         vo.setLevel(po.getLevel());
         vo.setSortOrder(po.getSortOrder());
 
-        int urlCount = tagMapper.countUrlsByTagId(po.getId());
+        int urlCount = tagMapper.countUrlsByTagId(po.getId(), po.getUserId());
         vo.setUrlCount(urlCount);
 
         return vo;
     }
 
-    private BookmarkUrlVO convertUrlToVO(BookmarkUrlPO po) {
+    private BookmarkUrlVO convertUrlToVO(BookmarkUrlPO po, String userId) {
         BookmarkUrlVO vo = new BookmarkUrlVO();
         vo.setId(po.getId());
         vo.setTitle(po.getTitle());
@@ -526,10 +571,10 @@ public class BookmarkUrlServiceImpl implements BookmarkUrlService {
         vo.setCreatedAt(po.getCreatedAt());
         vo.setUpdatedAt(po.getUpdatedAt());
 
-        List<String> tagIds = urlTagMapper.selectTagIdsByUrlId(po.getId());
+        List<String> tagIds = urlTagMapper.selectTagIdsByUrlId(po.getId(), userId);
         List<BookmarkTagVO> tags = new ArrayList<>();
         for (String tagId : tagIds) {
-            BookmarkTagPO tag = tagMapper.selectById(tagId);
+            BookmarkTagPO tag = tagMapper.selectById(tagId, userId);
             if (tag != null) {
                 tags.add(convertTagToVO(tag));
             }

@@ -7,7 +7,7 @@ import java.io.Serializable;
 /**
  * Http请求响应类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2024年06月05日 15:36
  */
 @Data

@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 变更结果类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2025-11-27 18:25:59
  * @version: 1.0
  */

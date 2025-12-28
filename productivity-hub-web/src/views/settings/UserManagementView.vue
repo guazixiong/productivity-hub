@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { adminUserApi } from '@/services/api'
 import type { ManagedUser, UserCreatePayload } from '@/types/auth'
 
@@ -62,6 +62,33 @@ const handleCreate = async () => {
   }
 }
 
+const handleDelete = async (user: ManagedUser) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除用户 "${user.name} (${user.username})" 吗？此操作将删除该用户的所有数据，包括配置、书签、健康记录、待办事项等，且无法恢复！`,
+      '确认删除',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: false,
+      }
+    )
+    loading.value = true
+    try {
+      await adminUserApi.delete(user.id)
+      users.value = users.value.filter(u => u.id !== user.id)
+      ElMessage.success('用户已删除')
+    } catch (error) {
+      ElMessage.error((error as Error).message || '删除失败')
+    } finally {
+      loading.value = false
+    }
+  } catch {
+    // 用户取消删除
+  }
+}
+
 onMounted(fetchUsers)
 </script>
 
@@ -90,6 +117,19 @@ onMounted(fetchUsers)
       <el-table-column prop="email" label="邮箱" min-width="180" />
       <el-table-column prop="createdAt" label="创建时间" width="180" />
       <el-table-column prop="updatedAt" label="最近更新时间" width="180" />
+      <el-table-column label="操作" width="100" fixed="right">
+        <template #default="{ row }">
+          <el-button
+            type="danger"
+            size="small"
+            :loading="loading"
+            @click="handleDelete(row)"
+            v-button-lock
+          >
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
     </el-table>
   </el-card>
 

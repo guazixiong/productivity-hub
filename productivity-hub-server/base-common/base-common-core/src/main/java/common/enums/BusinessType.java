@@ -3,7 +3,7 @@ package common.enums;
 /**
  * 业务操作类型枚举类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/10/9 14:01
  * @version: 1.0
  */

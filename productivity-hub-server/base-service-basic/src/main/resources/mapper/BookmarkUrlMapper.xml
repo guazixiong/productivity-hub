@@ -6,6 +6,7 @@
 
     <resultMap id="BookmarkUrlResultMap" type="com.pbad.bookmark.domain.po.BookmarkUrlPO">
         <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
         <result property="title" column="title"/>
         <result property="url" column="url"/>
         <result property="iconUrl" column="icon_url"/>
@@ -16,6 +17,7 @@
 
     <sql id="Base_Column_List">
         id,
+        user_id,
         title,
         url,
         icon_url,
@@ -27,6 +29,7 @@
     <!-- Base columns with alias for joined queries -->
     <sql id="Base_Column_List_With_Alias">
         u.id,
+        u.user_id,
         u.title,
         u.url,
         u.icon_url,
@@ -35,57 +38,62 @@
         u.updated_at
     </sql>
 
-    <!-- 查询所有网址 -->
+    <!-- 查询所有网址（按用户ID过滤） -->
     <select id="selectAll" resultMap="BookmarkUrlResultMap">
         SELECT
         <include refid="Base_Column_List"/>
         FROM bookmark_url
+        WHERE user_id = #{userId}
         ORDER BY created_at DESC
     </select>
 
-    <!-- 根据ID查询网址 -->
-    <select id="selectById" parameterType="string" resultMap="BookmarkUrlResultMap">
+    <!-- 根据ID查询网址（按用户ID过滤） -->
+    <select id="selectById" resultMap="BookmarkUrlResultMap">
         SELECT
         <include refid="Base_Column_List"/>
         FROM bookmark_url
         WHERE id = #{id}
+            AND user_id = #{userId}
         LIMIT 1
     </select>
 
-    <!-- 根据标签ID查询网址列表 -->
-    <select id="selectByTagId" parameterType="string" resultMap="BookmarkUrlResultMap">
+    <!-- 根据标签ID查询网址列表（按用户ID过滤） -->
+    <select id="selectByTagId" resultMap="BookmarkUrlResultMap">
         SELECT DISTINCT
         <include refid="Base_Column_List_With_Alias"/>
         FROM bookmark_url u
         INNER JOIN bookmark_url_tag ut ON u.id = ut.url_id
         WHERE ut.tag_id = #{tagId}
+            AND u.user_id = #{userId}
         ORDER BY u.created_at DESC
     </select>
 
-    <!-- 根据多个标签ID查询网址列表（任一标签匹配） -->
+    <!-- 根据多个标签ID查询网址列表（任一标签匹配，按用户ID过滤） -->
     <select id="selectByTagIds" resultMap="BookmarkUrlResultMap">
         SELECT DISTINCT
         <include refid="Base_Column_List_With_Alias"/>
         FROM bookmark_url u
-        WHERE EXISTS (
-            SELECT 1
-            FROM bookmark_url_tag ut
-            WHERE ut.url_id = u.id
-              AND ut.tag_id IN
-              <foreach collection="tagIds" item="tagId" open="(" close=")" separator=",">
-                  #{tagId}
-              </foreach>
-        )
+        WHERE u.user_id = #{userId}
+            AND EXISTS (
+                SELECT 1
+                FROM bookmark_url_tag ut
+                WHERE ut.url_id = u.id
+                  AND ut.tag_id IN
+                  <foreach collection="tagIds" item="tagId" open="(" close=")" separator=",">
+                      #{tagId}
+                  </foreach>
+            )
         ORDER BY u.created_at DESC
     </select>
 
-    <!-- 根据关键词搜索网址（标题或描述） -->
-    <select id="searchByKeyword" parameterType="string" resultMap="BookmarkUrlResultMap">
+    <!-- 根据关键词搜索网址（标题或描述，按用户ID过滤） -->
+    <select id="searchByKeyword" resultMap="BookmarkUrlResultMap">
         SELECT
         <include refid="Base_Column_List"/>
         FROM bookmark_url
-        WHERE title LIKE CONCAT('%', #{keyword}, '%')
-           OR description LIKE CONCAT('%', #{keyword}, '%')
+        WHERE user_id = #{userId}
+            AND (title LIKE CONCAT('%', #{keyword}, '%')
+               OR description LIKE CONCAT('%', #{keyword}, '%'))
         ORDER BY created_at DESC
     </select>
 
@@ -93,6 +101,7 @@
     <insert id="insertUrl" parameterType="com.pbad.bookmark.domain.po.BookmarkUrlPO">
         INSERT INTO bookmark_url (
             id,
+            user_id,
             title,
             url,
             icon_url,
@@ -101,6 +110,7 @@
             updated_at
         ) VALUES (
             #{id},
+            #{userId},
             #{title},
             #{url},
             #{iconUrl},
@@ -110,7 +120,7 @@
         )
     </insert>
 
-    <!-- 更新网址 -->
+    <!-- 更新网址（按用户ID过滤） -->
     <update id="updateUrl" parameterType="com.pbad.bookmark.domain.po.BookmarkUrlPO">
         UPDATE bookmark_url
         SET
@@ -120,20 +130,24 @@
             description = #{description},
             updated_at = NOW()
         WHERE id = #{id}
+            AND user_id = #{userId}
     </update>
 
-    <!-- 删除网址 -->
-    <delete id="deleteUrl" parameterType="string">
-        DELETE FROM bookmark_url WHERE id = #{id}
+    <!-- 删除网址（按用户ID过滤） -->
+    <delete id="deleteUrl">
+        DELETE FROM bookmark_url 
+        WHERE id = #{id}
+            AND user_id = #{userId}
     </delete>
 
-    <!-- 批量删除网址 -->
-    <delete id="batchDeleteUrls" parameterType="java.util.List">
+    <!-- 批量删除网址（按用户ID过滤） -->
+    <delete id="batchDeleteUrls">
         DELETE FROM bookmark_url
-        WHERE id IN
-        <foreach collection="ids" item="id" open="(" close=")" separator=",">
-            #{id}
-        </foreach>
+        WHERE user_id = #{userId}
+            AND id IN
+            <foreach collection="ids" item="id" open="(" close=")" separator=",">
+                #{id}
+            </foreach>
     </delete>
 
 </mapper>

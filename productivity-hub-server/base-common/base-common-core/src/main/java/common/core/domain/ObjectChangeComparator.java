@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * </pre>
  * </p>
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2025-11-27 18:25:59
  * @version: 1.0
  */

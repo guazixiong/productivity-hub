@@ -126,7 +126,7 @@
                 #{st}
             </foreach>
         </if>
-        ORDER BY updated_at DESC
+        ORDER BY last_event_at DESC, updated_at DESC
     </select>
 
     <insert id="insertTask" parameterType="com.pbad.todo.domain.po.TodoTaskPO">
@@ -170,6 +170,15 @@
         DELETE FROM todo_task
         WHERE id = #{id}
           AND user_id = #{userId}
+    </delete>
+
+    <delete id="batchDeleteTasks">
+        DELETE FROM todo_task
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" close=")" separator=",">
+              #{id}
+          </foreach>
     </delete>
 
     <select id="aggregateByModule" resultType="com.pbad.todo.domain.po.TodoModuleStatsPO">

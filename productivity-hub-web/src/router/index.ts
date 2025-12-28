@@ -53,8 +53,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'settings/schedules',
         name: 'ScheduleTasks',
-        meta: { title: '定时任务管理', requiresAdmin: true },
+        meta: { title: '定时任务管理' },
         component: () => import('@/views/settings/ScheduleTasksView.vue'),
+      },
+      {
+        path: 'settings/announcements',
+        name: 'AnnouncementManage',
+        meta: { title: '公告管理', requiresAdmin: true },
+        component: () => import('@/views/settings/AnnouncementManageView.vue'),
       },
       {
         path: 'settings',
@@ -135,10 +141,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/tools/WorkdayCalculatorView.vue'),
       },
       {
+        path: 'tools/cursor-inventory',
+        name: 'CursorInventory',
+        meta: { title: 'Cursor库存' },
+        component: () => import('@/views/tools/CursorInventoryView.vue'),
+      },
+      {
         path: 'tools/cursor-shop',
-        name: 'CursorShopInventory',
-        meta: { title: 'Cursor小店库存' },
-        component: () => import('@/views/tools/CursorShopInventoryView.vue'),
+        redirect: '/tools/cursor-inventory',
+      },
+      {
+        path: 'tools/ldxp-cursor-shop',
+        redirect: '/tools/cursor-inventory',
       },
       {
         path: 'tools/image-base64',
@@ -157,6 +171,12 @@ const routes: RouteRecordRaw[] = [
         name: 'UnitConverter',
         meta: { title: '单位换算' },
         component: () => import('@/views/tools/UnitConverterView.vue'),
+      },
+      {
+        path: 'tools/worth-buying',
+        name: 'WorthBuying',
+        meta: { title: '值不值得买' },
+        component: () => import('@/views/tools/WorthBuyingView.vue'),
       },
       {
         path: 'code-generator',
@@ -246,6 +266,30 @@ const routes: RouteRecordRaw[] = [
         name: 'ResetPassword',
         meta: { title: '重置密码' },
         component: () => import('@/views/auth/ResetPasswordView.vue'),
+      },
+      {
+        path: 'profile',
+        name: 'UserProfile',
+        meta: { title: '我的信息' },
+        component: () => import('@/views/auth/UserProfileView.vue'),
+      },
+      {
+        path: 'image',
+        name: 'Image',
+        meta: { title: '图片管理' },
+        component: () => import('@/views/image/ImageView.vue'),
+      },
+      {
+        path: 'health',
+        name: 'Health',
+        meta: { title: '健康状况' },
+        component: () => import('@/views/health/HealthView.vue'),
+      },
+      {
+        path: 'health/statistics',
+        name: 'HealthStatistics',
+        meta: { title: '健康统计' },
+        component: () => import('@/views/health/HealthStatisticsView.vue'),
       },
     ],
   },

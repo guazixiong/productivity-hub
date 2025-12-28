@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 宝藏类网址控制器.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */

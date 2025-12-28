@@ -11,20 +11,24 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <!-- 根据网址ID查询关联的标签ID列表 -->
-    <select id="selectTagIdsByUrlId" parameterType="string" resultType="string">
-        SELECT tag_id
-        FROM bookmark_url_tag
-        WHERE url_id = #{urlId}
-        ORDER BY created_at DESC
+    <!-- 根据网址ID查询关联的标签ID列表（按用户ID过滤） -->
+    <select id="selectTagIdsByUrlId" resultType="string">
+        SELECT ut.tag_id
+        FROM bookmark_url_tag ut
+        INNER JOIN bookmark_url u ON ut.url_id = u.id
+        WHERE ut.url_id = #{urlId}
+            AND u.user_id = #{userId}
+        ORDER BY ut.created_at DESC
     </select>
 
-    <!-- 根据标签ID查询关联的网址ID列表 -->
-    <select id="selectUrlIdsByTagId" parameterType="string" resultType="string">
-        SELECT url_id
-        FROM bookmark_url_tag
-        WHERE tag_id = #{tagId}
-        ORDER BY created_at DESC
+    <!-- 根据标签ID查询关联的网址ID列表（按用户ID过滤） -->
+    <select id="selectUrlIdsByTagId" resultType="string">
+        SELECT ut.url_id
+        FROM bookmark_url_tag ut
+        INNER JOIN bookmark_url u ON ut.url_id = u.id
+        WHERE ut.tag_id = #{tagId}
+            AND u.user_id = #{userId}
+        ORDER BY ut.created_at DESC
     </select>
 
     <!-- 插入关联关系 -->

@@ -49,6 +49,22 @@ public class UserManagementController {
         return ApiResponse.ok("创建成功", user);
     }
 
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteUser(@PathVariable("id") String id) {
+        String userId = RequestUserContext.getUserId();
+        if (!StringUtils.hasText(userId)) {
+            return ApiResponse.unauthorized("未登录或登录已过期");
+        }
+        if (!isAdmin(userId)) {
+            return ApiResponse.fail(403, "仅管理员可以删除用户");
+        }
+        if (userId.equals(id)) {
+            return ApiResponse.fail(400, "不能删除当前登录用户");
+        }
+        userManagementService.deleteUser(id, userId);
+        return ApiResponse.ok("删除成功");
+    }
+
     private boolean isAdmin(String userId) {
         UserPO current = userMapper.selectById(userId);
         if (current == null || current.getRoles() == null) {

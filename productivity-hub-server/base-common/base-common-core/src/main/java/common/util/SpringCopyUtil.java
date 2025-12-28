@@ -5,7 +5,7 @@ import org.springframework.beans.BeanUtils;
 /**
  * 类属性赋值转换工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/8/29 11:37
  * @version: 1.0
  */

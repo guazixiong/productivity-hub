@@ -15,11 +15,18 @@ import com.pbad.generator.api.IdGeneratorApi;
 import common.util.RedisUtil;
 import common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Collections;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +34,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * 配置服务实现类.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */
@@ -40,6 +47,11 @@ public class ConfigServiceImpl implements ConfigService {
     private final UserMapper userMapper;
     private final IdGeneratorApi idGeneratorApi;
     private final RedisUtil redisUtil;
+    private final PlatformTransactionManager transactionManager;
+    
+    @Lazy
+    @Autowired
+    private ConfigServiceImpl self;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String TEMPLATE_USER_ID = "system";
@@ -247,7 +259,7 @@ public class ConfigServiceImpl implements ConfigService {
     @Transactional(rollbackFor = Exception.class)
     public void initializeUserConfigFromTemplate(String userId, String operator) {
         validateUserId(userId);
-        ensureUserConfigs(userId, operator == null ? "system" : operator);
+        self.ensureUserConfigs(userId, operator == null ? "system" : operator);
         refreshUserConfigCache(userId);
     }
 
@@ -280,30 +292,74 @@ public class ConfigServiceImpl implements ConfigService {
         return vo;
     }
 
-    private void ensureUserConfigs(String userId, String operator) {
-        int count = userConfigMapper.countByUserId(userId);
-        if (count > 0) {
-            return;
-        }
-        List<ConfigItemPO> templates = configMapper.selectAll();
-        LocalDateTime now = LocalDateTime.now();
-        String nowStr = now.format(DATE_TIME_FORMATTER);
-        List<UserConfigPO> userConfigs = templates.stream().map(template -> {
-            UserConfigPO po = new UserConfigPO();
-            po.setId(idGeneratorApi.generateId());
-            po.setUserId(userId);
-            po.setModule(template.getModule());
-            po.setConfigKey(template.getConfigKey());
-            po.setConfigValue(template.getConfigValue());
-            po.setDescription(template.getDescription());
-            po.setCreatedAt(nowStr);
-            po.setUpdatedAt(nowStr);
-            po.setUpdatedBy(operator);
-            return po;
-        }).collect(Collectors.toList());
-        if (!userConfigs.isEmpty()) {
-            userConfigMapper.batchInsert(userConfigs);
-        }
+    protected void ensureUserConfigs(String userId, String operator) {
+        // 使用 TransactionTemplate 创建新的可写事务，确保不受外层只读事务影响
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        transactionTemplate.setReadOnly(false);
+        
+        transactionTemplate.execute(status -> {
+            List<ConfigItemPO> templates = configMapper.selectAll();
+            List<UserConfigPO> existingUserConfigs = userConfigMapper.selectByUserId(userId);
+            
+            // 如果用户没有任何配置，则初始化所有模板配置
+            if (existingUserConfigs.isEmpty()) {
+                LocalDateTime now = LocalDateTime.now();
+                String nowStr = now.format(DATE_TIME_FORMATTER);
+                List<UserConfigPO> userConfigs = templates.stream().map(template -> {
+                    UserConfigPO po = new UserConfigPO();
+                    po.setId(idGeneratorApi.generateId());
+                    po.setUserId(userId);
+                    po.setModule(template.getModule());
+                    po.setConfigKey(template.getConfigKey());
+                    po.setConfigValue(template.getConfigValue());
+                    po.setDescription(template.getDescription());
+                    po.setCreatedAt(nowStr);
+                    po.setUpdatedAt(nowStr);
+                    po.setUpdatedBy(operator);
+                    return po;
+                }).collect(Collectors.toList());
+                if (!userConfigs.isEmpty()) {
+                    userConfigMapper.batchInsert(userConfigs);
+                }
+                return null;
+            }
+            
+            // 如果用户已有配置，检查是否有缺失的配置项并补充
+            // 构建现有配置的键集合（module + configKey）
+            Set<String> existingKeys = existingUserConfigs.stream()
+                    .map(config -> config.getModule() + ":" + config.getConfigKey())
+                    .collect(Collectors.toSet());
+            
+            // 找出缺失的配置项
+            List<UserConfigPO> missingConfigs = templates.stream()
+                    .filter(template -> {
+                        String key = template.getModule() + ":" + template.getConfigKey();
+                        return !existingKeys.contains(key);
+                    })
+                    .map(template -> {
+                        UserConfigPO po = new UserConfigPO();
+                        po.setId(idGeneratorApi.generateId());
+                        po.setUserId(userId);
+                        po.setModule(template.getModule());
+                        po.setConfigKey(template.getConfigKey());
+                        po.setConfigValue(template.getConfigValue());
+                        po.setDescription(template.getDescription());
+                        LocalDateTime now = LocalDateTime.now();
+                        String nowStr = now.format(DATE_TIME_FORMATTER);
+                        po.setCreatedAt(nowStr);
+                        po.setUpdatedAt(nowStr);
+                        po.setUpdatedBy(operator);
+                        return po;
+                    })
+                    .collect(Collectors.toList());
+            
+            // 批量插入缺失的配置项
+            if (!missingConfigs.isEmpty()) {
+                userConfigMapper.batchInsert(missingConfigs);
+            }
+            return null;
+        });
     }
 
     private void validateUserId(String userId) {
@@ -352,7 +408,7 @@ public class ConfigServiceImpl implements ConfigService {
             List<ConfigItemPO> templateList = configMapper.selectAll();
             return templateList.stream().map(this::convertTemplateToVO).collect(Collectors.toList());
         }
-        ensureUserConfigs(userId, "system");
+        self.ensureUserConfigs(userId, "system");
         List<UserConfigPO> poList = userConfigMapper.selectByUserId(userId);
         return poList.stream().map(this::convertToVO).collect(Collectors.toList());
     }

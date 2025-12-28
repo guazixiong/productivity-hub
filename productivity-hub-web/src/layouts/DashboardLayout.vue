@@ -7,8 +7,13 @@ import { useTabsStore } from '@/stores/tabs'
 import { useNotificationStore } from '@/stores/notifications'
 import TabsView from '@/components/TabsView.vue'
 import ChatWidget from '@/components/ChatWidget.vue'
-import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand } from '@element-plus/icons-vue'
+import AnnouncementDialog from '@/components/AnnouncementDialog.vue'
+import NotificationDetailDialog from '@/components/NotificationDetailDialog.vue'
+import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled } from '@element-plus/icons-vue'
 import logoIcon from '@/assets/logo.svg'
+import { announcementApi } from '@/services/announcementApi'
+import type { Announcement } from '@/types/announcement'
+import type { NotificationItem } from '@/stores/notifications'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,13 +22,19 @@ const navigationStore = useNavigationStore()
 const tabsStore = useTabsStore()
 const notificationStore = useNotificationStore()
 const notificationVisible = ref(false)
+const notificationDetailVisible = ref(false)
+const currentNotification = ref<NotificationItem | null>(null)
 const isCollapsed = ref(false)
+const announcementDialogVisible = ref(false)
+const unreadAnnouncements = ref<Announcement[]>([])
+const fetchingAnnouncements = ref(false)
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/home')) return '/home'
   if (route.path.startsWith('/hot-sections')) return '/hot-sections'
   if (route.path.startsWith('/config')) return '/config'
   if (route.path.startsWith('/settings/users')) return '/settings/users'
+  if (route.path.startsWith('/settings/announcements')) return '/settings/announcements'
   if (route.path.startsWith('/settings/schedules')) return '/settings/schedules'
   if (route.path.startsWith('/messages')) return '/messages'
   if (route.path.startsWith('/tools')) return '/tools'
@@ -32,6 +43,7 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/todo')) return '/todo'
   if (route.path.startsWith('/code-generator')) return '/code-generator'
   if (route.path.startsWith('/bookmark')) return '/bookmark'
+  if (route.path.startsWith('/health')) return route.path
   return route.path
 })
 
@@ -73,6 +85,10 @@ const defaultOpenMenus = computed(() => {
     openeds.push('settings')
   }
 
+  if (route.path.startsWith('/health')) {
+    openeds.push('health')
+  }
+
   return openeds
 })
 
@@ -108,11 +124,48 @@ const handleLogout = () => {
   router.replace({ name: 'Login' })
 }
 
-const handleNotificationClick = (id: string, link?: string) => {
+const handleNotificationClick = (item: NotificationItem) => {
+  currentNotification.value = item
+  notificationDetailVisible.value = true
+  // 不自动关闭消息列表弹窗，让用户手动关闭
+}
+
+const handleNotificationRead = (id: string) => {
   notificationStore.markRead(id)
-  notificationVisible.value = false
-  if (link) {
-    router.push(link)
+}
+
+// 计算属性：排序后的未读消息（按时间倒序）
+const unreadNotifications = computed(() => {
+  return notificationStore.notifications
+    .filter(n => !n.read)
+    .sort((a, b) => b.receivedAt - a.receivedAt)
+})
+
+// 计算属性：排序后的已读消息（按时间倒序）
+const readNotifications = computed(() => {
+  return notificationStore.notifications
+    .filter(n => n.read)
+    .sort((a, b) => b.receivedAt - a.receivedAt)
+})
+
+const fetchUnreadAnnouncements = async () => {
+  if (!authStore.isAuthenticated || fetchingAnnouncements.value) return
+  fetchingAnnouncements.value = true
+  try {
+    const result = await announcementApi.getUnread()
+    unreadAnnouncements.value = result ?? []
+    announcementDialogVisible.value = unreadAnnouncements.value.length > 0
+  } catch (error) {
+    console.error('Failed to load announcements:', error)
+  } finally {
+    fetchingAnnouncements.value = false
+  }
+}
+
+const handleAnnouncementRead = (id: string) => {
+  unreadAnnouncements.value = unreadAnnouncements.value.filter((item) => item.id !== id)
+  if (!unreadAnnouncements.value.length) {
+    announcementDialogVisible.value = false
   }
 }
 
@@ -121,7 +174,13 @@ onMounted(() => {
     authStore.hydrateFromCache()
   }
   if (authStore.isAuthenticated) {
-    notificationStore.connect()
+    // 连接失败不影响用户正常使用，使用 try-catch 保护
+    try {
+      notificationStore.connect()
+    } catch (error) {
+      console.warn('Failed to connect notifications:', error)
+    }
+    fetchUnreadAnnouncements()
   }
 })
 
@@ -214,6 +273,16 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
+  // 一级菜单：健康状况
+  if (path === '/health') {
+    return true
+  }
+  
+  // 二级菜单项：健康状况下的子页面
+  if (path.startsWith('/health/')) {
+    return true
+  }
+  
   return false
 }
 
@@ -247,9 +316,17 @@ watch(
   () => authStore.isAuthenticated,
   (authed) => {
     if (authed) {
-      notificationStore.connect(true)
+      // 连接失败不影响用户正常使用，使用 try-catch 保护
+      try {
+        notificationStore.connect(true)
+      } catch (error) {
+        console.warn('Failed to connect notifications:', error)
+      }
+      fetchUnreadAnnouncements()
     } else {
       notificationStore.reset()
+      unreadAnnouncements.value = []
+      announcementDialogVisible.value = false
     }
   },
   { immediate: true },
@@ -259,7 +336,13 @@ watch(
   () => authStore.user?.id,
   (id) => {
     if (id) {
-      notificationStore.connect(true)
+      // 连接失败不影响用户正常使用，使用 try-catch 保护
+      try {
+        notificationStore.connect(true)
+      } catch (error) {
+        console.warn('Failed to connect notifications:', error)
+      }
+      fetchUnreadAnnouncements()
     }
   },
 )
@@ -283,6 +366,7 @@ const quickCommands: QuickCommand[] = [
   { id: 'go-tools', label: '常用工具', description: '常用工程工具与小组件', route: '/tools' },
   { id: 'go-bookmark', label: '宝藏网址', description: '站点收藏与导航', route: '/bookmark' },
   { id: 'go-codegen', label: '低代码生成', description: '快速搭建页面与脚本', route: '/code-generator' },
+  { id: 'go-announcement', label: '公告管理（管理员）', description: '创建/发布/撤回公告', route: '/settings/announcements' },
 ]
 
 const filteredCommands = computed(() => {
@@ -454,6 +538,22 @@ const cachedViews = computed(() => {
             </el-menu-item>
           </el-sub-menu>
 
+          <!-- 💪 健康状况（一级菜单） -->
+          <el-sub-menu index="health">
+            <template #title>
+              <el-icon><DataAnalysis /></el-icon>
+              <span v-show="!isCollapsed">健康状况</span>
+            </template>
+            <el-menu-item index="/health">
+              <el-icon><DataAnalysis /></el-icon>
+              <template #title>健康记录</template>
+            </el-menu-item>
+            <el-menu-item index="/health/statistics">
+              <el-icon><TrendCharts /></el-icon>
+              <template #title>健康统计</template>
+            </el-menu-item>
+          </el-sub-menu>
+
           <!-- ⚙️ 系统设置（一级菜单） -->
           <el-sub-menu index="settings">
             <template #title>
@@ -468,7 +568,11 @@ const cachedViews = computed(() => {
               <el-icon><Setting /></el-icon>
               <template #title>系统用户管理</template>
             </el-menu-item>
-            <el-menu-item v-if="isAdminUser" index="/settings/schedules">
+            <el-menu-item v-if="isAdminUser" index="/settings/announcements">
+              <el-icon><Bell /></el-icon>
+              <template #title>公告管理</template>
+            </el-menu-item>
+            <el-menu-item index="/settings/schedules">
               <el-icon><Setting /></el-icon>
               <template #title>定时任务管理</template>
             </el-menu-item>
@@ -534,7 +638,6 @@ const cachedViews = computed(() => {
                   circle
                   class="notification-button"
                   :icon="Bell"
-                  @click="notificationVisible = !notificationVisible"
                 />
               </el-badge>
             </template>
@@ -543,7 +646,14 @@ const cachedViews = computed(() => {
                 <div>
                   <div class="notification-title-text">消息提醒</div>
                   <div class="notification-subtitle">
-                    {{ notificationStore.connected ? '已连接' : '未连接，稍后自动重试' }}
+                    <span v-if="notificationStore.connecting" class="status-connecting">
+                      <el-icon class="status-icon"><Loading /></el-icon>
+                      连接中...
+                    </span>
+                    <span v-else-if="!notificationStore.connected" class="status-disconnected">
+                      <el-icon class="status-icon"><WarningFilled /></el-icon>
+                      未连接，稍后自动重试
+                    </span>
                     <span v-if="notificationStore.unreadCount"> · {{ notificationStore.unreadCount }} 未读</span>
                   </div>
                 </div>
@@ -551,17 +661,38 @@ const cachedViews = computed(() => {
               </div>
               <el-empty v-if="!notificationStore.notifications.length" description="暂无消息" />
               <div v-else class="notification-list">
-                <div
-                  v-for="item in notificationStore.notifications.filter(n => !n.read)"
-                  :key="item.id"
-                  :class="['notification-item', !item.read && 'is-unread']"
-                  @click="handleNotificationClick(item.id, item.link)"
-                >
-                  <div class="notification-item__title">{{ item.title }}</div>
-                  <div class="notification-item__content">{{ item.content }}</div>
-                  <div class="notification-item__meta">
-                    <span>{{ new Date(item.receivedAt).toLocaleString() }}</span>
-                    <el-tag v-if="item.link" size="small" type="info" effect="plain">查看详情</el-tag>
+                <!-- 未读消息 -->
+                <div v-if="unreadNotifications.length > 0" class="notification-section">
+                  <div class="section-title">未读消息</div>
+                  <div
+                    v-for="item in unreadNotifications"
+                    :key="item.id"
+                    :class="['notification-item', 'is-unread']"
+                    @click="handleNotificationClick(item)"
+                  >
+                    <div class="notification-item__title">{{ item.title }}</div>
+                    <div class="notification-item__content">{{ item.content }}</div>
+                    <div class="notification-item__meta">
+                      <span>{{ new Date(item.receivedAt).toLocaleString() }}</span>
+                      <el-tag size="small" type="warning" effect="plain">未读</el-tag>
+                    </div>
+                  </div>
+                </div>
+                <!-- 已读消息 -->
+                <div v-if="readNotifications.length > 0" class="notification-section">
+                  <div class="section-title">已读消息</div>
+                  <div
+                    v-for="item in readNotifications"
+                    :key="item.id"
+                    class="notification-item"
+                    @click="handleNotificationClick(item)"
+                  >
+                    <div class="notification-item__title">{{ item.title }}</div>
+                    <div class="notification-item__content">{{ item.content }}</div>
+                    <div class="notification-item__meta">
+                      <span>{{ new Date(item.receivedAt).toLocaleString() }}</span>
+                      <el-tag size="small" type="info" effect="plain">已读</el-tag>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -569,7 +700,7 @@ const cachedViews = computed(() => {
           </el-popover>
           <el-dropdown trigger="click" @command="(cmd) => cmd === 'logout' && handleLogout()">
             <div class="user-dropdown">
-              <el-avatar :size="36" class="user-avatar">
+              <el-avatar :size="36" class="user-avatar" :src="authStore.user?.avatar">
                 {{ authStore.user?.name?.charAt(0) ?? 'G' }}
               </el-avatar>
               <div class="user-info">
@@ -580,6 +711,10 @@ const cachedViews = computed(() => {
             </div>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item :command="'profile'" @click="router.push({ name: 'UserProfile' })">
+                  <el-icon><User /></el-icon>
+                  <span>我的信息</span>
+                </el-dropdown-item>
                 <el-dropdown-item :command="'resetPassword'" @click="router.push({ name: 'ResetPassword' })">
                   <el-icon><Lock /></el-icon>
                   <span>重置密码</span>
@@ -608,6 +743,18 @@ const cachedViews = computed(() => {
     </el-container>
     <!-- 全局聊天组件 -->
     <ChatWidget />
+    <AnnouncementDialog
+      v-if="authStore.isAuthenticated"
+      v-model="announcementDialogVisible"
+      :announcements="unreadAnnouncements"
+      :loading="fetchingAnnouncements"
+      @read="handleAnnouncementRead"
+    />
+    <NotificationDetailDialog
+      v-model="notificationDetailVisible"
+      :notification="currentNotification"
+      @read="handleNotificationRead"
+    />
     <el-dialog
       v-model="commandPaletteVisible"
       width="560px"
@@ -1164,13 +1311,59 @@ const cachedViews = computed(() => {
 .notification-subtitle {
   font-size: 12px;
   color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-icon {
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.status-connecting {
+  color: #409eff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-connected {
+  color: #67c23a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-disconnected {
+  color: #e6a23c;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .notification-list {
   margin-top: 4px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notification-section {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .notification-item {

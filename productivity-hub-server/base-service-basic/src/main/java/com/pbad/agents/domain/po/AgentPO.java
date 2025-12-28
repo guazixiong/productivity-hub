@@ -7,7 +7,7 @@ import java.util.Date;
 /**
  * 智能体实体类（PO）.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

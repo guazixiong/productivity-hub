@@ -3,7 +3,7 @@ package common.util;
 /**
  * 字符串工具类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/10/9 14:01
  * @version: 1.0
  */

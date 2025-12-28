@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 标签网址关联 Mapper 接口.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -17,18 +17,20 @@ public interface BookmarkUrlTagMapper {
     /**
      * 根据网址ID查询关联的标签ID列表
      *
-     * @param urlId 网址ID
+     * @param urlId  网址ID
+     * @param userId 用户ID
      * @return 标签ID列表
      */
-    List<String> selectTagIdsByUrlId(@Param("urlId") String urlId);
+    List<String> selectTagIdsByUrlId(@Param("urlId") String urlId, @Param("userId") String userId);
 
     /**
      * 根据标签ID查询关联的网址ID列表
      *
-     * @param tagId 标签ID
+     * @param tagId  标签ID
+     * @param userId 用户ID
      * @return 网址ID列表
      */
-    List<String> selectUrlIdsByTagId(@Param("tagId") String tagId);
+    List<String> selectUrlIdsByTagId(@Param("tagId") String tagId, @Param("userId") String userId);
 
     /**
      * 插入关联关系

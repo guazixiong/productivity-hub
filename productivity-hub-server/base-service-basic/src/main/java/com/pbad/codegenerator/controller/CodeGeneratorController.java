@@ -21,7 +21,7 @@ import java.util.Optional;
 /**
  * 代码生成器控制器.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */
@@ -50,7 +50,8 @@ public class CodeGeneratorController {
      */
     @GetMapping("/templates")
     public ApiResponse<List<CompanyTemplateVO>> getAllCompanyTemplates() {
-        List<CompanyTemplateVO> templates = codeGeneratorService.getAllCompanyTemplates();
+        String userId = getCurrentUserId();
+        List<CompanyTemplateVO> templates = codeGeneratorService.getAllCompanyTemplates(userId);
         return ApiResponse.ok(templates);
     }
 
@@ -59,7 +60,8 @@ public class CodeGeneratorController {
      */
     @GetMapping("/templates/{id}")
     public ApiResponse<CompanyTemplateVO> getCompanyTemplateById(@PathVariable String id) {
-        CompanyTemplateVO template = codeGeneratorService.getCompanyTemplateById(id);
+        String userId = getCurrentUserId();
+        CompanyTemplateVO template = codeGeneratorService.getCompanyTemplateById(id, userId);
         return ApiResponse.ok(template);
     }
 
@@ -79,7 +81,8 @@ public class CodeGeneratorController {
      */
     @DeleteMapping("/templates/{id}")
     public ApiResponse<Void> deleteCompanyTemplate(@PathVariable String id) {
-        codeGeneratorService.deleteCompanyTemplate(id);
+        String userId = getCurrentUserId();
+        codeGeneratorService.deleteCompanyTemplate(id, userId);
         return ApiResponse.ok(null);
     }
 
@@ -90,7 +93,8 @@ public class CodeGeneratorController {
      */
     @GetMapping("/database-configs")
     public ApiResponse<List<DatabaseConfigVO>> getAllDatabaseConfigs() {
-        List<DatabaseConfigVO> configs = codeGeneratorService.getAllDatabaseConfigs();
+        String userId = getCurrentUserId();
+        List<DatabaseConfigVO> configs = codeGeneratorService.getAllDatabaseConfigs(userId);
         return ApiResponse.ok(configs);
     }
 
@@ -99,7 +103,8 @@ public class CodeGeneratorController {
      */
     @GetMapping("/database-configs/{id}")
     public ApiResponse<DatabaseConfigVO> getDatabaseConfigById(@PathVariable String id) {
-        DatabaseConfigVO config = codeGeneratorService.getDatabaseConfigById(id);
+        String userId = getCurrentUserId();
+        DatabaseConfigVO config = codeGeneratorService.getDatabaseConfigById(id, userId);
         return ApiResponse.ok(config);
     }
 
@@ -119,7 +124,8 @@ public class CodeGeneratorController {
      */
     @DeleteMapping("/database-configs/{id}")
     public ApiResponse<Void> deleteDatabaseConfig(@PathVariable String id) {
-        codeGeneratorService.deleteDatabaseConfig(id);
+        String userId = getCurrentUserId();
+        codeGeneratorService.deleteDatabaseConfig(id, userId);
         return ApiResponse.ok(null);
     }
 
@@ -130,7 +136,8 @@ public class CodeGeneratorController {
      */
     @PostMapping("/parse-table")
     public ApiResponse<List<TableInfoVO>> parseTableStructure(@RequestBody ParseTableRequestDTO request) {
-        List<TableInfoVO> tables = codeGeneratorService.parseTableStructure(request);
+        String userId = getCurrentUserId();
+        List<TableInfoVO> tables = codeGeneratorService.parseTableStructure(request, userId);
         return ApiResponse.ok(tables);
     }
 
@@ -141,7 +148,8 @@ public class CodeGeneratorController {
      */
     @PostMapping("/generate")
     public ApiResponse<List<GeneratedCodeVO>> generateCode(@RequestBody GenerateCodeRequestDTO request) {
-        List<GeneratedCodeVO> codes = codeGeneratorService.generateCode(request);
+        String userId = getCurrentUserId();
+        List<GeneratedCodeVO> codes = codeGeneratorService.generateCode(request, userId);
         return ApiResponse.ok(codes);
     }
 
@@ -150,7 +158,8 @@ public class CodeGeneratorController {
      */
     @PostMapping(value = "/generate/zip", produces = "application/zip")
     public ResponseEntity<byte[]> generateCodeZip(@RequestBody GenerateCodeRequestDTO request) {
-        byte[] zipBytes = codeGeneratorService.generateCodeZip(request);
+        String userId = getCurrentUserId();
+        byte[] zipBytes = codeGeneratorService.generateCodeZip(request, userId);
         String fileName = Optional.ofNullable(request.getTableInfo())
                 .map(TableInfoDTO::getName)
                 .filter(org.springframework.util.StringUtils::hasText)

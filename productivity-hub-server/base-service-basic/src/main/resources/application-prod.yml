@@ -1,0 +1,88 @@
+# 生产环境配置
+server:
+  port: 9881
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://117.72.32.111:33060/productivity_hub?useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true&useSSL=false
+    username: root
+    password: gpgg6bp3quhqhadbnhcw
+    type: com.alibaba.druid.pool.DruidDataSource
+  redis:
+    host: 117.72.32.111
+    port: 6379
+    password: 7gsBD3ddZMt4f1iUT
+    database: 2
+    template:
+      keySerializer: org.springframework.data.redis.serializer.StringRedisSerializer
+      valueSerializer: org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
+
+# MyBatis 配置 - 生产环境关闭 SQL 日志
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    # 生产环境不输出 SQL 日志
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 文件上传配置
+app:
+  upload:
+    avatar-dir: uploads/avatars
+    avatar-path-prefix: /uploads/avatars
+  # 图片管理配置
+  image:
+    base-dir: uploads/images
+    url-prefix: /uploads/images
+    max-file-size: 1048576  # 1MB (单位：字节)
+    allowed-types:
+      - image/jpeg
+      - image/jpg
+      - image/png
+      - image/gif
+      - image/webp
+      - image/bmp
+    allowed-extensions:
+      - jpg
+      - jpeg
+      - png
+      - gif
+      - webp
+      - bmp
+    thumbnail-width: 200
+    thumbnail-height: 200
+    compress-quality: 0.8
+    batch-max-count: 10
+    enable-access-statistics: true
+    cache-days-original: 7
+    cache-days-thumbnail: 30
+    categories:
+      - avatar
+      - bookmark
+      - todo
+      - health
+      - article
+      - other
+
+# 日志配置 - 生产环境只记录错误和警告
+logging:
+  level.org.springframework.boot.autoconfigure: error
+  level.com.productivityhub: info
+  config: classpath:logback.xml
+
+# 短链第三方配置
+shortlink:
+  shortio:
+    api:
+      url: https://api.short.io/links
+      key: sk_wVYaVbwwUICsz214
+
+# 天地图第三方配置
+tianditu:
+  api:
+    key: 40070907c045e3716ba06236e87531b6

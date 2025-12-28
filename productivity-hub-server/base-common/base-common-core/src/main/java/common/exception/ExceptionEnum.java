@@ -3,7 +3,7 @@ package common.exception;
 /**
  * 数据操作错误定义枚举类.
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/9/8 14:59
  * @version: 1.0
  */

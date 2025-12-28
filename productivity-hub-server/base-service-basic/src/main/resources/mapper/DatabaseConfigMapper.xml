@@ -42,6 +42,30 @@
             created_at DESC
     </select>
 
+    <!-- 根据用户ID查询配置列表 -->
+    <select id="selectByUserId" parameterType="string" resultMap="DatabaseConfigResultMap">
+        SELECT
+            id,
+            name,
+            type,
+            host,
+            port,
+            `database`,
+            `schema`,
+            username,
+            password,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM
+            code_generator_database_config
+        WHERE
+            created_by = #{userId}
+        ORDER BY
+            created_at DESC
+    </select>
+
     <!-- 根据ID查询 -->
     <select id="selectById" parameterType="string" resultMap="DatabaseConfigResultMap">
         SELECT
@@ -62,6 +86,29 @@
             code_generator_database_config
         WHERE
             id = #{id}
+    </select>
+
+    <!-- 根据ID和用户ID查询配置（用于权限验证） -->
+    <select id="selectByIdAndUserId" resultMap="DatabaseConfigResultMap">
+        SELECT
+            id,
+            name,
+            type,
+            host,
+            port,
+            `database`,
+            `schema`,
+            username,
+            password,
+            created_at,
+            updated_at,
+            created_by,
+            updated_by
+        FROM
+            code_generator_database_config
+        WHERE
+            id = #{id}
+            AND created_by = #{userId}
     </select>
 
     <!-- 插入配置 -->
@@ -115,9 +162,34 @@
             id = #{id}
     </update>
 
+    <!-- 根据ID和用户ID更新配置（用于权限验证） -->
+    <update id="updateByIdAndUserId" parameterType="com.pbad.codegenerator.domain.po.DatabaseConfigPO">
+        UPDATE code_generator_database_config
+        SET
+            name = #{name},
+            type = #{type},
+            host = #{host},
+            port = #{port},
+            `database` = #{database},
+            `schema` = #{schema},
+            username = #{username},
+            password = #{password},
+            updated_at = #{updatedAt},
+            updated_by = #{updatedBy}
+        WHERE
+            id = #{id}
+            AND created_by = #{createdBy}
+    </update>
+
     <!-- 删除配置 -->
     <delete id="deleteById" parameterType="string">
         DELETE FROM code_generator_database_config WHERE id = #{id}
+    </delete>
+
+    <!-- 根据ID和用户ID删除配置（用于权限验证） -->
+    <delete id="deleteByIdAndUserId">
+        DELETE FROM code_generator_database_config 
+        WHERE id = #{id} AND created_by = #{userId}
     </delete>
 
 </mapper>

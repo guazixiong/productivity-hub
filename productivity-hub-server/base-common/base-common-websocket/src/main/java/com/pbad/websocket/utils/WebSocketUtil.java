@@ -8,7 +8,7 @@ import java.util.concurrent.Future;
  * ClassName: WebSocketUtil
  * description: websocket工具类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/21 9:56
  * @version: 1.0
  */

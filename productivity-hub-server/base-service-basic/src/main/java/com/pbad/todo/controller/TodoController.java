@@ -5,10 +5,12 @@ import com.pbad.todo.domain.dto.TodoModuleUpdateDTO;
 import com.pbad.todo.domain.dto.TodoTaskCreateDTO;
 import com.pbad.todo.domain.dto.TodoTaskInterruptDTO;
 import com.pbad.todo.domain.dto.TodoTaskUpdateDTO;
+import com.pbad.todo.domain.dto.TodoImportRequestDTO;
 import com.pbad.todo.domain.vo.TodoEventVO;
 import com.pbad.todo.domain.vo.TodoModuleVO;
 import com.pbad.todo.domain.vo.TodoStatsVO;
 import com.pbad.todo.domain.vo.TodoTaskVO;
+import com.pbad.todo.domain.vo.TodoImportResultVO;
 import com.pbad.todo.service.TodoModuleService;
 import com.pbad.todo.service.TodoTaskService;
 import common.core.domain.ApiResponse;
@@ -116,6 +118,13 @@ public class TodoController {
         return ApiResponse.ok(null);
     }
 
+    @DeleteMapping("/tasks/batch")
+    public ApiResponse<Void> batchDeleteTasks(@RequestBody List<String> ids, HttpServletRequest request) {
+        String userId = currentUserId(request);
+        taskService.batchDeleteTasks(ids, userId);
+        return ApiResponse.ok(null);
+    }
+
     @PostMapping("/tasks/{id}/start")
     public ApiResponse<TodoTaskVO> startTask(@PathVariable String id, HttpServletRequest request) {
         String userId = currentUserId(request);
@@ -146,6 +155,12 @@ public class TodoController {
                                                  HttpServletRequest request) {
         String userId = currentUserId(request);
         return ApiResponse.ok(taskService.interruptTask(id, userId, dto, false));
+    }
+
+    @PostMapping("/tasks/import")
+    public ApiResponse<TodoImportResultVO> importTasks(@RequestBody TodoImportRequestDTO dto, HttpServletRequest request) {
+        String userId = currentUserId(request);
+        return ApiResponse.ok(taskService.importTasks(userId, dto == null ? null : dto.getItems()));
     }
 
     @GetMapping("/tasks/{id}/events")

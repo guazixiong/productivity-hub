@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 公司代码模板实体类（PO）.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-01-XX
  * @version: 1.0
  */

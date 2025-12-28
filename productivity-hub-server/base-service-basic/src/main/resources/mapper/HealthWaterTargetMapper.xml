@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.health.mapper.HealthWaterTargetMapper">
+
+    <resultMap id="BaseResultMap" type="com.pbad.health.domain.po.HealthWaterTargetPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="dailyTargetMl" column="daily_target_ml"/>
+        <result property="reminderEnabled" column="reminder_enabled"/>
+        <result property="reminderIntervals" column="reminder_intervals"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, daily_target_ml, reminder_enabled, reminder_intervals, created_at, updated_at
+    </sql>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM health_water_target
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.pbad.health.domain.po.HealthWaterTargetPO">
+        INSERT INTO health_water_target (
+            id, user_id, daily_target_ml, reminder_enabled, reminder_intervals, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{dailyTargetMl}, #{reminderEnabled}, #{reminderIntervals},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="update" parameterType="com.pbad.health.domain.po.HealthWaterTargetPO">
+        UPDATE health_water_target
+        SET
+            daily_target_ml = #{dailyTargetMl},
+            reminder_enabled = #{reminderEnabled},
+            reminder_intervals = #{reminderIntervals},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE user_id = #{userId}
+    </update>
+
+    <delete id="deleteByUserId">
+        DELETE FROM health_water_target
+        WHERE user_id = #{userId}
+    </delete>
+
+    <select id="selectUserIdsWithReminderEnabled" resultType="java.lang.String">
+        SELECT user_id
+        FROM health_water_target
+        WHERE reminder_enabled = 1
+    </select>
+
+    <select id="selectAllUserIds" resultType="java.lang.String">
+        SELECT user_id
+        FROM health_water_target
+    </select>
+
+</mapper>
+

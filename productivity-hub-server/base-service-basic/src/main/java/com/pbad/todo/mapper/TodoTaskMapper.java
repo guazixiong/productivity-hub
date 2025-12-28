@@ -35,6 +35,8 @@ public interface TodoTaskMapper {
 
     int deleteTask(@Param("id") String id, @Param("userId") String userId);
 
+    int batchDeleteTasks(@Param("ids") List<String> ids, @Param("userId") String userId);
+
     List<TodoModuleStatsPO> aggregateByModule(@Param("userId") String userId,
                                               @Param("start") LocalDateTime start,
                                               @Param("end") LocalDateTime end);

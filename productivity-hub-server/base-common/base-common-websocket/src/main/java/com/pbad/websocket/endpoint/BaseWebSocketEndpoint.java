@@ -15,7 +15,7 @@ import java.util.Date;
  * ClassName: BaseWebSocketEndpoint
  * description:websocketEndpoint 基础类
  *
- * @author: pangdi
+ * @author: pbad
  * @date: 2023/4/21 17:17
  * @version: 1.0
  */

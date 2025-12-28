@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Web MVC 配置.
  *
- * @author: system
+ * @author: pbad
  * @date: 2025-11-29
  * @version: 1.0
  */

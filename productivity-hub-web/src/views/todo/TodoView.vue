@@ -17,11 +17,13 @@ import {
   View,
   Plus,
   FullScreen,
+  UploadFilled,
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { todoApi } from '@/services/todoApi'
-import type { TodoModule, TodoStats, TodoTask } from '@/types/todo'
+import type { TodoImportResult, TodoModule, TodoStats, TodoTask, TodoImportItem } from '@/types/todo'
 import TodoDashboard from './TodoDashboard.vue'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 
@@ -33,6 +35,10 @@ const stats = ref<TodoStats | null>(null)
 const selectedModuleId = ref<string>('')
 const statusFilter = ref<string>('')
 const modulesCollapsed = ref(false)
+
+// 批量删除相关
+const selectedTasks = ref<TodoTask[]>([])
+const batchDeleteLoading = ref(false)
 
 // 分页相关
 const pageNum = ref(1)
@@ -65,6 +71,25 @@ const moduleForm = reactive({
   description: '',
   sortOrder: 0,
 })
+
+const importDialogVisible = ref(false)
+const importText = ref('')
+const importLoading = ref(false)
+const importResult = ref<TodoImportResult | null>(null)
+const selectedFile = ref<File | null>(null)
+const uploadRef = ref()
+const currentStep = ref(0) // 0: 上传文件, 1: 预览, 2: 结果
+const previewData = ref<TodoImportItem[]>([])
+const previewTableColumns = [
+  { prop: 'rowIndex', label: '行号', width: 80, fixed: 'left' },
+  { prop: 'moduleName', label: '模块', width: 120 },
+  { prop: 'title', label: '标题', minWidth: 200 },
+  { prop: 'priority', label: '优先级', width: 100 },
+  { prop: 'dueDate', label: '截止日期', width: 150 },
+  { prop: 'tags', label: '标签', width: 150 },
+  { prop: 'description', label: '描述', minWidth: 200 },
+]
+const previewErrors = ref<Array<{ row: number; message: string }>>([])
 
 // 大屏模式（改为跳转独立路由）
 const dashboardVisible = ref(false) // 保留字段避免破坏现有逻辑/模板，实际不再使用弹窗
@@ -289,6 +314,7 @@ const submitTask = async () => {
   taskDialogVisible.value = false
   await loadTasks()
   await loadStats()
+  await loadModules()
 }
 
 const confirmDeleteTask = async (task: TodoTask) => {
@@ -297,30 +323,76 @@ const confirmDeleteTask = async (task: TodoTask) => {
   ElMessage.success('已删除')
   await loadTasks()
   await loadStats()
+  await loadModules()
+}
+
+const handleSelectionChange = (selection: TodoTask[]) => {
+  selectedTasks.value = selection
+}
+
+const handleBatchDelete = async () => {
+  if (selectedTasks.value.length === 0) {
+    ElMessage.warning('请先选择要删除的任务')
+    return
+  }
+
+  // 检查是否有进行中的任务
+  const inProgressTasks = selectedTasks.value.filter(t => t.status === 'IN_PROGRESS')
+  if (inProgressTasks.length > 0) {
+    ElMessage.warning('进行中的任务不能删除，请先暂停或完成')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定删除选中的 ${selectedTasks.value.length} 个任务吗？`,
+      '批量删除确认',
+      { type: 'warning' }
+    )
+    
+    batchDeleteLoading.value = true
+    const ids = selectedTasks.value.map(t => t.id)
+    await todoApi.batchDeleteTasks(ids)
+    ElMessage.success(`已删除 ${selectedTasks.value.length} 个任务`)
+    selectedTasks.value = []
+    await loadTasks()
+    await loadStats()
+    await loadModules()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error((error as Error).message || '批量删除失败，请稍后再试')
+    }
+  } finally {
+    batchDeleteLoading.value = false
+  }
 }
 
 const handleStart = async (task: TodoTask) => {
   await todoApi.startTask(task.id)
   await loadTasks()
   await loadStats()
+  await loadModules()
 }
 
 const handlePause = async (task: TodoTask) => {
   await todoApi.pauseTask(task.id)
   await loadTasks()
   await loadStats()
+  await loadModules()
 }
 
 const handleComplete = async (task: TodoTask) => {
   await todoApi.completeTask(task.id)
   await loadTasks()
   await loadStats()
+  await loadModules()
 }
 
 const handleInterrupt = async (task: TodoTask) => {
   await todoApi.interruptTask(task.id, { reason: 'manual' })
   await loadTasks()
   await loadStats()
+  await loadModules()
 }
 
 const openModuleDialog = (module?: TodoModule) => {
@@ -367,6 +439,236 @@ const openDashboard = () => {
     query: selectedModuleId.value ? { moduleId: selectedModuleId.value } : {},
   }).href
   window.open(url, '_blank')
+}
+
+const openImportDialog = () => {
+  importDialogVisible.value = true
+  importText.value = ''
+  importResult.value = null
+  selectedFile.value = null
+  currentStep.value = 0
+  uploadRef.value?.clearFiles()
+}
+
+const handleFileChange = (file: any) => {
+  selectedFile.value = file.raw
+}
+
+const handleDownloadTemplate = async () => {
+  try {
+    await todoApi.downloadTemplate()
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    ElMessage.error('模板下载失败')
+  }
+}
+
+const parseExcelFile = async (file: File): Promise<TodoImportItem[]> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][]
+
+        if (jsonData.length < 2) {
+          throw new Error('Excel文件至少需要表头和数据行')
+        }
+
+        // 解析表头，支持中英文列名
+        const headerRow = jsonData[0]
+        const colMap: Record<string, number> = {}
+        const headerMap: Record<string, string[]> = {
+          moduleName: ['模块', '模块名称', 'module', 'moduleName'],
+          title: ['标题', '任务标题', 'title', 'taskTitle'],
+          priority: ['优先级', 'priority'],
+          dueDate: ['截止日期', '到期日期', 'dueDate', 'due'],
+          tags: ['标签', 'tag', 'tags'],
+          description: ['描述', '说明', 'description', 'desc'],
+        }
+
+        headerRow.forEach((cell: any, index: number) => {
+          const cellValue = String(cell || '').trim()
+          Object.keys(headerMap).forEach((key) => {
+            if (headerMap[key].some((h) => cellValue.includes(h) || h.includes(cellValue))) {
+              colMap[key] = index
+            }
+          })
+        })
+
+        // 如果没有找到表头，使用固定列顺序（兼容旧格式）
+        if (Object.keys(colMap).length === 0) {
+          colMap.moduleName = 0
+          colMap.title = 1
+          colMap.priority = 2
+          colMap.dueDate = 3
+          colMap.tags = 4
+          colMap.description = 5
+        }
+
+        // 验证必需字段
+        if (colMap.moduleName === undefined || colMap.title === undefined) {
+          throw new Error('Excel文件缺少必需字段：模块和标题')
+        }
+
+        // 从第二行开始解析数据
+        const items: TodoImportItem[] = []
+        const errors: string[] = []
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i]
+          if (!row || row.length === 0) continue
+
+          // 检查是否为空行
+          const isEmptyRow = row.every((cell: any) => !String(cell || '').trim())
+          if (isEmptyRow) continue
+
+          const moduleName = String(row[colMap.moduleName] || '').trim()
+          const title = String(row[colMap.title] || '').trim()
+          const priority = colMap.priority !== undefined ? String(row[colMap.priority] || '').trim() : ''
+          const dueDate = colMap.dueDate !== undefined ? String(row[colMap.dueDate] || '').trim() : ''
+          const tagsStr = colMap.tags !== undefined ? String(row[colMap.tags] || '').trim() : ''
+          const description = colMap.description !== undefined ? String(row[colMap.description] || '').trim() : ''
+
+          // 验证必需字段
+          if (!moduleName) {
+            errors.push(`第 ${i + 1} 行：模块名称不能为空`)
+            continue
+          }
+          if (!title) {
+            errors.push(`第 ${i + 1} 行：任务标题不能为空`)
+            continue
+          }
+
+          // 验证优先级
+          let validPriority: TodoTask['priority'] | undefined
+          if (priority) {
+            if (['P0', 'P1', 'P2', 'P3'].includes(priority)) {
+              validPriority = priority as TodoTask['priority']
+            } else {
+              errors.push(`第 ${i + 1} 行：优先级 "${priority}" 无效，应为 P0/P1/P2/P3`)
+            }
+          }
+
+          // 验证日期格式（支持多种格式）
+          let validDueDate: string | undefined
+          if (dueDate) {
+            // 支持多种日期格式：YYYY-MM-DD, YYYY/MM/DD, YYYY-MM-DD HH:mm:ss, YYYY/MM/DD HH:mm:ss
+            const dateRegex = /^\d{4}[-\/]\d{2}[-\/]\d{2}(\s+\d{2}:\d{2}(:\d{2})?)?$/
+            if (dateRegex.test(dueDate)) {
+              // 统一转换为 YYYY-MM-DD HH:mm:ss 格式
+              validDueDate = dueDate.replace(/\//g, '-')
+              // 如果没有时间部分，添加默认时间 00:00:00
+              if (!validDueDate.includes(' ')) {
+                validDueDate = validDueDate + ' 00:00:00'
+              } else if (validDueDate.split(' ')[1].split(':').length === 2) {
+                validDueDate = validDueDate + ':00'
+              }
+            } else {
+              errors.push(`第 ${i + 1} 行：日期格式 "${dueDate}" 无效，应为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss`)
+            }
+          }
+
+          const tags = tagsStr ? tagsStr.split('|').map((t) => t.trim()).filter(Boolean) : []
+
+          items.push({
+            moduleName,
+            title,
+            priority: validPriority,
+            dueDate: validDueDate,
+            tags: tags.length > 0 ? tags : undefined,
+            description: description || undefined,
+            rowIndex: i + 1, // 添加行号用于显示
+          } as TodoImportItem & { rowIndex: number })
+        }
+
+        if (items.length === 0) {
+          throw new Error('Excel文件中没有有效数据')
+        }
+
+        // 保存验证错误
+        previewErrors.value = errors.map((err) => {
+          const match = err.match(/第 (\d+) 行/)
+          return {
+            row: match ? parseInt(match[1]) : 0,
+            message: err,
+          }
+        })
+
+        if (errors.length > 0) {
+          // 如果有验证错误，先显示警告，但允许继续导入
+          ElMessage.warning(`发现 ${errors.length} 条数据验证问题，将在预览中显示`)
+        }
+
+        resolve(items)
+      } catch (error) {
+        reject(error)
+      }
+    }
+    reader.onerror = () => reject(new Error('文件读取失败'))
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+const handlePreview = async () => {
+  if (!selectedFile.value) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  
+  importLoading.value = true
+  previewErrors.value = []
+  try {
+    const items = await parseExcelFile(selectedFile.value)
+    previewData.value = items
+    currentStep.value = 1
+  } catch (error) {
+    ElMessage.error((error as Error).message || '文件解析失败')
+  } finally {
+    importLoading.value = false
+  }
+}
+
+const handleImport = async () => {
+  // 防止重复提交
+  if (importLoading.value) {
+    return
+  }
+  
+  if (previewData.value.length === 0) {
+    ElMessage.warning('没有可导入的数据')
+    return
+  }
+
+  importLoading.value = true
+  try {
+    const res = await todoApi.importTasks({ items: previewData.value })
+    importResult.value = res
+    currentStep.value = 2
+    ElMessage.success(`导入完成，成功 ${res.success} 条，失败 ${res.failed} 条`)
+    await refreshAll()
+  } catch (error) {
+    ElMessage.error((error as Error).message || '导入失败，请检查格式或稍后再试')
+  } finally {
+    importLoading.value = false
+  }
+}
+
+const handleImportClose = () => {
+  importDialogVisible.value = false
+  importText.value = ''
+  importResult.value = null
+  selectedFile.value = null
+  previewData.value = []
+  previewErrors.value = []
+  currentStep.value = 0
+  uploadRef.value?.clearFiles()
+}
+
+const getRowErrors = (rowIndex: number) => {
+  return previewErrors.value.filter((err) => err.row === rowIndex).map((err) => err.message)
 }
 </script>
 
@@ -471,6 +773,9 @@ const openDashboard = () => {
                 <el-icon><Plus /></el-icon>
                 新增任务
               </el-button>
+              <el-button @click="openImportDialog()">
+                批量导入
+              </el-button>
               <el-button type="success" @click="openDashboard()">
                 <el-icon><FullScreen /></el-icon>
                 大屏模式
@@ -500,6 +805,18 @@ const openDashboard = () => {
         <el-card shadow="hover" class="mt-12 task-list-card">
           <div class="table-header">
             <div class="table-title">任务列表</div>
+            <div class="table-actions">
+              <el-button 
+                v-if="selectedTasks.length > 0"
+                type="danger" 
+                size="small"
+                :loading="batchDeleteLoading"
+                @click="handleBatchDelete"
+              >
+                <el-icon><Delete /></el-icon>
+                批量删除 ({{ selectedTasks.length }})
+              </el-button>
+            </div>
           </div>
           <el-table 
             :data="tasks" 
@@ -509,7 +826,9 @@ const openDashboard = () => {
             :row-class-name="getRowClassName"
             border
             size="default"
+            @selection-change="handleSelectionChange"
           >
+            <el-table-column type="selection" width="55" align="center" />
             <el-table-column prop="title" label="任务标题" min-width="250" show-overflow-tooltip>
               <template #default="{ row }">
                 <div class="task-title-cell">
@@ -710,6 +1029,139 @@ const openDashboard = () => {
           <el-button type="primary" @click="submitModule" v-button-lock>保存</el-button>
         </el-space>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="importDialogVisible" title="批量导入任务" width="720px" @close="handleImportClose">
+      <div class="import-content">
+        <el-steps :active="currentStep" finish-status="success" align-center>
+          <el-step title="上传文件" />
+          <el-step title="预览数据" />
+          <el-step title="导入结果" />
+        </el-steps>
+
+        <div class="step-content">
+          <!-- 步骤1：上传文件 -->
+          <div v-if="currentStep === 0" class="upload-step">
+            <el-upload
+              ref="uploadRef"
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              :limit="1"
+              accept=".xlsx,.xls"
+              drag
+            >
+              <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+              <div class="el-upload__text">
+                将Excel文件拖到此处，或<em>点击上传</em>
+              </div>
+              <template #tip>
+                <div class="el-upload__tip">
+                  只能上传 .xlsx 或 .xls 格式的Excel文件
+                </div>
+              </template>
+            </el-upload>
+
+            <div class="upload-actions">
+              <el-button @click="handleDownloadTemplate">下载模板</el-button>
+              <el-button
+                type="primary"
+                :disabled="!selectedFile"
+                @click="handlePreview"
+              >
+                下一步：预览数据
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 步骤2：预览数据 -->
+          <div v-if="currentStep === 1" class="preview-step">
+            <div class="preview-info">
+              <el-alert
+                :title="`已解析 ${previewData.length} 条数据，请确认后导入`"
+                type="info"
+                :closable="false"
+                show-icon
+              />
+            </div>
+
+            <div class="preview-table-wrapper">
+              <el-alert
+                v-if="previewErrors.length > 0"
+                :title="`发现 ${previewErrors.length} 条数据验证问题`"
+                type="warning"
+                :closable="false"
+                show-icon
+                class="mb-12"
+              >
+                <ul class="preview-error-list">
+                  <li v-for="(err, idx) in previewErrors.slice(0, 5)" :key="idx">{{ err.message }}</li>
+                  <li v-if="previewErrors.length > 5">... 还有 {{ previewErrors.length - 5 }} 条错误</li>
+                </ul>
+              </el-alert>
+              <el-table 
+                :data="previewData" 
+                border 
+                stripe 
+                max-height="400" 
+                style="width: 100%"
+                :row-class-name="({ row }: { row: any }) => getRowErrors(row.rowIndex).length > 0 ? 'row-with-error' : ''"
+              >
+                <el-table-column
+                  v-for="col in previewTableColumns"
+                  :key="col.prop"
+                  :prop="col.prop"
+                  :label="col.label"
+                  :width="col.width"
+                  :min-width="col.minWidth"
+                  :fixed="col.fixed"
+                  show-overflow-tooltip
+                >
+                  <template #default="{ row }">
+                    <span v-if="col.prop === 'tags'">
+                      {{ row.tags && row.tags.length > 0 ? row.tags.join(' | ') : '-' }}
+                    </span>
+                    <span v-else>{{ row[col.prop] || '-' }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
+            <div class="preview-actions">
+              <el-button @click="currentStep = 0">上一步</el-button>
+              <el-button type="primary" @click="handleImport" :loading="importLoading" v-button-lock>
+                确认导入 ({{ previewData.length }} 条)
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 步骤3：导入结果 -->
+          <div v-if="currentStep === 2" class="result-step">
+            <el-result
+              :icon="importResult && importResult.failed === 0 ? 'success' : 'warning'"
+              :title="importResult && importResult.failed === 0 ? '导入成功' : '导入完成'"
+              :sub-title="importResult ? `成功：${importResult.success}，失败：${importResult.failed}，新建模块：${importResult.createdModules}` : ''"
+            >
+              <template #extra>
+                <div v-if="importResult && importResult.errors && importResult.errors.length > 0" class="error-list">
+                  <el-alert
+                    title="错误信息"
+                    type="error"
+                    :closable="false"
+                    show-icon
+                  >
+                    <ul class="error-items">
+                      <li v-for="(error, index) in importResult.errors" :key="index">
+                        {{ error }}
+                      </li>
+                    </ul>
+                  </el-alert>
+                </div>
+                <el-button type="primary" @click="handleImportClose">完成</el-button>
+              </template>
+            </el-result>
+          </div>
+        </div>
+      </div>
     </el-dialog>
 
     <el-drawer v-model="taskDetailDrawerVisible" title="任务详情" size="50%" direction="rtl">
@@ -1044,6 +1496,12 @@ const openDashboard = () => {
   font-weight: 600;
 }
 
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .mt-12 {
   margin-top: 12px;
 }
@@ -1229,6 +1687,85 @@ const openDashboard = () => {
 .dashboard-wrapper {
   width: 100%;
   height: 100%;
+}
+
+.import-content {
+  padding: 20px 0;
+}
+
+.step-content {
+  margin-top: 30px;
+  min-height: 300px;
+}
+
+.upload-step {
+  text-align: center;
+}
+
+.upload-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.preview-step {
+  padding: 0 20px;
+}
+
+.preview-info {
+  margin-bottom: 20px;
+}
+
+.preview-table-wrapper {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.preview-error-list {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  text-align: left;
+  font-size: 12px;
+}
+
+.preview-error-list li {
+  margin-bottom: 4px;
+}
+
+.preview-table-wrapper :deep(.row-with-error) {
+  background-color: rgba(245, 108, 108, 0.1);
+}
+
+.preview-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.result-step {
+  padding: 20px;
+}
+
+.error-list {
+  margin-top: 20px;
+  max-width: 600px;
+}
+
+.error-items {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.error-items li {
+  margin-bottom: 5px;
+  font-size: 12px;
 }
 </style>
 
