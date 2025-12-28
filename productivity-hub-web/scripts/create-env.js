@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const envType = process.argv[2] || 'development'
+const force = process.argv.includes('--force') || process.argv.includes('-f')
 const envFile = `.env.${envType}`
 
 const configs = {
@@ -37,9 +38,10 @@ if (!config) {
 const filePath = path.join(__dirname, '..', envFile)
 
 // 如果文件已存在，询问是否覆盖
-if (fs.existsSync(filePath)) {
+if (fs.existsSync(filePath) && !force) {
   console.log(`文件 ${envFile} 已存在`)
-  console.log('如需重新生成，请先删除该文件')
+  console.log('如需重新生成，请使用 --force 或 -f 参数覆盖')
+  console.log(`  例如: npm run env:${envType === 'development' ? 'dev' : 'prod'} -- --force`)
   process.exit(0)
 }
 

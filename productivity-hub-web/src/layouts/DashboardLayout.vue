@@ -44,6 +44,9 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/code-generator')) return '/code-generator'
   if (route.path.startsWith('/bookmark')) return '/bookmark'
   if (route.path.startsWith('/health')) return route.path
+  if (route.path.startsWith('/quick-record')) return '/quick-record'
+  if (route.path.startsWith('/health-stats')) return '/health-stats'
+  if (route.path.startsWith('/common-tools')) return '/common-tools'
   return route.path
 })
 
@@ -61,7 +64,7 @@ const pageTitle = computed(() => {
 const defaultOpenMenus = computed(() => {
   const openeds: string[] = []
 
-  if (route.path.startsWith('/home') || route.path.startsWith('/todo') || route.path.startsWith('/messages')) {
+  if (route.path.startsWith('/home') || route.path.startsWith('/todo') || route.path.startsWith('/messages') || route.path.startsWith('/quick-record') || route.path.startsWith('/health-stats') || route.path.startsWith('/common-tools')) {
     openeds.push('workbench')
   }
 
@@ -471,6 +474,10 @@ const cachedViews = computed(() => {
             <el-menu-item index="/messages">
               <el-icon><Message /></el-icon>
               <template #title>消息中心</template>
+            </el-menu-item>
+            <el-menu-item index="/quick-record">
+              <el-icon><Document /></el-icon>
+              <template #title>快捷记录</template>
             </el-menu-item>
           </el-sub-menu>
 

@@ -291,6 +291,30 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '健康统计' },
         component: () => import('@/views/health/HealthStatisticsView.vue'),
       },
+      {
+        path: 'health/quick-statistics',
+        name: 'HealthQuickStatistics',
+        meta: { title: '快捷记录与统计' },
+        component: () => import('@/views/quick-record/QuickRecordView.vue'),
+      },
+      {
+        path: 'quick-record',
+        name: 'QuickRecord',
+        meta: { title: '快捷记录' },
+        component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
+      },
+      {
+        path: 'health-stats',
+        name: 'HealthStats',
+        meta: { title: '健康统计' },
+        component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
+      },
+      {
+        path: 'common-tools',
+        name: 'CommonTools',
+        meta: { title: '常用工具' },
+        component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
+      },
     ],
   },
   {

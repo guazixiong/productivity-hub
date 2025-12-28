@@ -241,17 +241,29 @@ export const useNotificationStore = defineStore('notifications', () => {
       let wsHost: string
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
       
+      console.log('[WebSocket] 环境变量 VITE_API_BASE_URL:', apiBaseUrl || '(未设置)')
+      console.log('[WebSocket] 当前页面 host:', window.location.host)
+      
       if (apiBaseUrl) {
         // 从 API 基础地址提取 host
         try {
           const urlObj = new URL(apiBaseUrl)
           wsHost = urlObj.host
-        } catch {
+          console.log('[WebSocket] 从环境变量提取的 host:', wsHost)
+          
+          // 验证端口是否合理（后端默认端口是 9881）
+          const port = urlObj.port ? parseInt(urlObj.port, 10) : (urlObj.protocol === 'https:' ? 443 : 80)
+          if (port && port !== 9881 && port !== 443 && port !== 80) {
+            console.warn(`[WebSocket] 警告: 检测到非常规端口 ${port}，后端服务默认端口为 9881。如果连接失败，请检查 .env.production 文件中的 VITE_API_BASE_URL 配置。`)
+          }
+        } catch (e) {
           // 如果解析失败，使用 window.location.host
+          console.warn('[WebSocket] 环境变量解析失败，使用当前页面 host:', e)
           wsHost = window.location.host
         }
       } else {
         // 开发环境：使用当前 host（通过 Vite 代理）
+        console.log('[WebSocket] 环境变量未设置，使用当前页面 host（开发环境通过 Vite 代理）')
         wsHost = window.location.host
       }
       

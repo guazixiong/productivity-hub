@@ -43,8 +43,6 @@
             AND status = #{status}
         </if>
         ORDER BY 
-            CASE WHEN due_date IS NULL THEN 1 ELSE 0 END,
-            due_date ASC,
             CASE priority
                 WHEN 'P0' THEN 0
                 WHEN 'P1' THEN 1
@@ -59,7 +57,9 @@
                 WHEN 'COMPLETED' THEN 3
                 WHEN 'INTERRUPTED' THEN 4
                 ELSE 5
-            END ASC
+            END ASC,
+            CASE WHEN due_date IS NULL THEN 1 ELSE 0 END,
+            due_date DESC
     </select>
 
     <select id="selectByUserWithPage" resultMap="TodoTaskResultMap">
@@ -74,8 +74,6 @@
             AND status = #{status}
         </if>
         ORDER BY 
-            CASE WHEN due_date IS NULL THEN 1 ELSE 0 END,
-            due_date ASC,
             CASE priority
                 WHEN 'P0' THEN 0
                 WHEN 'P1' THEN 1
@@ -90,7 +88,9 @@
                 WHEN 'COMPLETED' THEN 3
                 WHEN 'INTERRUPTED' THEN 4
                 ELSE 5
-            END ASC
+            END ASC,
+            CASE WHEN due_date IS NULL THEN 1 ELSE 0 END,
+            due_date DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 

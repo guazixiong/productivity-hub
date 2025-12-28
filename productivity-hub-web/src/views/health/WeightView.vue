@@ -238,15 +238,21 @@
             <el-option label="其他" value="OTHER" />
           </el-select>
         </el-form-item>
-        <el-form-item label="目标体重(kg)">
-          <el-input-number
-            v-model="bodyInfoForm.targetWeightKg"
-            :min="20"
-            :max="300"
-            :precision="2"
-            placeholder="请输入目标体重"
-            style="width: 100%"
-          />
+        <el-form-item label="目标体重" prop="targetWeightKg">
+          <div style="display: flex; gap: 10px; width: 100%">
+            <el-input-number
+              v-model="bodyInfoForm.targetWeightKg"
+              :min="targetWeightUnit === 'kg' ? 20 : 40"
+              :max="targetWeightUnit === 'kg' ? 300 : 600"
+              :precision="2"
+              :placeholder="`请输入目标体重(${targetWeightUnit === 'kg' ? '公斤' : '斤'})`"
+              style="flex: 1"
+            />
+            <el-select v-model="targetWeightUnit" style="width: 100px" @change="handleTargetWeightUnitChange">
+              <el-option label="公斤" value="kg" />
+              <el-option label="斤" value="jin" />
+            </el-select>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -293,6 +299,7 @@ const formRef = ref<FormInstance>()
 const bodyInfoFormRef = ref<FormInstance>()
 const currentRecord = ref<Partial<WeightRecord> | undefined>(undefined)
 const weightUnit = ref<'kg' | 'jin'>('kg')
+const targetWeightUnit = ref<'kg' | 'jin'>('kg')
 
 const form = reactive<WeightRecordDTO>({
   recordDate: new Date().toISOString().split('T')[0],
@@ -393,7 +400,27 @@ const bodyInfoRules: FormRules = {
     { type: 'number', min: 100, max: 250, message: '身高必须在100.00-250.00cm之间', trigger: 'blur' }
   ],
   targetWeightKg: [
-    { type: 'number', min: 20, max: 300, message: '目标体重必须在20.00-300.00kg之间', trigger: 'blur' }
+    { 
+      validator: (rule: any, value: number, callback: any) => {
+        if (value === undefined || value === null) {
+          callback()
+          return
+        }
+        if (targetWeightUnit.value === 'kg') {
+          if (value < 20 || value > 300) {
+            callback(new Error('目标体重必须在20.00-300.00公斤之间'))
+            return
+          }
+        } else {
+          if (value < 40 || value > 600) {
+            callback(new Error('目标体重必须在40.00-600.00斤之间'))
+            return
+          }
+        }
+        callback()
+      },
+      trigger: 'blur' 
+    }
   ],
 }
 
@@ -420,6 +447,8 @@ const loadBodyInfo = async () => {
     const data = await healthApi.getBodyInfo()
     bodyInfo.value = data
     if (data) {
+      // 重置单位选择为公斤（因为数据库存储的是公斤）
+      targetWeightUnit.value = 'kg'
       Object.assign(bodyInfoForm, {
         heightCm: data.heightCm,
         birthDate: data.birthDate,
@@ -428,6 +457,7 @@ const loadBodyInfo = async () => {
       })
     } else {
       // 如果没有数据，重置表单
+      targetWeightUnit.value = 'kg'
       Object.assign(bodyInfoForm, {
         heightCm: undefined,
         birthDate: undefined,
@@ -473,6 +503,19 @@ const handleWeightUnitChange = () => {
     } else {
       // 从斤转为公斤
       form.weightKg = form.weightKg / 2
+    }
+  }
+}
+
+const handleTargetWeightUnitChange = () => {
+  // 单位切换时，转换目标体重值
+  if (bodyInfoForm.targetWeightKg && bodyInfoForm.targetWeightKg > 0) {
+    if (targetWeightUnit.value === 'jin') {
+      // 从公斤转为斤
+      bodyInfoForm.targetWeightKg = bodyInfoForm.targetWeightKg * 2
+    } else {
+      // 从斤转为公斤
+      bodyInfoForm.targetWeightKg = bodyInfoForm.targetWeightKg / 2
     }
   }
 }
@@ -559,7 +602,13 @@ const handleSaveBodyInfo = async () => {
   await bodyInfoFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
-        await healthApi.setBodyInfo(bodyInfoForm)
+        // 如果单位是斤，转换为公斤
+        const submitData = { ...bodyInfoForm }
+        if (targetWeightUnit.value === 'jin' && submitData.targetWeightKg) {
+          submitData.targetWeightKg = submitData.targetWeightKg / 2
+        }
+        
+        await healthApi.setBodyInfo(submitData)
         ElMessage.success('保存成功')
         showBodyInfoDialog.value = false
         await loadBodyInfo()

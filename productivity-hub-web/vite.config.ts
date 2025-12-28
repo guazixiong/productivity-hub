@@ -17,6 +17,19 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, 'src'),
       },
     },
+    build: {
+      // 确保构建输出一致
+      rollupOptions: {
+        output: {
+          // 确保 chunk 文件名格式一致
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
+        },
+      },
+      // 确保所有资源都被正确包含
+      assetsInlineLimit: 4096,
+    },
     server: {
       proxy: {
         '/api': {

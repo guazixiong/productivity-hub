@@ -19,7 +19,9 @@ import org.springframework.util.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -39,6 +41,8 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
     private final CompanyTemplateMapper companyTemplateMapper;
     private final DatabaseConfigMapper databaseConfigMapper;
     private final IdGeneratorApi idGeneratorApi;
+    
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     // ========== 公司模板管理 ==========
 
@@ -48,7 +52,7 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         List<CompanyTemplatePO> poList = companyTemplateMapper.selectByUserId(userId);
         if (poList.isEmpty()) {
             CompanyTemplatePO defaultTemplate = createDefaultCompanyTemplate(userId);
-            companyTemplateMapper.insert(defaultTemplate);
+            // createDefaultCompanyTemplate already inserts the record, no need to insert again
             poList = Collections.singletonList(defaultTemplate);
         }
         return poList.stream().map(this::convertToTemplateVO).collect(Collectors.toList());
@@ -71,6 +75,7 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
             throw new BusinessException("400", "模板名称和基础包名不能为空");
         }
 
+        String now = DATE_FORMAT.format(new Date());
         CompanyTemplatePO po = new CompanyTemplatePO();
         if (StringUtils.hasText(dto.getId())) {
             // 更新
@@ -80,10 +85,12 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
             }
             po.setId(dto.getId());
             po.setCreatedBy(existing.getCreatedBy()); // 保持原有的创建人
+            po.setCreatedAt(existing.getCreatedAt()); // 保持原有的创建时间
         } else {
             // 创建
             po.setId(idGeneratorApi.generateId());
             po.setCreatedBy(userId);
+            po.setCreatedAt(now);
         }
 
         po.setName(dto.getName());
@@ -92,6 +99,7 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         po.setAuthor(dto.getAuthor());
         po.setTemplatesJson(JSON.toJSONString(dto.getTemplates()));
         po.setUpdatedBy(userId);
+        po.setUpdatedAt(now);
 
         if (StringUtils.hasText(dto.getId())) {
             // 使用带用户ID验证的更新方法
@@ -145,6 +153,7 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
             throw new BusinessException("400", "配置名称、主机和数据库名不能为空");
         }
 
+        String now = DATE_FORMAT.format(new Date());
         DatabaseConfigPO po = new DatabaseConfigPO();
         if (StringUtils.hasText(dto.getId())) {
             // 更新
@@ -154,10 +163,12 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
             }
             po.setId(dto.getId());
             po.setCreatedBy(existing.getCreatedBy()); // 保持原有的创建人
+            po.setCreatedAt(existing.getCreatedAt()); // 保持原有的创建时间
         } else {
             // 创建
             po.setId(idGeneratorApi.generateId());
             po.setCreatedBy(userId);
+            po.setCreatedAt(now);
         }
 
         po.setName(dto.getName());
@@ -170,6 +181,7 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         // TODO: 密码加密存储
         po.setPassword(dto.getPassword());
         po.setUpdatedBy(userId);
+        po.setUpdatedAt(now);
 
         if (StringUtils.hasText(dto.getId())) {
             // 使用带用户ID验证的更新方法
@@ -659,6 +671,7 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
      * 创建默认模板（包含基础的增删改查配置）
      */
     private CompanyTemplatePO createDefaultCompanyTemplate(String userId) {
+        String now = DATE_FORMAT.format(new Date());
         CompanyTemplatePO po = new CompanyTemplatePO();
         po.setId(idGeneratorApi.generateId());
         po.setName("默认模板");
@@ -667,6 +680,8 @@ public class CodeGeneratorServiceImpl implements CodeGeneratorService {
         po.setAuthor("System");
         po.setCreatedBy(userId);
         po.setUpdatedBy(userId);
+        po.setCreatedAt(now);
+        po.setUpdatedAt(now);
 
         List<FileTemplateDTO> templates = new ArrayList<>();
 

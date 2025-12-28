@@ -30,10 +30,11 @@
         <el-date-picker
           v-model="form.startDate"
           type="date"
-          placeholder="选择开始日期"
+          placeholder="选择开始日期（任意输入两个字段可自动计算第三个）"
           format="YYYY-MM-DD"
           value-format="YYYY-MM-DD"
           style="width: 100%"
+          clearable
         />
       </el-form-item>
       
@@ -41,10 +42,11 @@
         <el-date-picker
           v-model="form.endDate"
           type="date"
-          placeholder="选择结束日期（可选）"
+          placeholder="选择结束日期（任意输入两个字段可自动计算第三个）"
           format="YYYY-MM-DD"
           value-format="YYYY-MM-DD"
           style="width: 100%"
+          clearable
         />
       </el-form-item>
       
@@ -52,9 +54,11 @@
         <el-input-number
           v-model="form.targetDurationDays"
           :min="1"
-          placeholder="可选"
+          placeholder="天数（任意输入两个字段可自动计算第三个）"
           style="width: 100%"
+          :controls="true"
         />
+        <div class="form-item-tip">提示：开始日期、结束日期、目标天数三者联动，任意输入两个可自动计算第三个</div>
       </el-form-item>
       
       <el-form-item label="每日目标卡路里" prop="targetCaloriesPerDay">
@@ -117,6 +121,130 @@ const form = reactive<TrainingPlanDTO>({
   endDate: undefined,
 })
 
+// 用于防止循环触发的标志
+const isCalculating = ref(false)
+
+// 计算日期差（天数）
+const calculateDays = (start: string, end: string): number => {
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const diffTime = endDate.getTime() - startDate.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1 // +1 包含开始和结束日期
+  return diffDays > 0 ? diffDays : 0
+}
+
+// 根据开始日期和目标天数计算结束日期
+const calculateEndDate = (start: string, days: number): string => {
+  const startDate = new Date(start)
+  startDate.setDate(startDate.getDate() + days - 1) // -1 因为包含开始日期
+  const year = startDate.getFullYear()
+  const month = String(startDate.getMonth() + 1).padStart(2, '0')
+  const day = String(startDate.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 根据结束日期和目标天数计算开始日期
+const calculateStartDate = (end: string, days: number): string => {
+  const endDate = new Date(end)
+  endDate.setDate(endDate.getDate() - days + 1) // +1 因为包含结束日期
+  const year = endDate.getFullYear()
+  const month = String(endDate.getMonth() + 1).padStart(2, '0')
+  const day = String(endDate.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 联动计算逻辑
+const handleDateCalculation = () => {
+  if (isCalculating.value) return
+  
+  const hasStartDate = !!form.startDate
+  const hasEndDate = !!form.endDate
+  const hasTargetDays = form.targetDurationDays !== undefined && form.targetDurationDays !== null && form.targetDurationDays > 0
+  
+  // 统计已填写的字段数量
+  const filledCount = [hasStartDate, hasEndDate, hasTargetDays].filter(Boolean).length
+  
+  // 只有填写了两个字段时才进行计算
+  if (filledCount !== 2) return
+  
+  // 验证日期有效性
+  if (hasStartDate && hasEndDate) {
+    const start = new Date(form.startDate!)
+    const end = new Date(form.endDate!)
+    if (end < start) {
+      // 结束日期早于开始日期，不进行计算
+      return
+    }
+  }
+  
+  isCalculating.value = true
+  
+  try {
+    if (hasStartDate && hasEndDate && !hasTargetDays) {
+      // 有开始日期和结束日期，计算目标天数
+      const days = calculateDays(form.startDate!, form.endDate!)
+      if (days > 0) {
+        form.targetDurationDays = days
+      }
+    } else if (hasStartDate && hasTargetDays && !hasEndDate) {
+      // 有开始日期和目标天数，计算结束日期
+      form.endDate = calculateEndDate(form.startDate!, form.targetDurationDays!)
+    } else if (hasEndDate && hasTargetDays && !hasStartDate) {
+      // 有结束日期和目标天数，计算开始日期
+      form.startDate = calculateStartDate(form.endDate!, form.targetDurationDays!)
+    }
+  } catch (error) {
+    console.error('日期计算错误:', error)
+  } finally {
+    // 使用 setTimeout 确保 DOM 更新完成后再重置标志
+    setTimeout(() => {
+      isCalculating.value = false
+    }, 0)
+  }
+}
+
+// 监听开始日期变化
+watch(
+  () => form.startDate,
+  () => {
+    if (!isCalculating.value) {
+      handleDateCalculation()
+    }
+  }
+)
+
+// 监听结束日期变化
+watch(
+  () => form.endDate,
+  () => {
+    if (!isCalculating.value) {
+      handleDateCalculation()
+    }
+  }
+)
+
+// 监听目标天数变化
+watch(
+  () => form.targetDurationDays,
+  () => {
+    if (!isCalculating.value) {
+      handleDateCalculation()
+    }
+  }
+)
+
+const validateEndDate = (_rule: any, value: string, callback: any) => {
+  if (!value) {
+    callback()
+    return
+  }
+  if (form.startDate && value < form.startDate) {
+    callback(new Error('结束日期不能早于开始日期'))
+  } else {
+    callback()
+  }
+}
+
 const rules: FormRules = {
   planName: [
     { required: true, message: '请输入计划名称', trigger: 'blur' },
@@ -124,6 +252,9 @@ const rules: FormRules = {
   ],
   planType: [
     { required: true, message: '请选择计划类型', trigger: 'change' },
+  ],
+  endDate: [
+    { validator: validateEndDate, trigger: 'change' },
   ],
 }
 
@@ -179,6 +310,13 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 </style>
 
