@@ -75,12 +75,13 @@
       </div>
 
       <!-- 数据表格 -->
-      <el-table
-        :data="records"
-        v-loading="loading"
-        :default-sort="{ prop: 'intakeDate', order: 'descending' }"
-        style="width: 100%"
-      >
+      <div class="table-wrapper">
+        <el-table
+          :data="records"
+          v-loading="loading"
+          :default-sort="{ prop: 'intakeDate', order: 'descending' }"
+          style="width: 100%"
+        >
         <el-table-column prop="intakeDate" label="日期" width="120" sortable />
         <el-table-column prop="intakeTime" label="时间" width="100" />
         <el-table-column prop="waterType" label="类型" width="120" />
@@ -93,6 +94,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination">
@@ -112,7 +114,8 @@
     <el-dialog
       v-model="formVisible"
       :title="currentRecord?.id ? '编辑饮水记录' : '新增饮水记录'"
-      width="500px"
+      :width="isMobile ? '90%' : '500px'"
+      :fullscreen="isMobile"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="日期" prop="intakeDate">
@@ -168,7 +171,12 @@
     </el-dialog>
 
     <!-- 设置目标对话框 -->
-    <el-dialog v-model="showTargetDialog" title="设置饮水目标" width="500px">
+    <el-dialog 
+      v-model="showTargetDialog" 
+      title="设置饮水目标" 
+      :width="isMobile ? '90%' : '500px'"
+      :fullscreen="isMobile"
+    >
       <el-form ref="targetFormRef" :model="targetForm" :rules="targetRules" label-width="120px">
         <el-form-item label="每日目标(ml)" prop="dailyTargetMl">
           <el-input-number
@@ -178,27 +186,6 @@
             placeholder="请输入每日目标饮水量"
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item label="提醒时间">
-          <div class="reminder-times">
-            <el-tag
-              v-for="(time, index) in targetForm.reminderIntervals"
-              :key="index"
-              closable
-              @close="removeReminderTime(index)"
-              style="margin-right: 8px; margin-bottom: 8px;"
-            >
-              {{ time }}
-            </el-tag>
-            <el-time-picker
-              v-model="reminderTimeInput"
-              format="HH:mm"
-              value-format="HH:mm"
-              placeholder="选择提醒时间"
-              @change="addReminderTime"
-              style="width: 150px"
-            />
-          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -213,6 +200,7 @@
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Setting } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { healthApi } from '@/services/healthApi'
 import type {
   WaterIntakeDTO,
@@ -224,6 +212,9 @@ import type {
 import StatisticsCard from '@/components/health/StatisticsCard.vue'
 import WaterProgressCard from '@/components/health/WaterProgressCard.vue'
 import type { FormInstance, FormRules } from 'element-plus'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const loading = ref(false)
 const records = ref<WaterIntakeDTO[]>([])
@@ -247,7 +238,6 @@ const showTargetDialog = ref(false)
 const formRef = ref<FormInstance>()
 const targetFormRef = ref<FormInstance>()
 const currentRecord = ref<Partial<WaterIntakeDTO> | undefined>(undefined)
-const reminderTimeInput = ref<string>('')
 
 const form = reactive<WaterIntakeDTO>({
   intakeDate: new Date().toISOString().split('T')[0],
@@ -257,9 +247,8 @@ const form = reactive<WaterIntakeDTO>({
   notes: '',
 })
 
-const targetForm = reactive<WaterTarget>({
+const targetForm = reactive<Pick<WaterTarget, 'dailyTargetMl'>>({
   dailyTargetMl: 2000,
-  reminderIntervals: [],
 })
 
 const rules: FormRules = {
@@ -391,7 +380,6 @@ const loadWaterTarget = async () => {
       waterTarget.value = data
       if (data) {
         targetForm.dailyTargetMl = data.dailyTargetMl
-        targetForm.reminderIntervals = [...(data.reminderIntervals || [])]
       }
     }
   } catch (error: any) {
@@ -487,20 +475,6 @@ const handleFormSubmit = async () => {
   })
 }
 
-const addReminderTime = (time: string) => {
-  if (time && !targetForm.reminderIntervals?.includes(time)) {
-    if (!targetForm.reminderIntervals) {
-      targetForm.reminderIntervals = []
-    }
-    targetForm.reminderIntervals.push(time)
-    reminderTimeInput.value = ''
-  }
-}
-
-const removeReminderTime = (index: number) => {
-  targetForm.reminderIntervals?.splice(index, 1)
-}
-
 const handleSaveTarget = async () => {
   if (!targetFormRef.value) return
   await targetFormRef.value.validate(async (valid: boolean) => {
@@ -583,6 +557,80 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .water-view {
+    padding: 0;
+    font-size: 0.9em;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions .el-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-actions .el-button span {
+    display: none;
+  }
+
+  .filter-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form-item) {
+    margin: 0;
+    width: 100%;
+  }
+
+  .filter-toolbar :deep(.el-date-picker) {
+    width: 100% !important;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrapper :deep(.el-table) {
+    font-size: 0.9em;
+  }
+
+  .table-wrapper :deep(.el-table th),
+  .table-wrapper :deep(.el-table td) {
+    padding: 8px 4px;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+
+  .pagination :deep(.el-pagination) {
+    font-size: 0.9em;
+  }
+
+  .pagination :deep(.el-pagination__sizes),
+  .pagination :deep(.el-pagination__jump) {
+    display: none;
+  }
 }
 </style>
 

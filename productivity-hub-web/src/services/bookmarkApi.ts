@@ -189,6 +189,22 @@ export const bookmarkApi = {
   },
 
   /**
+   * 预览 Excel 文件（仅解析，不落库）
+   */
+  previewImport: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request<BookmarkImportPreview>({
+      url: '/api/bookmark/import/preview',
+      method: 'POST',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  /**
    * 下载导入模板
    */
   downloadTemplate: async () => {

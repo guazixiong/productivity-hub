@@ -3,6 +3,13 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
+import {
+  requestCache,
+  requestCancelManager,
+  retryRequest,
+  type OptimizedRequestConfig,
+  type RetryConfig,
+} from '@/utils/requestOptimizer'
 
 interface ApiEnvelope<T> {
   code: number
@@ -15,7 +22,7 @@ const REQUEST_TIMEOUT = 30_000
 let activeRequests = 0
 let loadingInstance: ReturnType<typeof ElLoading.service> | null = null
 
-type RequestConfig = AxiosRequestConfig & {
+type RequestConfig = OptimizedRequestConfig & {
   /**
    * 是否显示全局 Loading（默认关闭，需要按需开启）
    */
@@ -46,14 +53,53 @@ const stopGlobalLoading = () => {
   }
 }
 
+/**
+ * 检测是否在 Android WebView 环境中
+ * 通过检查当前协议是否为 file:// 来判断
+ */
+const isAndroidWebView = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return window.location.protocol === 'file:'
+}
+
+/**
+ * 获取 API 基础 URL
+ * - 在 Android WebView 中（file:// 协议），使用环境变量 VITE_API_BASE_URL
+ * - 在浏览器中（http:// 或 https:// 协议），使用相对路径 '/'（通过 Vite 代理）
+ */
+const getApiBaseURL = (): string => {
+  if (isAndroidWebView()) {
+    // 在 Android WebView 中，必须使用完整的 API 地址
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+    if (!apiBaseUrl) {
+      console.warn(
+        '⚠️ 检测到 Android WebView 环境，但未配置 VITE_API_BASE_URL。' +
+        '请在 .env.production 文件中设置 VITE_API_BASE_URL，例如：VITE_API_BASE_URL=http://192.168.1.100:9881'
+      )
+      // 如果未配置，尝试使用默认值（需要用户根据实际情况修改）
+      return 'http://127.0.0.1:9881'
+    }
+    return apiBaseUrl
+  }
+  // 在浏览器中，使用相对路径，通过 Vite 代理转发
+  return '/'
+}
+
 const http: AxiosInstance = axios.create({
-  baseURL: '/',
+  baseURL: getApiBaseURL(),
   timeout: REQUEST_TIMEOUT,
 })
 
 http.interceptors.request.use((config) => {
   const authStore = useAuthStore()
   const requestConfig = config as RequestConfig
+  
+  // 处理请求取消
+  if (requestConfig.requestId) {
+    const signal = requestCancelManager.createCancelToken(requestConfig.requestId)
+    requestConfig.signal = signal
+  }
+  
   if (authStore.isAuthenticated) {
     if (!requestConfig.headers) {
       requestConfig.headers = new AxiosHeaders()
@@ -79,7 +125,22 @@ let isHandlingAuthError = false
 
 http.interceptors.response.use(
   (response: AxiosResponse<ApiEnvelope<unknown>>) => {
-    if ((response.config as RequestConfig).showLoading) {
+    const config = response.config as RequestConfig
+    
+    // 处理请求取消清理
+    if (config.requestId) {
+      requestCancelManager.remove(config.requestId)
+    }
+    
+    // 处理请求缓存
+    if (config.cache && config.method?.toLowerCase() === 'get') {
+      const payload = response.data
+      if (payload?.code === 0) {
+        requestCache.set(config, payload.data, config.cacheTTL)
+      }
+    }
+    
+    if (config.showLoading) {
       stopGlobalLoading()
     }
     return response
@@ -163,24 +224,43 @@ http.interceptors.response.use(
   }
 )
 
-export const request = async <T = unknown>(config: RequestConfig) => {
-  const response: AxiosResponse<ApiEnvelope<T>> = await http.request<ApiEnvelope<T>>(config)
-  const payload = response.data
-  if (payload?.code === 0) {
-    return payload.data
+export const request = async <T = unknown>(config: RequestConfig): Promise<T> => {
+  // 处理缓存响应（仅 GET 请求）
+  if (config.cache && (!config.method || config.method.toLowerCase() === 'get')) {
+    const cachedData = requestCache.get<T>(config)
+    if (cachedData !== null) {
+      return cachedData
+    }
   }
-  
-  // 处理 code 400 错误，显示弹窗提示
-  if (payload?.code === 400) {
-    const errorMessage = payload?.message ?? '请求失败'
-    // 全局统一弹窗提示，不受 silent 选项影响
-    await ElMessageBox.alert(errorMessage, '错误提示', {
-      type: 'error',
-      confirmButtonText: '确定',
-    })
+
+  // 请求函数
+  const requestFn = async (): Promise<T> => {
+    const response: AxiosResponse<ApiEnvelope<T>> = await http.request<ApiEnvelope<T>>(config)
+    const payload = response.data
+    if (payload?.code === 0) {
+      return payload.data
+    }
+    
+    // 处理 code 400 错误，显示弹窗提示
+    if (payload?.code === 400) {
+      const errorMessage = payload?.message ?? '请求失败'
+      // 全局统一弹窗提示，不受 silent 选项影响
+      await ElMessageBox.alert(errorMessage, '错误提示', {
+        type: 'error',
+        confirmButtonText: '确定',
+      })
+    }
+    
+    throw new Error(payload?.message ?? '请求失败')
   }
-  
-  throw new Error(payload?.message ?? '请求失败')
+
+  // 处理请求重试
+  if (config.retry) {
+    const retryConfig: RetryConfig = typeof config.retry === 'boolean' ? {} : config.retry
+    return retryRequest(requestFn, retryConfig)
+  }
+
+  return requestFn()
 }
 
 export default http

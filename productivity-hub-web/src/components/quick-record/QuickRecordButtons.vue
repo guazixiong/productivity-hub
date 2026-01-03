@@ -55,10 +55,6 @@
 <script setup lang="ts">
 /**
  * 快捷记录按钮组组件
- * 
- * 关联需求: REQ-002
- * 关联组件: COMP-REQ-001-01-02
- * 关联测试用例: TC-COMP-REQ-001-01-02-01 ~ TC-COMP-REQ-001-01-02-03
  */
 
 interface Emits {

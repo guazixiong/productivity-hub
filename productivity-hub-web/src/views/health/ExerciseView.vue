@@ -87,12 +87,13 @@
       </div>
 
       <!-- 数据表格 -->
-      <el-table
-        :data="records"
-        v-loading="loading"
-        :default-sort="{ prop: 'exerciseDate', order: 'descending' }"
-        style="width: 100%"
-      >
+      <div class="table-wrapper">
+        <el-table
+          :data="records"
+          v-loading="loading"
+          :default-sort="{ prop: 'exerciseDate', order: 'descending' }"
+          style="width: 100%"
+        >
         <el-table-column prop="exerciseDate" label="日期" width="120" sortable />
         <el-table-column prop="exerciseType" label="运动类型" width="120" />
         <el-table-column prop="trainingPlanName" label="训练计划" width="150">
@@ -124,6 +125,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination">
@@ -146,6 +148,12 @@
       :training-plans="trainingPlans"
       @submit="handleFormSubmit"
     />
+
+    <!-- 导入对话框 -->
+    <ExerciseRecordImportDialog
+      v-model="showImportDialog"
+      @success="handleImportSuccess"
+    />
   </div>
 </template>
 
@@ -153,6 +161,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download, Upload } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { healthApi } from '@/services/healthApi'
 import type {
   ExerciseRecordDTO,
@@ -162,6 +171,10 @@ import type {
 } from '@/types/health'
 import StatisticsCard from '@/components/health/StatisticsCard.vue'
 import ExerciseRecordForm from '@/components/health/ExerciseRecordForm.vue'
+import ExerciseRecordImportDialog from '@/components/health/ExerciseRecordImportDialog.vue'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const loading = ref(false)
 const records = ref<ExerciseRecordDTO[]>([])
@@ -315,6 +328,11 @@ const handleSizeChange = (size: number) => {
   loadData()
 }
 
+const handleImportSuccess = async () => {
+  await loadData()
+  await loadStats()
+}
+
 onMounted(() => {
   loadData()
   loadStats()
@@ -351,6 +369,81 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .exercise-view {
+    padding: 0;
+    font-size: 0.9em;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions .el-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-actions .el-button span {
+    display: none;
+  }
+
+  .filter-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form-item) {
+    margin: 0;
+    width: 100%;
+  }
+
+  .filter-toolbar :deep(.el-select),
+  .filter-toolbar :deep(.el-date-picker) {
+    width: 100% !important;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrapper :deep(.el-table) {
+    font-size: 0.9em;
+  }
+
+  .table-wrapper :deep(.el-table th),
+  .table-wrapper :deep(.el-table td) {
+    padding: 8px 4px;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+
+  .pagination :deep(.el-pagination) {
+    font-size: 0.9em;
+  }
+
+  .pagination :deep(.el-pagination__sizes),
+  .pagination :deep(.el-pagination__jump) {
+    display: none;
+  }
 }
 </style>
 

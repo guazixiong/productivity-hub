@@ -1,9 +1,5 @@
 /**
  * 卡路里计算工具函数单元测试
- * 
- * 关联测试用例: TC-COMP-REQ-001-01-04-01, TC-COMP-REQ-001-01-04-02
- * 关联需求: REQ-004
- * 关联组件: COMP-REQ-001-01-04
  */
 
 import { describe, it, expect } from 'vitest'

@@ -11,6 +11,7 @@
 - 🔧 **低代码生成器**：数据库表结构解析，支持自定义模板，一键生成代码
 - 🔥 **热点速览**：聚合技术/资讯热点，支持多源标签切换和内容预览
 - ⚙️ **系统设置**：全局参数配置、用户管理、定时任务管理
+- 💰 **资产管理**：个人资产分类管理、心愿单管理、统计分析
 
 ## ✨ 功能特性
 
@@ -77,72 +78,49 @@
 - WebSocket 实时通知（前端小铃铛提醒），可附带跳转链接
 - 定时任务：每日技术简报、Cursor 商店库存播报（钉钉）
 
+### 💰 资产管理
+- **资产分类管理**：支持多级分类，自定义分类图标和排序
+- **资产信息管理**：记录资产名称、价格、购买日期、使用状态等
+- **心愿单管理**：管理待购买物品，支持价格追踪和购买提醒
+- **统计分析**：资产价值统计、分类分布、购买趋势分析
+- **数据管理**：支持数据导入导出、备份恢复
+
 ### ⚙️ 系统设置
 - **全局参数配置**：支持用户级和系统级配置管理，应用启动时自动缓存预热
 - **用户管理**（管理员）：用户创建、角色分配（admin/ops/user），自动复制默认配置模板
 - **定时任务管理**（管理员）：查看和管理系统定时任务执行状态
 
-## 📁 项目结构
+## 🛠️ 技术栈
 
-```
-productivity-hub/
-├── productivity-hub-web/          # 前端项目
-│   ├── src/
-│   │   ├── views/                  # 页面视图
-│   │   │   ├── home/               # 首页
-│   │   │   ├── tools/              # 工具箱
-│   │   │   ├── bookmark/           # 宝藏书签
-│   │   │   ├── agents/             # 智能体管理
-│   │   │   ├── messages/           # 消息中心
-│   │   │   ├── todo/               # 行为级TODO
-│   │   │   ├── config/             # 配置管理
-│   │   │   ├── settings/           # 系统设置
-│   │   │   ├── hot-sections/       # 热点速览
-│   │   │   └── auth/               # 认证相关
-│   │   ├── components/             # 组件
-│   │   ├── layouts/                # 布局
-│   │   ├── stores/                 # Pinia 状态管理
-│   │   ├── services/               # API 服务
-│   │   ├── router/                 # 路由配置
-│   │   └── types/                  # TypeScript 类型定义
-│   └── package.json
-│
-└── productivity-hub-server/        # 后端项目
-    ├── base-service-basic/         # 基础业务服务模块
-    │   ├── src/main/java/com/pbad/
-    │   │   ├── agents/             # 智能体模块
-    │   │   ├── auth/               # 认证模块
-    │   │   ├── bookmark/           # 宝藏书签模块
-    │   │   ├── config/             # 配置模块
-    │   │   ├── home/               # 首页模块
-    │   │   ├── messages/           # 消息模块
-    │   │   ├── schedule/           # 定时任务模块
-    │   │   ├── tools/              # 工具模块
-    │   │   └── codegenerator/      # 低代码生成器模块
-    │   └── src/main/resources/
-    │       ├── application.yml     # 应用配置
-    │       └── mapper/             # MyBatis Mapper
-    │
-    ├── base-service-thirdparty-api/ # 第三方API服务模块
-    │   └── src/main/java/com/pbad/thirdparty/
-    │       ├── dingtalk/           # 钉钉集成
-    │       ├── resend/             # Resend邮件服务
-    │       └── sendgrid/           # SendGrid邮件服务
-    │
-    ├── base-common/                # 公共模块
-    │   ├── base-common-core/       # 核心公共模块
-    │   ├── base-common-web/        # Web 公共模块
-    │   ├── base-common-websocket/  # WebSocket 公共模块
-    │   └── base-common-id-generator/ # ID 生成器模块
-    │
-    └── script/                     # 脚本目录
-        └── sql/init/               # SQL 初始化脚本
-            ├── business_demo.sql   # 业务表初始化（书签、代码生成器等）
-            ├── id_generator.sql    # ID生成器表初始化
-            ├── auth_user_init.sql  # 用户认证数据初始化
-            ├── bookmark_init_data.sql # 书签示例数据
-            └── todo_init.sql       # TODO模块表初始化
-```
+### 前端技术栈
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Vue | 3.5.24 | 前端框架 |
+| TypeScript | 5.9.3 | 类型系统 |
+| Vite | 7.2.4 | 构建工具 |
+| Vue Router | 4.4.5 | 路由管理 |
+| Pinia | 2.2.8 | 状态管理 |
+| Axios | 1.7.9 | HTTP客户端 |
+| Element Plus | 2.9.4 | UI组件库 |
+| ECharts | 5.5.0 | 图表库 |
+| XLSX | 0.18.5 | Excel处理 |
+| Marked | 12.0.2 | Markdown解析 |
+| YAML | 2.8.2 | YAML解析 |
+
+### 后端技术栈
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Spring Boot | 2.2.0.RELEASE | 后端框架 |
+| Java | 8 | 编程语言 |
+| MyBatis | 2.2.0 | ORM框架 |
+| MySQL | 5.7+ | 数据库 |
+| Redis | 2.7.1 | 缓存 |
+| Maven | 3.6+ | 构建工具 |
+| JWT | 0.9.1 | 认证 |
+| Swagger | 2.9.2 | API文档 |
+| WebSocket | 2.4.5 | 实时通信 |
+| Hutool | 5.7.18 | Java工具库 |
+| Druid | 1.1.9 | 数据库连接池 |
 
 ## 🚀 快速开始
 
@@ -153,6 +131,18 @@ productivity-hub/
 - **MySQL** 5.7+
 - **Redis** (可选，用于缓存)
 - **Maven** 3.6+
+
+### 数据库初始化
+
+1. 创建数据库：
+```sql
+CREATE DATABASE productivity_hub DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+2. 执行初始化脚本（按顺序执行）：
+```bash
+cd productivity-hub-server/script/sql/init
+```
 
 ### 后端启动
 
@@ -183,6 +173,14 @@ mvn spring-boot:run
 
 后端服务将在 `http://localhost:9881` 启动。
 
+**API 文档**：
+- Swagger UI：`http://localhost:9881/swagger-ui.html`
+- 可用于查看和测试所有 API 接口
+
+**默认管理员账号**：
+- 用户名：`admin`
+- 密码：请查看 `auth_user_init.sql` 中的初始化数据
+
 ### 前端启动
 
 1. 进入前端目录：
@@ -195,40 +193,204 @@ cd productivity-hub-web
 npm install
 ```
 
-3. 启动开发服务器：
+3. 配置环境变量（推荐）：
+```bash
+# 开发环境（自动创建 .env.development）
+npm run env:dev
+
+# 生产环境（自动创建 .env.production）
+npm run env:prod
+
+# 检查环境配置
+npm run env:check
+```
+
+环境变量说明：
+- `VITE_API_BASE_URL`：后端服务地址（用于图片资源、WebSocket 连接等）
+- `VITE_PROXY_TARGET`：Vite 代理目标地址（开发环境使用）
+
+默认开发环境配置：
+```env
+VITE_API_BASE_URL=http://127.0.0.1:9881
+VITE_PROXY_TARGET=http://127.0.0.1:9881
+```
+
+详细配置说明请参考 [ENV_CONFIG.md](productivity-hub-web/ENV_CONFIG.md)
+
+4. 启动开发服务器：
 ```bash
 npm run dev
 ```
 
 前端应用将在 `http://localhost:5173` 启动（默认 Vite 端口）。
 
-4. 构建生产版本：
+5. 构建生产版本：
 ```bash
 npm run build
 ```
 
+构建产物将输出到 `dist/` 目录。
+
 ## 🛠️ 工具列表
 
-| 工具名称 | 路径 | 描述 |
-|---------|------|------|
-| AI成长蓝图 | `/tools/blueprint` | AI架构师成长路线可视化 |
-| Git 工具箱速查 | `/tools/git-toolbox` | 提交规范与常用命令 |
-| 今天吃什么 | `/tools/food` | 美食转盘决策工具 |
-| JSON格式化 | `/tools/json` | 格式化、验证、压缩JSON数据 |
-| 时间转换 | `/tools/time` | 时间戳与日期时间相互转换 |
-| 屏幕时钟 | `/tools/clock` | 全屏数码时钟 |
-| 密码生成器 | `/tools/password` | 自定义字符集密码生成 |
-| Cron表达式 | `/tools/cron` | Cron表达式解析和预览 |
-| 正则表达式 | `/tools/regex` | 正则表达式测试工具 |
-| YAML格式检查 | `/tools/yaml` | YAML格式校验 |
-| 工作日计算 | `/tools/workday` | 工作日和节假日计算 |
-| Cursor商店库存 | `/tools/cursor-shop` | Cursor商店商品查询 |
-| 图片 Base64 编码 | `/tools/image-base64` | 图片转 Base64 字符串 |
-| SQL 格式化 | `/tools/sql-formatter` | SQL 格式化/压缩与关键字大小写切换 |
-| 单位换算 | `/tools/unit-converter` | 常用物理量单位换算 |
-| 低代码生成器 | `/code-generator` | 数据库解析、模板管理、代码一键生成 |
-| 行为级TODO | `/todo` | 模块化任务管理、时间追踪、数据统计 |
-| TODO任务大屏 | `/todo/dashboard` | 任务数据可视化大屏 |
+| 工具名称 | 路径 | 描述 | 使用场景 |
+|---------|------|------|---------|
+| AI成长蓝图 | `/tools/blueprint` | AI架构师成长路线可视化 | 职业规划、技能提升路线图 |
+| Git 工具箱速查 | `/tools/git-toolbox` | 提交规范与常用命令 | 快速查阅 Git 命令和规范 |
+| 今天吃什么 | `/tools/food` | 美食转盘决策工具 | 解决选择困难症 |
+| JSON格式化 | `/tools/json` | 格式化、验证、压缩JSON数据 | API 调试、数据格式化 |
+| 时间转换 | `/tools/time` | 时间戳与日期时间相互转换 | 时间戳转换、时区计算 |
+| 屏幕时钟 | `/tools/clock` | 全屏数码时钟 | 会议、直播、倒计时显示 |
+| 密码生成器 | `/tools/password` | 自定义字符集密码生成 | 生成强密码、随机字符串 |
+| Cron表达式 | `/tools/cron` | Cron表达式解析和预览 | 定时任务配置、表达式验证 |
+| 正则表达式 | `/tools/regex` | 正则表达式测试工具 | 正则编写、匹配测试 |
+| YAML格式检查 | `/tools/yaml` | YAML格式校验 | 配置文件校验、格式检查 |
+| 工作日计算 | `/tools/workday` | 工作日和节假日计算 | 工作日统计、假期计算 |
+| Cursor商店库存 | `/tools/cursor-shop` | Cursor商店商品查询 | 查询 Cursor 商店商品库存 |
+| 图片 Base64 编码 | `/tools/image-base64` | 图片转 Base64 字符串 | 图片内联、数据 URI 生成 |
+| SQL 格式化 | `/tools/sql-formatter` | SQL 格式化/压缩与关键字大小写切换 | SQL 美化、代码规范 |
+| 单位换算 | `/tools/unit-converter` | 常用物理量单位换算 | 单位转换、数值计算 |
+| 低代码生成器 | `/code-generator` | 数据库解析、模板管理、代码一键生成 | 快速生成 CRUD 代码 |
+| 行为级TODO | `/todo` | 模块化任务管理、时间追踪、数据统计 | 任务管理、时间追踪 |
+| TODO任务大屏 | `/todo/dashboard` | 任务数据可视化大屏 | 任务统计、数据展示 |
+| 资产管理 | `/asset` | 资产分类管理、心愿单管理、统计分析 | 个人资产管理、消费统计 |
+
+## 📦 部署说明
+
+### 前端部署
+
+1. **构建生产版本**：
+```bash
+cd productivity-hub-web
+
+# 标准构建
+npm run build
+```
+
+2. **配置生产环境变量**：
+```bash
+# 创建生产环境配置文件
+npm run env:prod
+
+# 编辑 .env.production，修改后端服务地址
+VITE_API_BASE_URL=http://your-production-server:9881
+```
+
+### 后端部署
+
+1. **打包应用**：
+```bash
+cd productivity-hub-server
+mvn clean package -DskipTests
+```
+
+2. **运行 JAR 包**：
+```bash
+# 开发环境
+java -jar base-service-basic/target/base-service-basic-1.0-SNAPSHOT.jar
+
+# 生产环境（指定 profile）
+java -jar -Dspring.profiles.active=prod base-service-basic/target/base-service-basic-1.0-SNAPSHOT.jar
+
+# 后台运行（Linux）
+nohup java -jar -Dspring.profiles.active=prod base-service-basic/target/base-service-basic-1.0-SNAPSHOT.jar > app.log 2>&1 &
+```
+
+### 性能优化建议
+
+#### 前端优化
+- **代码分割**：已配置路由懒加载，大型组件自动分割
+- **资源压缩**：生产构建自动压缩 JS/CSS
+- **CDN 加速**：建议将静态资源部署到 CDN
+- **缓存策略**：合理设置 HTTP 缓存头
+- **图片优化**：使用 WebP 格式，压缩图片大小
+
+#### 后端优化
+- **数据库连接池**：已配置 Druid 连接池，可根据实际情况调整
+- **Redis 缓存**：启用 Redis 缓存热点数据
+- **接口限流**：已配置限流器，防止接口被滥用
+- **SQL 优化**：使用索引，避免全表扫描
+- **日志级别**：生产环境建议设置为 INFO 或 WARN
+
+## 🤝 贡献指南
+
+欢迎贡献代码！请遵循以下步骤：
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+### 代码规范
+
+- 前端：遵循 Vue 3 官方风格指南，使用 ESLint 和 Prettier
+- 后端：遵循 Java 编码规范，使用统一的代码格式化配置
+- 提交信息：使用清晰的提交信息，遵循 Conventional Commits 规范
+
+## ❓ 常见问题
+
+### Q: 前端启动后无法连接后端？
+**A:** 
+
+1. 检查环境变量 `VITE_API_BASE_URL` 是否正确配置
+2. 确认后端服务已启动（访问 `http://localhost:9881/actuator/health` 检查）
+3. 检查浏览器控制台是否有 CORS 错误
+4. 查看 `vite.config.ts` 中的代理配置是否正确
+
+### Q: 数据库连接失败？
+**A:**
+1. 确认数据库已创建：`CREATE DATABASE productivity_hub;`
+2. 检查 `application.yml` 中的数据库配置（URL、用户名、密码）
+3. 确认数据库用户有相应权限
+4. 检查数据库服务是否启动
+5. 查看后端启动日志中的错误信息
+
+### Q: Redis 连接失败？
+**A:** 
+- Redis 是可选的，如果不需要缓存功能，可以在配置中移除 Redis 相关配置
+- 如果需要使用 Redis，确认 Redis 服务已启动，检查连接配置（host、port、password）
+
+### Q: 如何修改默认端口？
+**A:**
+- **前端**：修改 `vite.config.ts` 中的 `server.port`，或使用 `npm run dev -- --port 3000`
+- **后端**：修改 `application.yml` 中的 `server.port`，或使用 `--server.port=8080` 启动参数
+
+### Q: WebSocket 连接失败？
+**A:**
+1. 确认后端服务已启动
+2. 检查环境变量 `VITE_API_BASE_URL` 是否正确（WebSocket 地址基于此生成）
+3. 检查防火墙是否阻止了 WebSocket 连接
+4. 查看浏览器控制台的 WebSocket 连接错误信息
+
+### Q: 构建产物过大？
+**A:**
+1. 运行 `npm run build:analyze` 分析构建产物
+2. 检查是否有未使用的依赖
+3. 确认代码分割配置正确
+4. 考虑使用 CDN 加载大型第三方库（如 ECharts、Element Plus）
+
+### Q: 接口请求被限流？
+**A:**
+1. 检查 `application.yml` 中的限流配置
+2. 确认是否触发了限流阈值（用户级、接口级、IP级）
+3. 可以临时调整限流配置或禁用限流（`rate-limit.enabled=false`）
+
+### Q: 如何查看 API 文档？
+**A:**
+- 启动后端服务后，访问 `http://localhost:9881/swagger-ui.html`
+- 可以在 Swagger UI 中直接测试接口
+
+### Q: 生产环境如何配置？
+**A:**
+1. 修改 `application.yml` 中的 `spring.profiles.active=prod`
+2. 创建 `application-prod.yml` 配置生产环境特定配置
+3. 前端使用 `npm run env:prod` 创建生产环境变量文件
+4. 修改生产环境的后端服务地址
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
 ## 🌟 Star History
 
@@ -237,6 +399,7 @@ npm run build
 ---
 
 **注意**：
+
 - 本项目仍在持续开发中，部分功能可能尚未完善
 - 建议在生产环境使用前进行充分测试
 - 欢迎提交 Issue 和 Pull Request 帮助改进项目
@@ -276,10 +439,6 @@ npm run build
 
 #### 📚 项目知识库
 
-- [ ] 城市生命线
-- [ ] 南阳 DeepSeek
-- [ ] 投标项目
-
 #### 🤖 Dify 智能体
 
 - [ ] 薪资计算
@@ -291,6 +450,4 @@ npm run build
 
 #### 🎨 其他项目
 
-- [ ] 归物业务迁移
 - [ ] 食光业务迁移
-

@@ -44,7 +44,13 @@
             @node-click="handleTagClick"
           >
             <template #default="{ node, data }">
-              <div class="tree-node" :class="{ 'is-selected': selectedTagId === data.id }">
+              <div
+                class="tree-node"
+                :class="{
+                  'is-selected': selectedTagId === data.id,
+                  'is-level-2': data.level === 2,
+                }"
+              >
                 <span class="node-label" @click.stop="handleTagClick(data)">{{ data.name }}</span>
                 <span class="node-count">({{ data.urlCount }})</span>
                 <div class="node-actions">
@@ -556,6 +562,8 @@ const handleDeleteUrl = async (id: string) => {
     })
     await bookmarkApi.deleteUrl(id)
     ElMessage.success('删除成功')
+    // 删除网址后需要同步刷新标签树中的统计数量
+    await loadTagTree()
     await loadUrlGroups()
     if (searchMode.value) {
       await handleSearch()
@@ -800,6 +808,51 @@ onMounted(() => {
   position: relative;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid transparent;
+}
+
+/* 一级标签：增加底部间距，避免与下一个一级标签重叠 */
+.tree-node:not(.is-level-2) {
+  margin-bottom: 20px !important;
+}
+
+/* 二级标签：增加行间距，避免堆叠在一起 */
+.tree-node.is-level-2 {
+  margin: 12px 0 !important;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+/* 通过深度选择器覆盖 Element Plus Tree 内部节点样式 */
+.tag-sidebar :deep(.el-tree-node__children) {
+  padding-left: 0;
+  margin-top: 4px;
+  margin-bottom: 24px; /* 增加底部间距，避免一级标签的最后一个二级标签与下一个一级标签重叠 */
+}
+
+/* 二级标签节点之间的间距 */
+.tag-sidebar :deep(.el-tree-node__children .el-tree-node) {
+  margin-bottom: 12px;
+}
+
+/* 最后一个二级标签的底部间距由父容器控制，这里重置为0 */
+.tag-sidebar :deep(.el-tree-node__children .el-tree-node:last-child) {
+  margin-bottom: 0;
+}
+
+/* 确保二级标签节点容器本身也有间距 */
+.tag-sidebar :deep(.el-tree-node__children .el-tree-node__content) {
+  margin-bottom: 0;
+}
+
+/* 针对二级标签节点，增加额外的上下间距 */
+.tag-sidebar :deep(.el-tree-node__children .el-tree-node .tree-node.is-level-2) {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+/* 一级标签节点（根级节点）之间增加间距，避免重叠 */
+.tag-sidebar :deep(.el-tree > .el-tree-node) {
+  margin-bottom: 24px;
 }
 
 .tree-node::before {

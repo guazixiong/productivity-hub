@@ -11,7 +11,8 @@
         <div
           v-else
           ref="chartRef"
-          :style="{ height: chartHeight }"
+          class="chart-container"
+          :style="{ height: chartHeight, width: '100%' }"
         ></div>
       </template>
     </el-skeleton>
@@ -21,11 +22,6 @@
 <script setup lang="ts">
 /**
  * 体重趋势图组件
- * 
- * 关联需求: REQ-007
- * 关联组件: COMP-REQ-002-01-02
- * 关联接口: API-REQ-002-08
- * 关联测试用例: TC-COMP-REQ-002-01-02-01 ~ TC-COMP-REQ-002-01-02-03
  */
 
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -49,6 +45,16 @@ const chartHeight = computed(() => isMobile.value ? '250px' : '400px')
 
 const initChart = () => {
   if (!chartRef.value) return
+
+  // 检查 DOM 元素是否有有效的尺寸
+  const rect = chartRef.value.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0) {
+    // 如果尺寸为 0，延迟重试
+    setTimeout(() => {
+      initChart()
+    }, 100)
+    return
+  }
 
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
@@ -115,14 +121,20 @@ const resizeChart = () => {
 
 watch(() => props.data, () => {
   nextTick(() => {
-    initChart()
+    // 确保 DOM 更新后再初始化
+    setTimeout(() => {
+      initChart()
+    }, 50)
   })
 }, { deep: true })
 
 watch(() => props.loading, (loading) => {
   if (!loading) {
     nextTick(() => {
-      initChart()
+      // 确保 DOM 更新后再初始化
+      setTimeout(() => {
+        initChart()
+      }, 50)
     })
   }
 })
@@ -130,7 +142,10 @@ watch(() => props.loading, (loading) => {
 onMounted(() => {
   window.addEventListener('resize', resizeChart)
   nextTick(() => {
-    initChart()
+    // 确保 DOM 完全渲染后再初始化
+    setTimeout(() => {
+      initChart()
+    }, 100)
   })
 })
 
@@ -152,6 +167,11 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .chart-container {
+    width: 100%;
+    min-height: 250px;
   }
 }
 

@@ -37,10 +37,6 @@
 <script setup lang="ts">
 /**
  * 健康中心页面
- * 
- * 关联需求: REQ-007, REQ-008
- * 关联页面: PAGE-REQ-002-01
- * 关联接口: API-REQ-002-07, API-REQ-002-08, API-REQ-002-09, API-REQ-002-10
  */
 
 import { onMounted, ref } from 'vue'

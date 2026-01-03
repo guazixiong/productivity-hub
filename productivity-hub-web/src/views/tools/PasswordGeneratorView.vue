@@ -3,6 +3,10 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, CopyDocument, RefreshRight } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 
@@ -195,14 +199,64 @@ const copyPassword = async () => {
   font-weight: 600;
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
-  .options-grid {
-    grid-template-columns: 1fr;
+  .password-generator {
+    padding: 0;
+    gap: 16px;
   }
 
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .actions {
+    width: 100%;
+
+    .el-button {
+      flex: 1;
+    }
+  }
+
+  .config-card,
+  .result-card {
+    margin: 0 12px;
+    border-radius: 12px;
+
+    :deep(.el-card__body) {
+      padding: 16px;
+    }
+  }
+
+  .length-row {
+    gap: 12px;
+  }
+
+  .length {
+    font-size: 24px;
+  }
+
+  .options-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .password-display {
+    min-height: 56px;
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  .history {
+    gap: 6px;
+
+    .label {
+      width: 100%;
+      margin-bottom: 8px;
+    }
   }
 }
 </style>

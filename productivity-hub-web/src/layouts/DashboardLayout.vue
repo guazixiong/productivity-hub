@@ -1,15 +1,20 @@
 <script setup lang="ts">
+/**
+ * DashboardLayout组件
+ */
 import { computed, watch, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNavigationStore } from '@/stores/navigation'
 import { useTabsStore } from '@/stores/tabs'
 import { useNotificationStore } from '@/stores/notifications'
+import { useResponsiveStore, SidebarState } from '@/stores/responsive'
+import { useLayout } from '@/composables/useLayout'
 import TabsView from '@/components/TabsView.vue'
 import ChatWidget from '@/components/ChatWidget.vue'
 import AnnouncementDialog from '@/components/AnnouncementDialog.vue'
 import NotificationDetailDialog from '@/components/NotificationDetailDialog.vue'
-import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled } from '@element-plus/icons-vue'
+import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled, Menu } from '@element-plus/icons-vue'
 import logoIcon from '@/assets/logo.svg'
 import { announcementApi } from '@/services/announcementApi'
 import type { Announcement } from '@/types/announcement'
@@ -21,6 +26,9 @@ const authStore = useAuthStore()
 const navigationStore = useNavigationStore()
 const tabsStore = useTabsStore()
 const notificationStore = useNotificationStore()
+const responsiveStore = useResponsiveStore()
+const layout = useLayout()
+
 const notificationVisible = ref(false)
 const notificationDetailVisible = ref(false)
 const currentNotification = ref<NotificationItem | null>(null)
@@ -28,6 +36,9 @@ const isCollapsed = ref(false)
 const announcementDialogVisible = ref(false)
 const unreadAnnouncements = ref<Announcement[]>([])
 const fetchingAnnouncements = ref(false)
+
+// 移动端遮罩层显示状态
+const showOverlay = ref(false)
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/home')) return '/home'
@@ -44,6 +55,9 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/code-generator')) return '/code-generator'
   if (route.path.startsWith('/bookmark')) return '/bookmark'
   if (route.path.startsWith('/health')) return route.path
+  if (route.path.startsWith('/asset') || route.path.startsWith('/assets')) return route.path
+  if (route.path.startsWith('/wishlist')) return route.path
+  if (route.path.startsWith('/data/management')) return '/data/management'
   if (route.path.startsWith('/quick-record')) return '/quick-record'
   if (route.path.startsWith('/health-stats')) return '/health-stats'
   if (route.path.startsWith('/common-tools')) return '/common-tools'
@@ -64,32 +78,43 @@ const pageTitle = computed(() => {
 const defaultOpenMenus = computed(() => {
   const openeds: string[] = []
 
-  if (route.path.startsWith('/home') || route.path.startsWith('/todo') || route.path.startsWith('/messages') || route.path.startsWith('/quick-record') || route.path.startsWith('/health-stats') || route.path.startsWith('/common-tools')) {
+  // 工作台菜单：包含 todo、hot-sections、bookmark、code-generator、health、messages、asset
+  if (
+    route.path.startsWith('/todo') ||
+    route.path.startsWith('/hot-sections') ||
+    route.path.startsWith('/bookmark') ||
+    route.path.startsWith('/code-generator') ||
+    route.path.startsWith('/health') ||
+    route.path.startsWith('/messages') ||
+    route.path.startsWith('/asset') ||
+    route.path.startsWith('/assets') ||
+    route.path.startsWith('/wishlist') ||
+    route.path.startsWith('/data/management')
+  ) {
     openeds.push('workbench')
+    // 如果是健康管理相关路径，还需要打开健康管理子菜单
+    if (route.path.startsWith('/health')) {
+      openeds.push('health-management')
+    }
+    // 如果是资产管理相关路径，还需要打开资产管理子菜单
+    if (
+      route.path.startsWith('/asset') ||
+      route.path.startsWith('/assets') ||
+      route.path.startsWith('/wishlist') ||
+      route.path.startsWith('/data/management')
+    ) {
+      openeds.push('asset-management')
+    }
   }
 
-  if (route.path.startsWith('/hot-sections')) {
-    openeds.push('info-center')
-  }
-
+  // AI工具菜单
   if (route.path.startsWith('/agents') || route.path.startsWith('/ai/')) {
     openeds.push('ai-tools')
   }
 
-  if (
-    route.path.startsWith('/tools') ||
-    route.path.startsWith('/bookmark') ||
-    route.path.startsWith('/code-generator')
-  ) {
-    openeds.push('toolbox')
-  }
-
+  // 系统设置菜单
   if (route.path.startsWith('/config') || route.path.startsWith('/settings')) {
     openeds.push('settings')
-  }
-
-  if (route.path.startsWith('/health')) {
-    openeds.push('health')
   }
 
   return openeds
@@ -97,9 +122,36 @@ const defaultOpenMenus = computed(() => {
 
 const isAdminUser = computed(() => authStore.user?.roles?.includes('admin'))
 
-// 切换导航栏折叠状态
+// 切换导航栏折叠状态（PC端和平板端）
 const toggleCollapse = () => {
+  if (responsiveStore.isMobile) {
+    // 移动端：切换侧边栏显示/隐藏
+    responsiveStore.toggleSidebar()
+    showOverlay.value = responsiveStore.isSidebarExpanded
+  } else {
+    // PC端和平板端：切换折叠/展开
   isCollapsed.value = !isCollapsed.value
+    responsiveStore.setSidebarState(
+      isCollapsed.value ? SidebarState.COLLAPSED : SidebarState.EXPANDED
+    )
+  }
+}
+
+// 移动端菜单按钮点击处理
+const handleMenuButtonClick = () => {
+  responsiveStore.toggleSidebar()
+  showOverlay.value = responsiveStore.isSidebarExpanded
+}
+
+// 关闭侧边栏（移动端）
+const closeSidebar = () => {
+  responsiveStore.closeSidebar()
+  showOverlay.value = false
+}
+
+// 点击遮罩层关闭侧边栏
+const handleOverlayClick = () => {
+  closeSidebar()
 }
 
 // 左上角 Logo 点击返回首页
@@ -227,15 +279,64 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
+  // 一级菜单：快捷记录
+  if (path === '/quick-record') {
+    return true
+  }
+  
+  // 一级菜单：公告管理
+  if (path === '/settings/announcements') {
+    return true
+  }
+  
+  // 一级菜单：定时任务管理
+  if (path === '/settings/schedules') {
+    return true
+  }
+  
   // 一级菜单：工具箱主页面
   if (path === '/tools') {
     return true
   }
   
+  // 工作台下的菜单项
   if (path === '/todo') {
     return true
   }
- 
+  
+  if (path === '/hot-sections') {
+    return true
+  }
+  
+  if (path === '/bookmark') {
+    return true
+  }
+  
+  if (path === '/code-generator') {
+    return true
+  }
+  
+  // 健康管理下的页面
+  if (path === '/health' || path.startsWith('/health/')) {
+    return true
+  }
+  
+  // 资产管理下的页面
+  if (
+    path.startsWith('/asset/') ||
+    path.startsWith('/assets') ||
+    path.startsWith('/wishlist') ||
+    path === '/data/management' ||
+    path.startsWith('/data/management')
+  ) {
+    return true
+  }
+  
+  // 消息中心
+  if (path === '/messages' || path.startsWith('/messages/')) {
+    return true
+  }
+  
   // 一级菜单：智能体调用
   if (path === '/agents') {
     return true
@@ -246,26 +347,6 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
-  // 一级菜单：低代码生成
-  if (path === '/code-generator') {
-    return true
-  }
-  
-  // 一级菜单：宝藏类网址
-  if (path === '/bookmark') {
-    return true
-  }
-  
-  // 一级菜单：热点速览
-  if (path === '/hot-sections') {
-    return true
-  }
-  
-  // 二级菜单项：消息推送下的页面
-  if (path === '/messages' || path.startsWith('/messages/')) {
-    return true
-  }
-  
   // 二级菜单项：设置下的页面
   if (path === '/config' || path.startsWith('/settings')) {
     return true
@@ -273,16 +354,6 @@ const isSubMenuPage = (path: string): boolean => {
   
   // 二级菜单项：工具箱下的子页面
   if (path.startsWith('/tools/')) {
-    return true
-  }
-  
-  // 一级菜单：健康状况
-  if (path === '/health') {
-    return true
-  }
-  
-  // 二级菜单项：健康状况下的子页面
-  if (path.startsWith('/health/')) {
     return true
   }
   
@@ -304,8 +375,35 @@ watch(
     if (!route.meta?.public && route.name !== 'NotFound') {
       tabsStore.addTab(route)
     }
+    // 移动端：路由跳转后自动关闭侧边栏
+    if (responsiveStore.isMobile && responsiveStore.isSidebarExpanded) {
+      closeSidebar()
+    }
   },
   { immediate: true }
+)
+
+// 监听侧边栏状态变化，更新遮罩层显示
+watch(
+  () => responsiveStore.sidebarState,
+  (newState) => {
+    if (responsiveStore.isMobile) {
+      showOverlay.value = newState === SidebarState.EXPANDED
+    } else {
+      showOverlay.value = false
+    }
+  }
+)
+
+// 监听设备类型变化，自动调整布局
+watch(
+  () => responsiveStore.deviceType,
+  () => {
+    // 设备类型变化时，重置遮罩层状态
+    if (!responsiveStore.isMobile) {
+      showOverlay.value = false
+    }
+  }
 )
 
 // 组件挂载时，如果当前路由不是登录页，添加标签页
@@ -367,7 +465,7 @@ const quickCommands: QuickCommand[] = [
   { id: 'go-hot', label: '热点速览', description: '快速浏览热点与动态', route: '/hot-sections' },
   { id: 'go-agents', label: '智能体调用', description: '管理与调用智能体', route: '/agents' },
   { id: 'go-tools', label: '常用工具', description: '常用工程工具与小组件', route: '/tools' },
-  { id: 'go-bookmark', label: '宝藏网址', description: '站点收藏与导航', route: '/bookmark' },
+  { id: 'go-bookmark', label: '我的书签', description: '站点收藏与导航', route: '/bookmark' },
   { id: 'go-codegen', label: '低代码生成', description: '快速搭建页面与脚本', route: '/code-generator' },
   { id: 'go-announcement', label: '公告管理（管理员）', description: '创建/发布/撤回公告', route: '/settings/announcements' },
 ]
@@ -439,7 +537,21 @@ const cachedViews = computed(() => {
 
 <template>
   <el-container class="layout-shell">
-    <el-aside :width="isCollapsed ? '64px' : '228px'" class="layout-aside" :class="{ 'is-collapsed': isCollapsed }">
+    <!-- 移动端遮罩层 -->
+    <div
+      v-if="showOverlay && responsiveStore.isMobile"
+      class="sidebar-overlay"
+      @click="handleOverlayClick"
+    />
+    <el-aside
+      :width="responsiveStore.isMobile ? (responsiveStore.isSidebarExpanded ? '80%' : '0') : (isCollapsed ? '64px' : '228px')"
+      class="layout-aside"
+      :class="{
+        'is-collapsed': isCollapsed && !responsiveStore.isMobile,
+        'is-mobile': responsiveStore.isMobile,
+        'is-mobile-open': responsiveStore.isMobile && responsiveStore.isSidebarExpanded,
+      }"
+    >
       <div class="aside-content">
         <div class="logo" @click="handleLogoClick">
           <img :src="logoIcon" alt="工作台" class="logo-icon" />
@@ -457,41 +569,91 @@ const cachedViews = computed(() => {
           active-text-color="var(--primary-color)"
           @select="handleMenuSelect"
         >
+          <!-- 🏠 首页/概览（一级菜单） -->
+          <el-menu-item index="/home">
+            <el-icon><HomeFilled /></el-icon>
+            <template #title>首页 / 概览</template>
+          </el-menu-item>
+
+          <!-- 📝 快捷记录（一级菜单） -->
+          <el-menu-item index="/quick-record">
+            <el-icon><Document /></el-icon>
+            <template #title>快捷记录</template>
+          </el-menu-item>
+
           <!-- 📊 工作台（一级菜单） -->
           <el-sub-menu index="workbench">
             <template #title>
               <el-icon><HomeFilled /></el-icon>
               <span v-show="!isCollapsed">工作台</span>
             </template>
-            <el-menu-item index="/home">
-              <el-icon><HomeFilled /></el-icon>
-              <template #title>首页 / 概览</template>
-            </el-menu-item>
             <el-menu-item index="/todo">
               <el-icon><Collection /></el-icon>
-              <template #title>我的待办（Todo）</template>
+              <template #title>我的待办(Todo)</template>
             </el-menu-item>
-            <el-menu-item index="/messages">
-              <el-icon><Message /></el-icon>
-              <template #title>消息中心</template>
-            </el-menu-item>
-            <el-menu-item index="/quick-record">
-              <el-icon><Document /></el-icon>
-              <template #title>快捷记录</template>
-            </el-menu-item>
-          </el-sub-menu>
-
-          <!-- 🔥 信息中心（一级菜单） -->
-          <el-sub-menu index="info-center">
-            <template #title>
-              <el-icon><TrendCharts /></el-icon>
-              <span v-show="!isCollapsed">信息中心</span>
-            </template>
             <el-menu-item index="/hot-sections">
               <el-icon><TrendCharts /></el-icon>
               <template #title>热点速览</template>
             </el-menu-item>
+            <el-menu-item index="/bookmark">
+              <el-icon><Collection /></el-icon>
+              <template #title>我的书签</template>
+            </el-menu-item>
+            <el-menu-item index="/code-generator">
+              <el-icon><Document /></el-icon>
+              <template #title>低代码生成</template>
+            </el-menu-item>
+            <el-sub-menu index="health-management">
+              <template #title>
+                <el-icon><DataAnalysis /></el-icon>
+                <span>健康管理</span>
+              </template>
+              <el-menu-item index="/health">
+                <el-icon><DataAnalysis /></el-icon>
+                <template #title>健康记录</template>
+              </el-menu-item>
+              <el-menu-item index="/health/statistics">
+                <el-icon><TrendCharts /></el-icon>
+                <template #title>健康统计</template>
+              </el-menu-item>
+            </el-sub-menu>
+            <el-sub-menu index="asset-management">
+              <template #title>
+                <el-icon><TrendCharts /></el-icon>
+                <span>资产管理</span>
+              </template>
+              <el-menu-item v-if="isAdminUser" index="/asset/categories">
+                <el-icon><Collection /></el-icon>
+                <template #title>资产分类</template>
+              </el-menu-item>
+              <el-menu-item index="/assets">
+                <el-icon><Document /></el-icon>
+                <template #title>资产列表</template>
+              </el-menu-item>
+              <el-menu-item index="/wishlist">
+                <el-icon><Collection /></el-icon>
+                <template #title>心愿单</template>
+              </el-menu-item>
+              <el-menu-item index="/assets/statistics">
+                <el-icon><TrendCharts /></el-icon>
+                <template #title>资产统计</template>
+              </el-menu-item>
+              <el-menu-item index="/data/management">
+                <el-icon><Setting /></el-icon>
+                <template #title>数据管理</template>
+              </el-menu-item>
+            </el-sub-menu>
+            <el-menu-item index="/messages">
+              <el-icon><Message /></el-icon>
+              <template #title>消息中心</template>
+            </el-menu-item>
           </el-sub-menu>
+
+          <!-- 🧰 工具箱（一级菜单，位于工作台下方、AI 工具上方） -->
+          <el-menu-item index="/tools">
+            <el-icon><Tools /></el-icon>
+            <template #title>工具箱</template>
+          </el-menu-item>
 
           <!-- 🤖 AI 工具（一级菜单） -->
           <el-sub-menu index="ai-tools">
@@ -525,41 +687,18 @@ const cachedViews = computed(() => {
             </el-menu-item>
           </el-sub-menu>
 
-          <!-- 🛠️ 工具箱（一级菜单） -->
-          <el-sub-menu index="toolbox">
-            <template #title>
-              <el-icon><Tools /></el-icon>
-              <span v-show="!isCollapsed">工具箱</span>
-            </template>
-            <el-menu-item index="/tools">
-              <el-icon><Tools /></el-icon>
-              <template #title>常用工具</template>
-            </el-menu-item>
-            <el-menu-item index="/bookmark">
-              <el-icon><Collection /></el-icon>
-              <template #title>宝藏网址</template>
-            </el-menu-item>
-            <el-menu-item index="/code-generator">
-              <el-icon><Document /></el-icon>
-              <template #title>低代码生成</template>
-            </el-menu-item>
-          </el-sub-menu>
 
-          <!-- 💪 健康状况（一级菜单） -->
-          <el-sub-menu index="health">
-            <template #title>
-              <el-icon><DataAnalysis /></el-icon>
-              <span v-show="!isCollapsed">健康状况</span>
-            </template>
-            <el-menu-item index="/health">
-              <el-icon><DataAnalysis /></el-icon>
-              <template #title>健康记录</template>
-            </el-menu-item>
-            <el-menu-item index="/health/statistics">
-              <el-icon><TrendCharts /></el-icon>
-              <template #title>健康统计</template>
-            </el-menu-item>
-          </el-sub-menu>
+          <!-- 📢 公告管理（一级菜单） -->
+          <el-menu-item v-if="isAdminUser" index="/settings/announcements">
+            <el-icon><Bell /></el-icon>
+            <template #title>公告管理</template>
+          </el-menu-item>
+
+          <!-- ⏰ 定时任务管理（一级菜单） -->
+          <el-menu-item index="/settings/schedules">
+            <el-icon><Setting /></el-icon>
+            <template #title>定时任务管理</template>
+          </el-menu-item>
 
           <!-- ⚙️ 系统设置（一级菜单） -->
           <el-sub-menu index="settings">
@@ -567,21 +706,13 @@ const cachedViews = computed(() => {
               <el-icon><Setting /></el-icon>
               <span v-show="!isCollapsed">系统设置</span>
             </template>
-            <el-menu-item index="/config">
-              <el-icon><Setting /></el-icon>
-              <template #title>全局参数设置</template>
-            </el-menu-item>
             <el-menu-item v-if="isAdminUser" index="/settings/users">
               <el-icon><Setting /></el-icon>
               <template #title>系统用户管理</template>
             </el-menu-item>
-            <el-menu-item v-if="isAdminUser" index="/settings/announcements">
-              <el-icon><Bell /></el-icon>
-              <template #title>公告管理</template>
-            </el-menu-item>
-            <el-menu-item index="/settings/schedules">
+            <el-menu-item index="/config">
               <el-icon><Setting /></el-icon>
-              <template #title>定时任务管理</template>
+              <template #title>全局参数设置</template>
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -602,6 +733,14 @@ const cachedViews = computed(() => {
         class="layout-header"
       >
         <div class="page-meta">
+          <!-- 移动端菜单按钮 -->
+          <el-button
+            v-if="layout.showMenuButton"
+            :icon="Menu"
+            circle
+            class="menu-button mobile-only"
+            @click="handleMenuButtonClick"
+          />
           <el-button
             v-if="showBackButton"
             :icon="ArrowLeft"
@@ -1507,6 +1646,77 @@ const cachedViews = computed(() => {
   font-size: 11px;
   color: var(--text-tertiary);
   text-align: right;
+}
+
+/* 移动端菜单按钮样式 */
+.menu-button {
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
+  margin-right: 8px;
+}
+
+.menu-button:hover {
+  background: var(--primary-light);
+  border-color: rgba(37, 99, 235, 0.8);
+  color: var(--primary-color);
+}
+
+/* 移动端遮罩层样式 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 移动端侧边栏样式 */
+.layout-aside.is-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 999;
+  transition: width 0.3s ease, transform 0.3s ease;
+  transform: translateX(-100%);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.layout-aside.is-mobile.is-mobile-open {
+  transform: translateX(0);
+}
+
+/* 移动端Header样式优化 */
+@media (max-width: 767px) {
+  .layout-header {
+    padding: 0 16px;
+    height: 56px !important;
+  }
+
+  .page-meta h1 {
+    font-size: 18px;
+  }
+}
+
+/* 移动端主内容区样式 */
+@media (max-width: 767px) {
+  .layout-main {
+    padding: 16px;
+  }
 }
 </style>
 

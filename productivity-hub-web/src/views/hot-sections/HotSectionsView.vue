@@ -1,7 +1,11 @@
 <script setup lang="ts">
+/**
+ * 热点速览页面组件
+ */
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage, ElDialog } from 'element-plus'
-import { DocumentCopy, Share, ArrowLeft, ArrowRight, Link, Loading } from '@element-plus/icons-vue'
+import { DocumentCopy, Share, ArrowLeft, ArrowRight, Link, Loading, TrendCharts } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { scheduleApi, shortLinkApi } from '@/services/api'
 import type { HotSection } from '@/types/hotSections'
 
@@ -51,6 +55,9 @@ const SECTION_ICONS: Record<string, string> = {
   CSDN: '📘'
 }
 
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
+
 const getSectionIcon = (sectionName: string) => {
   return SECTION_ICONS[sectionName] ?? '📌'
 }
@@ -78,6 +85,130 @@ const currentUrl = ref('')
 const currentTitle = ref('')
 const currentSectionName = ref('')
 const currentItemIndex = ref(-1)
+
+// 用于防止重复处理知乎登录弹窗
+let zhihuDialogRemovalProcessed = false
+let zhihuDialogRemovalTimer: number | null = null
+
+// 检测是否是知乎链接
+const isZhihuUrl = (url: string): boolean => {
+  try {
+    const urlObj = new URL(url)
+    return urlObj.hostname.includes('zhihu.com')
+  } catch {
+    return false
+  }
+}
+
+// 计算当前URL是否是知乎
+const isCurrentZhihuUrl = computed(() => {
+  return currentUrl.value ? isZhihuUrl(currentUrl.value) : false
+})
+
+// 处理知乎登录弹窗移除（添加防抖和错误处理）
+const handleZhihuLoginDialogRemoval = () => {
+  if (!isCurrentZhihuUrl.value) {
+    zhihuDialogRemovalProcessed = false
+    return
+  }
+  
+  const iframe = document.querySelector('.content-iframe') as HTMLIFrameElement
+  if (!iframe) return
+  
+  // 清除之前的定时器，实现防抖
+  if (zhihuDialogRemovalTimer) {
+    clearTimeout(zhihuDialogRemovalTimer)
+    zhihuDialogRemovalTimer = null
+  }
+  
+  // 防抖处理：延迟执行，避免频繁调用
+  zhihuDialogRemovalTimer = window.setTimeout(() => {
+    zhihuDialogRemovalTimer = null
+    
+    // 由于跨域限制，我们无法直接操作iframe内的DOM
+    // 但我们可以尝试以下方法：
+    // 1. 通过postMessage与iframe通信（如果iframe支持）
+    // 2. 通过CSS的:deep()选择器来隐藏可能的登录弹窗（只对同源iframe有效）
+    // 3. 通过注入样式表来隐藏登录弹窗（只对同源iframe有效）
+    
+    // 尝试通过postMessage与iframe通信（如果iframe支持）
+    try {
+      iframe.contentWindow?.postMessage({
+        type: 'REMOVE_LOGIN_DIALOG',
+        action: 'hide'
+      }, '*')
+    } catch (error) {
+      // 跨域限制，无法发送消息
+      console.debug('无法与iframe通信（跨域限制）:', error)
+    }
+    
+    // 尝试通过注入样式表来隐藏登录弹窗（只对同源iframe有效）
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+      if (iframeDoc) {
+        // 检查是否已经处理过，避免重复操作
+        if (zhihuDialogRemovalProcessed && iframeDoc.getElementById('zhihu-login-dialog-remover')) {
+          return
+        }
+        
+        // 同源iframe，可以操作DOM
+        // 知乎登录弹窗的常见选择器
+        const loginDialogSelectors = [
+          '.Modal-wrapper',
+          '.SignFlowModal',
+          '.Modal',
+          '[class*="Modal"]',
+          '[class*="SignFlow"]',
+          '.SignFlow',
+          '.Modal-backdrop',
+          '.Modal-overlay'
+        ]
+        
+        // 创建样式表来隐藏登录弹窗
+        let styleElement = iframeDoc.getElementById('zhihu-login-dialog-remover')
+        if (!styleElement) {
+          styleElement = iframeDoc.createElement('style')
+          styleElement.id = 'zhihu-login-dialog-remover'
+          iframeDoc.head.appendChild(styleElement)
+          zhihuDialogRemovalProcessed = true
+        }
+        
+        // 添加CSS规则来隐藏登录弹窗
+        const cssRules = loginDialogSelectors.map(selector => 
+          `${selector} { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }`
+        ).join('\n')
+        
+        styleElement.textContent = cssRules
+        
+        // 同时尝试直接移除DOM元素
+        loginDialogSelectors.forEach(selector => {
+          try {
+            const elements = iframeDoc.querySelectorAll(selector)
+            elements.forEach(el => {
+              if (el instanceof HTMLElement) {
+                el.style.display = 'none'
+                el.style.visibility = 'hidden'
+                el.style.opacity = '0'
+                el.style.pointerEvents = 'none'
+              }
+            })
+          } catch (e) {
+            // 忽略错误
+          }
+        })
+      }
+    } catch (error) {
+      // 跨域限制，无法访问iframe内容
+      // 同时捕获可能的FIDO2脚本重复注入错误
+      if (error instanceof Error && error.message.includes('fido2-page-script-registration')) {
+        // 忽略FIDO2脚本重复注入错误，这是网站自身的问题
+        console.debug('检测到FIDO2脚本重复注入错误（已忽略）:', error.message)
+      } else {
+        console.debug('无法访问iframe内容（跨域限制）:', error)
+      }
+    }
+  }, 300) // 300ms防抖延迟
+}
 
 // 动态设置导航按钮位置 - 基于实际弹窗位置
 const updateNavButtonPositions = () => {
@@ -145,13 +276,13 @@ const applyDialogStyles = () => {
   const overlayDialogEl = document.querySelector('.iframe-dialog .el-overlay-dialog') as HTMLElement
   const overlayEl = document.querySelector('.iframe-dialog .el-overlay') as HTMLElement
   
-  // 基于屏幕尺寸计算弹窗大小
-  // 弹窗宽度：65% 的屏幕宽度，最大不超过 1200px
-  // 弹窗高度：70% 的屏幕高度，确保完全可见
+  // 基于屏幕尺寸计算弹窗大小 - REQ-001-02
+  // 移动端：全屏显示
+  // PC端：65% 的屏幕宽度，最大不超过 1200px，高度70%
   const screenWidth = window.innerWidth
   const screenHeight = window.innerHeight
-  const dialogWidth = Math.min(screenWidth * 0.65, 1200)
-  const dialogHeight = screenHeight * 0.7
+  const dialogWidth = isMobile.value ? screenWidth * 0.95 : Math.min(screenWidth * 0.65, 1200)
+  const dialogHeight = isMobile.value ? screenHeight * 0.9 : screenHeight * 0.7
   
   // 确保 body 和 html 不出现滚动条
   document.body.style.overflow = 'hidden'
@@ -257,6 +388,9 @@ let resizeHandler: (() => void) | null = null
 // 监听弹窗打开状态，动态设置样式
 watch(iframeDialogVisible, (newVal) => {
   if (newVal) {
+    // 重置知乎登录弹窗处理标志，允许新弹窗重新处理
+    zhihuDialogRemovalProcessed = false
+    
     // 滚动到页面顶部，确保弹窗完全可见
     window.scrollTo(0, 0)
     document.documentElement.scrollTop = 0
@@ -276,6 +410,14 @@ watch(iframeDialogVisible, (newVal) => {
         setTimeout(() => {
           applyDialogStyles()
           updateNavButtonPositions()
+          // 如果是知乎链接，尝试移除登录弹窗
+          if (isCurrentZhihuUrl.value) {
+            handleZhihuLoginDialogRemoval()
+            // 延迟再次尝试，确保iframe已加载
+            setTimeout(() => {
+              handleZhihuLoginDialogRemoval()
+            }, 1000)
+          }
         }, 50)
       }, 50)
     })
@@ -300,9 +442,32 @@ watch(iframeDialogVisible, (newVal) => {
   }
 })
 
+// 监听URL变化，如果是知乎链接，尝试移除登录弹窗
+watch(currentUrl, (newUrl) => {
+  // 重置处理标志，允许新URL重新处理
+  zhihuDialogRemovalProcessed = false
+  
+  if (newUrl && isZhihuUrl(newUrl)) {
+    // 延迟处理，确保iframe已加载
+    setTimeout(() => {
+      handleZhihuLoginDialogRemoval()
+    }, 500)
+    setTimeout(() => {
+      handleZhihuLoginDialogRemoval()
+    }, 1500)
+  }
+})
+
 // 关闭 iframe 弹窗
 const closeIframeDialog = () => {
   iframeDialogVisible.value = false
+  // 重置知乎登录弹窗处理标志
+  zhihuDialogRemovalProcessed = false
+  // 清除定时器
+  if (zhihuDialogRemovalTimer) {
+    clearTimeout(zhihuDialogRemovalTimer)
+    zhihuDialogRemovalTimer = null
+  }
   // 恢复 body 和 html 的滚动
   document.body.style.overflow = ''
   document.documentElement.style.overflow = ''
@@ -879,6 +1044,15 @@ const openInNewTab = (url: string, event?: Event) => {
 onMounted(async () => {
   initSectionData()
   
+  // 添加全局错误处理，捕获未处理的Promise拒绝（如FIDO2脚本重复注入错误）
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason instanceof Error && event.reason.message.includes('fido2-page-script-registration')) {
+      // 忽略FIDO2脚本重复注入错误，这是网站自身的问题
+      event.preventDefault()
+      console.debug('已捕获并忽略FIDO2脚本重复注入错误:', event.reason.message)
+    }
+  })
+  
   // 默认加载生活类的第一个子标签，其他子标签按需加载
   if (LIFE_HOT_SECTION_NAMES.length > 0) {
     activeTab.value = LIFE_HOT_SECTION_NAMES[0]
@@ -896,6 +1070,11 @@ onUnmounted(() => {
   if (scrollTimer) {
     clearTimeout(scrollTimer)
     scrollTimer = null
+  }
+  // 清理知乎登录弹窗处理定时器
+  if (zhihuDialogRemovalTimer) {
+    clearTimeout(zhihuDialogRemovalTimer)
+    zhihuDialogRemovalTimer = null
   }
   // 清理窗口大小改变监听器
   if (resizeHandler) {
@@ -1083,7 +1262,9 @@ onUnmounted(() => {
             :src="currentUrl"
             frameborder="0"
             class="content-iframe"
+            :class="{ 'zhihu-iframe': isCurrentZhihuUrl }"
             allowfullscreen
+            @load="handleZhihuLoginDialogRemoval"
           ></iframe>
         </div>
       </div>
@@ -1859,6 +2040,15 @@ onUnmounted(() => {
   display: block;
 }
 
+/* 知乎iframe特殊处理 - 尝试隐藏登录弹窗 */
+.zhihu-iframe {
+  /* 知乎iframe的特殊样式处理 */
+}
+
+/* 尝试通过CSS隐藏知乎登录弹窗（如果iframe同源） */
+/* 注意：由于跨域限制，CSS选择器无法穿透到iframe内部 */
+/* 实际的登录弹窗移除逻辑在JavaScript中处理 */
+
 /* 导航按钮容器 - 在弹窗外部 */
 .iframe-nav-buttons-wrapper {
   position: fixed;
@@ -1951,6 +2141,252 @@ onUnmounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .hot-sections-container {
+    padding: 0;
+  }
+
+  .hot-sections-card {
+    border-radius: 0;
+    margin: 0;
+    max-width: 100%;
+  }
+
+  /* 主标签页移动端优化 */
+  .main-tabs :deep(.el-tabs__header) {
+    padding: 8px 12px 0;
+  }
+
+  .main-tabs :deep(.el-tabs__item) {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .main-tab-label {
+    font-size: 13px;
+  }
+
+  .main-tabs :deep(.el-tabs__content) {
+    padding: 10px 12px 12px;
+  }
+
+  /* 移动端：子标签改为顶部横向滚动 */
+  .hot-tabs-wrapper {
+    min-height: auto;
+  }
+
+  .hot-tabs-header {
+    position: relative;
+    top: 0;
+    right: 0;
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+  }
+
+  .copy-button-header {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .hot-tabs {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .hot-tabs :deep(.el-tabs__header) {
+    margin-top: 0;
+    padding: 0;
+    border-left: none;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .hot-tabs :deep(.el-tabs__nav-wrap) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hot-tabs :deep(.el-tabs__nav-scroll) {
+    flex-direction: row;
+    padding: 8px 12px;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .hot-tabs :deep(.el-tabs__nav) {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .hot-tabs :deep(.el-tabs__item) {
+    margin: 0;
+    padding: 0;
+    height: auto;
+    white-space: nowrap;
+  }
+
+  .sub-tab-label {
+    padding: 6px 12px;
+    gap: 6px;
+  }
+
+  .sub-tab-icon-wrap {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sub-tab-icon {
+    font-size: 12px;
+  }
+
+  .sub-tab-text {
+    font-size: 12px;
+  }
+
+  .hot-tabs :deep(.el-tabs__content) {
+    padding: 10px 12px 12px;
+    border-radius: 0;
+  }
+
+  /* 热点列表移动端优化 */
+  .hot-items-container {
+    padding: 4px 4px 4px 0;
+  }
+
+  .hot-item {
+    padding: 8px 10px;
+    gap: 8px;
+    min-height: 60px;
+  }
+
+  .hot-item-content {
+    padding-right: 70px;
+    gap: 8px;
+  }
+
+  .hot-item-index {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+
+  .hot-item-text {
+    font-size: 13px;
+  }
+
+  .hot-item-heat {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .hot-item-desc {
+    font-size: 12px;
+    padding-left: 28px;
+    margin-top: 2px;
+  }
+
+  .hot-item-actions {
+    top: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+
+  .hot-item-share-button,
+  .hot-item-open-button {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* iframe弹窗移动端优化 */
+  .iframe-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+    margin-top: 0 !important;
+  }
+
+  .iframe-dialog :deep(.el-dialog__header) {
+    padding: 12px 16px;
+  }
+
+  .iframe-dialog :deep(.el-dialog__title) {
+    font-size: 14px;
+  }
+
+  /* 导航按钮移动端优化 */
+  .iframe-nav-button {
+    max-width: 140px;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .iframe-nav-left {
+    left: 10px;
+  }
+
+  .iframe-nav-right {
+    right: 10px;
+  }
+
+  .nav-arrow-icon {
+    font-size: 18px;
+  }
+
+  .nav-title-label {
+    font-size: 10px;
+  }
+
+  .nav-title-text {
+    font-size: 12px;
+  }
+
+  /* 禁用移动端hover效果 */
+  .hot-item:hover {
+    background: rgba(248, 250, 252, 0.98);
+    border-color: rgba(203, 213, 225, 0.9);
+    transform: none;
+    box-shadow: none;
+  }
+
+  .hot-item:hover .hot-item-index {
+    transform: none;
+    background: #e0ecff;
+    border-color: rgba(148, 163, 184, 0.7);
+  }
+
+  .main-tabs :deep(.el-tabs__item:hover) {
+    color: var(--text-secondary);
+    background: transparent;
+  }
+
+  .hot-tabs :deep(.el-tabs__item:hover .sub-tab-label) {
+    background: transparent;
+  }
+
+  .copy-button-header:hover {
+    box-shadow:
+      0 2px 0 #60a5fa,
+      0 8px 18px rgba(15, 23, 42, 0.25),
+      0 0 0 1px rgba(59, 130, 246, 0.75);
+    transform: none;
+    filter: saturate(1.05);
+  }
+
+  .hot-item-share-button:hover,
+  .hot-item-open-button:hover {
+    transform: none;
+  }
 }
 </style>
 

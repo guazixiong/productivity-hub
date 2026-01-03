@@ -3,8 +3,12 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/services/api'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 const route = useRoute()
@@ -198,6 +202,8 @@ onMounted(() => {
 .login-form :deep(.el-form-item:has(.captcha-container) .el-form-item__content) {
   display: flex;
   align-items: center;
+  width: 100%;
+  min-height: 50px;
 }
 
 .login-form :deep(.el-input__wrapper) {
@@ -248,6 +254,7 @@ onMounted(() => {
   gap: 12px;
   align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 .captcha-input {
@@ -255,8 +262,8 @@ onMounted(() => {
 }
 
 .captcha-image-wrapper {
-  width: 120px;
-  height: 40px;
+  width: 140px;
+  height: 50px;
   cursor: pointer;
   border-radius: 8px;
   overflow: hidden;
@@ -267,7 +274,8 @@ onMounted(() => {
   justify-content: center;
   transition: all 0.3s ease;
   flex-shrink: 0;
-  align-self: center;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .captcha-image-wrapper:hover {
@@ -283,7 +291,8 @@ onMounted(() => {
 .captcha-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: fill;
+  display: block;
 }
 
 .captcha-placeholder {
@@ -291,6 +300,60 @@ onMounted(() => {
   font-size: 12px;
   text-align: center;
   padding: 0 8px;
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .login-page {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px;
+
+    :deep(.el-card__body) {
+      padding: 24px 20px;
+    }
+  }
+
+  .login-card h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .login-form {
+    margin-top: 24px;
+  }
+
+  .login-form :deep(.el-form-item) {
+    margin-bottom: 20px;
+  }
+
+  .submit-btn {
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .captcha-container {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .captcha-input {
+    width: 100%;
+  }
+
+  .captcha-image-wrapper {
+    width: 100%;
+    min-height: 50px;
+    height: auto;
+    align-self: stretch;
+  }
 }
 </style>
 

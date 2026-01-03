@@ -63,16 +63,6 @@
           </div>
         </div>
       </el-tab-pane>
-
-      <!-- 常用工具标签页 -->
-      <el-tab-pane label="常用工具" name="common-tools">
-        <div class="tab-content">
-          <div class="section">
-            <div class="section-title">🛠️ 常用工具</div>
-            <ToolsGrid :tools="tools" />
-          </div>
-        </div>
-      </el-tab-pane>
     </el-tabs>
 
     <!-- 弹窗组件 -->
@@ -104,6 +94,10 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 import { todoApi } from '@/services/todoApi'
 import { healthApi } from '@/services/healthApi'
 import type { WeightTrend, ExerciseStatistics, WaterStatistics } from '@/types/health'
@@ -117,13 +111,12 @@ import TimeRangeSelector from '@/components/health/TimeRangeSelector.vue'
 import WeightTrendChart from '@/components/health/WeightTrendChart.vue'
 import ExerciseStatsCard from '@/components/health/ExerciseStatsCard.vue'
 import WaterStatsCard from '@/components/health/WaterStatsCard.vue'
-import ToolsGrid from '@/components/workbench/ToolsGrid.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 // 标签页管理
-const activeTab = ref<'quick-record' | 'health-stats' | 'common-tools'>('quick-record')
+const activeTab = ref<'quick-record' | 'health-stats'>('quick-record')
 
 // 根据路由参数设置活动标签
 watch(
@@ -133,8 +126,6 @@ watch(
       activeTab.value = 'quick-record'
     } else if (path === '/health-stats') {
       activeTab.value = 'health-stats'
-    } else if (path === '/common-tools') {
-      activeTab.value = 'common-tools'
     }
   },
   { immediate: true }
@@ -144,9 +135,8 @@ const handleTabChange = (tabName: string) => {
   const routeMap: Record<string, string> = {
     'quick-record': '/quick-record',
     'health-stats': '/health-stats',
-    'common-tools': '/common-tools'
   }
-  
+
   const targetPath = routeMap[tabName]
   if (targetPath && route.path !== targetPath) {
     router.push(targetPath)
@@ -185,13 +175,6 @@ const dialogs = reactive({
   water: false,
   weight: false,
 })
-
-
-const tools = [
-  { id: 'blueprint', name: 'AI蓝图', icon: '📊', route: '/tools/blueprint' },
-  { id: 'cursor', name: 'Cursor', icon: '🖱️', route: '/tools/cursor-inventory' },
-  { id: 'calculator', name: '计算器', icon: '🔢', route: '/tools' },
-]
 
 // 快捷记录相关方法
 const calculateDays = (range: string) => {
@@ -336,7 +319,7 @@ watch(activeTab, (newTab) => {
   min-height: calc(100vh - 60px);
   background: #f5f7fa;
 
-  // 移动端风格的标签页（桌面端在顶部）
+  /* 移动端风格的标签页（桌面端在顶部） */
   :deep(.mobile-tabs) {
     .el-tabs__header {
       margin: 0;
@@ -374,7 +357,7 @@ watch(activeTab, (newTab) => {
       position: relative;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      min-width: 0; // 允许标签页缩小以适应4个标签
+      min-width: 0; /* 允许标签页缩小以适应4个标签 */
 
       &::after {
         content: '';
@@ -639,11 +622,11 @@ watch(activeTab, (newTab) => {
   }
 }
 
-// 移动端优化 - 手机风格（标签页在底部）
+/* 移动端优化 - 手机风格（标签页在底部） */
 @media (max-width: 768px) {
   .unified-workbench-view {
     background: #f5f7fa;
-    padding-bottom: 60px; // 为底部标签栏留出空间
+    padding-bottom: 60px; /* 为底部标签栏留出空间 */
 
     :deep(.mobile-tabs) {
       .el-tabs__header {
@@ -675,7 +658,7 @@ watch(activeTab, (newTab) => {
         justify-content: center;
         flex-direction: column;
         gap: 4px;
-        min-width: 0; // 允许标签页缩小以适应4个标签
+        min-width: 0; /* 允许标签页缩小以适应4个标签 */
 
         &::after {
           top: 0;
@@ -697,12 +680,12 @@ watch(activeTab, (newTab) => {
     }
 
     .tab-content {
-      padding-bottom: 0; // 桌面端不需要底部空间
+      padding-bottom: 0; /* 桌面端不需要底部空间 */
     }
 
     .tab-content {
       padding: 12px 16px;
-      padding-bottom: 80px; // 为底部标签栏留出空间
+      padding-bottom: 80px; /* 为底部标签栏留出空间 */
 
       .section-title {
         font-size: 16px;
@@ -801,7 +784,7 @@ watch(activeTab, (newTab) => {
       }
     }
 
-    // 工作台卡片样式优化
+    /* 工作台卡片样式优化 */
     :deep(.el-card) {
       border-radius: 16px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -809,7 +792,7 @@ watch(activeTab, (newTab) => {
       margin-bottom: 16px;
     }
 
-    // 待办列表移动端优化
+    /* 待办列表移动端优化 */
     :deep(.todo-list) {
       .todo-item {
         border-radius: 12px;
@@ -820,7 +803,7 @@ watch(activeTab, (newTab) => {
       }
     }
 
-    // 工具网格移动端优化
+    /* 工具网格移动端优化 */
     :deep(.tools-grid) {
       .tool-item {
         border-radius: 16px;

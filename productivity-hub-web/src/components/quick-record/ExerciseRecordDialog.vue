@@ -55,11 +55,6 @@
 <script setup lang="ts">
 /**
  * 新增运动记录弹窗组件
- * 
- * 关联需求: REQ-004
- * 关联组件: COMP-REQ-001-01-04
- * 关联接口: API-REQ-002-02
- * 关联测试用例: TC-COMP-REQ-001-01-04-01, TC-COMP-REQ-001-01-04-02
  */
 
 import { computed, reactive, ref, watch } from 'vue'

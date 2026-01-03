@@ -48,10 +48,6 @@
 <script setup lang="ts">
 /**
  * 待办列表组件
- * 
- * 关联需求: REQ-009
- * 关联组件: COMP-REQ-003-01-01
- * 关联接口: API-REQ-001-04, API-REQ-001-05, API-REQ-001-06
  */
 
 import { ElMessageBox } from 'element-plus'

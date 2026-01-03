@@ -51,11 +51,6 @@
 <script setup lang="ts">
 /**
  * 新增体重记录弹窗组件
- * 
- * 关联需求: REQ-006
- * 关联组件: COMP-REQ-001-01-06
- * 关联接口: API-REQ-002-04, API-REQ-002-05, API-REQ-002-06
- * 关联测试用例: TC-COMP-REQ-001-01-06-01 ~ TC-COMP-REQ-001-01-06-03
  */
 
 import { computed, onMounted, reactive, ref, watch } from 'vue'

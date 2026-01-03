@@ -34,10 +34,6 @@
 <script setup lang="ts">
 /**
  * 运动数据卡片组件
- * 
- * 关联需求: REQ-007
- * 关联组件: COMP-REQ-002-01-03
- * 关联接口: API-REQ-002-09
  */
 
 import type { ExerciseStatistics } from '@/types/health'

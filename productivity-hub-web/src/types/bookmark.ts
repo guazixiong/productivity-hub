@@ -110,3 +110,23 @@ export interface BookmarkImportResult {
   errors: string[]
 }
 
+/**
+ * Excel 导入预览单行
+ */
+export interface BookmarkImportPreviewItem {
+  parentTagName?: string
+  childTagName?: string
+  title: string
+  url: string
+  description?: string
+  iconUrl?: string
+}
+
+/**
+ * Excel 导入预览结果
+ */
+export interface BookmarkImportPreview {
+  total: number
+  items: BookmarkImportPreviewItem[]
+}
+

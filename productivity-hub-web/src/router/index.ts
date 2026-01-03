@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNavigationStore } from '@/stores/navigation'
 
@@ -310,10 +310,82 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
       },
       {
-        path: 'common-tools',
-        name: 'CommonTools',
-        meta: { title: '常用工具' },
-        component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
+        path: 'asset/categories',
+        name: 'AssetCategoryList',
+        meta: { title: '资产分类管理', requiresAdmin: true },
+        component: () => import('@/views/asset/AssetCategoryListView.vue'),
+      },
+      {
+        path: 'assets',
+        name: 'AssetList',
+        meta: { title: '资产列表页' },
+        component: () => import('@/views/asset/AssetListView.vue'),
+      },
+      {
+        path: 'assets/create',
+        name: 'AssetCreate',
+        meta: { title: '创建资产' },
+        component: () => import('@/views/asset/AssetFormView.vue'),
+      },
+      {
+        path: 'assets/edit/:id',
+        name: 'AssetEdit',
+        meta: { title: '编辑资产' },
+        component: () => import('@/views/asset/AssetFormView.vue'),
+      },
+      {
+        path: 'assets/:id',
+        name: 'AssetDetail',
+        meta: { title: '资产详情' },
+        component: () => import('@/views/asset/AssetDetailView.vue'),
+      },
+      {
+        path: 'assets/statistics',
+        name: 'AssetStatistics',
+        meta: { title: '资产统计分析' },
+        component: () => import('@/views/asset/StatAnalysisView.vue'),
+      },
+      {
+        path: 'wishlist',
+        name: 'WishlistList',
+        meta: { title: '心愿单列表' },
+        component: () => import('@/views/asset/WishlistListView.vue'),
+      },
+      {
+        path: 'wishlist/create',
+        name: 'WishlistCreate',
+        meta: { title: '创建心愿单' },
+        component: () => import('@/views/asset/WishlistFormView.vue'),
+      },
+      {
+        path: 'wishlist/edit/:id',
+        name: 'WishlistEdit',
+        meta: { title: '编辑心愿单' },
+        component: () => import('@/views/asset/WishlistFormView.vue'),
+      },
+      {
+        path: 'wishlist/:id',
+        name: 'WishlistDetail',
+        meta: { title: '心愿单详情' },
+        component: () => import('@/views/asset/WishlistDetailView.vue'),
+      },
+      {
+        path: 'settings/currency',
+        name: 'CurrencySettings',
+        meta: { title: '货币设置' },
+        component: () => import('@/views/asset/CurrencySettingsView.vue'),
+      },
+      {
+        path: 'settings/asset',
+        name: 'AssetSettings',
+        meta: { title: '资产设置' },
+        component: () => import('@/views/asset/AssetSettingsView.vue'),
+      },
+      {
+        path: 'data/management',
+        name: 'DataManagement',
+        meta: { title: '数据管理' },
+        component: () => import('@/views/asset/DataManagementView.vue'),
       },
     ],
   },
@@ -325,8 +397,34 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+// 检测是否在 Android WebView 环境中（使用 file:// 协议）
+// 在 file:// 协议下，history 模式无法正常工作，需要使用 hash 模式
+const isAndroidWebView = () => {
+  // 方法1: 检查协议是否为 file://
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    return true
+  }
+  // 方法2: 检查 user agent 是否包含 Android 且不是 Chrome（可能是 WebView）
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent.toLowerCase()
+    const isAndroid = ua.includes('android')
+    const isChrome = ua.includes('chrome')
+    // Android 设备但不是 Chrome 浏览器，可能是 WebView
+    if (isAndroid && !isChrome) {
+      return true
+    }
+  }
+  return false
+}
+
+// 根据环境选择路由模式
+// Android WebView 使用 hash 模式，其他环境使用 history 模式
+const history = isAndroidWebView() 
+  ? createWebHashHistory(import.meta.env.BASE_URL)
+  : createWebHistory(import.meta.env.BASE_URL)
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history,
   routes,
 })
 

@@ -3,8 +3,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import parser from 'cron-parser'
-import cronstrue from 'cronstrue/i18n'
+// 静态导入 cronstrue，确保构建时正确打包
+import cronstrue from 'cronstrue'
 
 const router = useRouter()
 
@@ -31,7 +31,7 @@ const formatDateTime = (date: Date) =>
     minute: '2-digit',
   })
 
-const analyzeCron = () => {
+const analyzeCron = async () => {
   cronError.value = ''
   cronDescription.value = ''
   cronPreviews.value = []
@@ -42,14 +42,48 @@ const analyzeCron = () => {
   }
 
   try {
+    // 使用静态导入的 cronstrue
     cronDescription.value = cronstrue.toString(cronExpression.value, { locale: 'zh_CN' })
   } catch (error) {
+    console.error('cronstrue 解析错误:', error)
     cronError.value = `无法解析描述: ${(error as Error).message}`
     return
   }
 
   try {
-    const interval = parser.parseExpression(cronExpression.value, { endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) })
+    // 动态导入 cron-parser 以避免构建时的兼容性问题
+    // 使用字符串变量避免静态分析，确保作为动态导入处理
+    const cronParserModule = 'cron-parser'
+    const parserModule = await import(/* @vite-ignore */ cronParserModule)
+    
+    // 处理不同的导出方式（CommonJS/ESM）
+    // cron-parser 可能是 default export 或 named export
+    let parser: any = null
+    
+    // 尝试获取 parseExpression 方法
+    if (parserModule.default && typeof parserModule.default.parseExpression === 'function') {
+      parser = parserModule.default
+    } else if (typeof parserModule.parseExpression === 'function') {
+      parser = parserModule
+    } else if (parserModule.default && typeof parserModule.default === 'object') {
+      parser = parserModule.default
+    } else {
+      parser = parserModule
+    }
+    
+    // 验证 parser 对象
+    if (!parser || typeof parser.parseExpression !== 'function') {
+      console.error('cron-parser 模块结构:', {
+        module: parserModule,
+        hasDefault: !!parserModule.default,
+        keys: Object.keys(parserModule),
+      })
+      throw new Error('cron-parser 模块加载失败：无法找到 parseExpression 方法')
+    }
+    
+    const interval = parser.parseExpression(cronExpression.value, { 
+      endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) 
+    })
     const previews: string[] = []
     for (let i = 0; i < 5; i += 1) {
       previews.push(formatDateTime(interval.next().toDate()))
@@ -57,6 +91,7 @@ const analyzeCron = () => {
     cronPreviews.value = previews
     ElMessage.success('解析完成')
   } catch (error) {
+    console.error('cron-parser 解析错误:', error)
     cronError.value = `表达式不合法: ${(error as Error).message}`
   }
 }

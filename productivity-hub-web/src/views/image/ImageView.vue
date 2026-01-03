@@ -399,7 +399,8 @@
     <el-dialog
       v-model="showBatchEditDialog"
       title="批量编辑"
-      width="500px"
+      :width="isMobile ? '90%' : '500px'"
+      :fullscreen="isMobile"
     >
       <el-form :model="batchEditForm" label-width="100px">
         <el-form-item label="分类">
@@ -445,7 +446,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Upload,
@@ -459,7 +460,11 @@ import {
   DataAnalysis,
   Edit,
 } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { imageApi } from '@/services/imageApi'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 import type { Image, ImageListQuery, ImageStatus, ImageCategory } from '@/types/image'
 import type { PageResult } from '@/types/common'
 import {
@@ -922,18 +927,6 @@ onUnmounted(() => {
         gap: 8px;
         flex-wrap: wrap;
         align-items: center;
-
-        @media (max-width: 768px) {
-          .button-text {
-            display: none;
-          }
-
-          .view-mode-switch {
-            margin-left: 0 !important;
-            margin-top: 8px;
-            width: 100%;
-          }
-        }
       }
     }
   }
@@ -943,12 +936,6 @@ onUnmounted(() => {
 
     .filter-form {
       margin: 0;
-
-      @media (max-width: 768px) {
-        :deep(.el-form-item) {
-          margin-bottom: 12px;
-        }
-      }
     }
   }
 
@@ -995,6 +982,99 @@ onUnmounted(() => {
       margin-top: 16px;
       display: flex;
       justify-content: flex-end;
+    }
+  }
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .image-view {
+    padding: 0;
+    font-size: 0.9em;
+
+    .main-card {
+      border-radius: 0;
+      margin: 0 -12px;
+
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+
+        .title {
+          font-size: 16px;
+        }
+
+        .header-actions {
+          width: 100%;
+          flex-wrap: wrap;
+
+          .el-button {
+            flex: 1;
+            min-width: 0;
+
+            .button-text {
+              display: none;
+            }
+          }
+
+          .view-mode-switch {
+            width: 100%;
+            margin-top: 8px;
+          }
+        }
+      }
+    }
+
+    .filter-toolbar {
+      margin-bottom: 12px;
+      padding: 0 12px;
+
+      .filter-form {
+        :deep(.el-form) {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        :deep(.el-form-item) {
+          margin: 0;
+          width: 100%;
+        }
+
+        :deep(.el-select),
+        :deep(.el-date-picker),
+        :deep(.el-input) {
+          width: 100% !important;
+        }
+      }
+    }
+
+    .image-list-container {
+      padding: 0 12px;
+
+      :deep(.el-table) {
+        font-size: 0.9em;
+      }
+
+      :deep(.el-table th),
+      :deep(.el-table td) {
+        padding: 8px 4px;
+      }
+
+      .pagination-wrapper {
+        justify-content: center;
+
+        :deep(.el-pagination) {
+          font-size: 0.9em;
+        }
+
+        :deep(.el-pagination__sizes),
+        :deep(.el-pagination__jump) {
+          display: none;
+        }
+      }
     }
 
     // 网格视图

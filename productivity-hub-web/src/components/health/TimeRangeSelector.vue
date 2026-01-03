@@ -35,9 +35,6 @@
 <script setup lang="ts">
 /**
  * 时间筛选器组件
- * 
- * 关联需求: REQ-008
- * 关联组件: COMP-REQ-002-01-01
  */
 
 import { ref } from 'vue'

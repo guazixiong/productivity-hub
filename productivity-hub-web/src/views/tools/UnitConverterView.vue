@@ -3,6 +3,10 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Switch } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 
@@ -510,21 +514,98 @@ initUnits()
   transform: translateY(-2px);
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
+  .unit-container {
+    padding: 0;
+    gap: 16px;
+  }
+
+  .page-header {
+    padding: 0 12px;
+  }
+
+  .unit-content {
+    gap: 16px;
+  }
+
+  .category-selector {
+    padding: 0 12px;
+    gap: 12px;
+
+    h4 {
+      font-size: 14px;
+    }
+  }
+
+  :deep(.el-radio-group) {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  :deep(.el-radio-button) {
+    width: 100%;
+
+    .el-radio-button__inner {
+      width: 100%;
+    }
+  }
+
+  .converter-panel {
+    border-radius: 12px;
+    padding: 16px;
+    margin: 0 12px;
+  }
+
+  .converter-header {
+    margin-bottom: 16px;
+
+    h3 {
+      font-size: 18px;
+    }
+  }
+
+  .converter-body {
+    gap: 16px;
+  }
+
   .input-group {
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .value-input {
+    width: 100%;
   }
 
   .unit-select {
     width: 100%;
   }
 
-  :deep(.el-radio-group) {
-    flex-direction: column;
+  .swap-button-wrapper {
+    margin: 8px 0;
   }
 
-  :deep(.el-radio-button) {
-    width: 100%;
+  .convert-button-wrapper {
+    margin-top: 12px;
+
+    .el-button {
+      width: 100%;
+    }
+  }
+
+  .units-list {
+    margin-top: 24px;
+    padding-top: 16px;
+
+    h4 {
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+  }
+
+  .units-grid {
+    gap: 6px;
   }
 }
 </style>

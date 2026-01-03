@@ -3,7 +3,11 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import isEqual from 'lodash-es/isEqual'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 
@@ -716,17 +720,97 @@ const highlightJson = (value: string) => {
   border: 1px solid var(--surface-border);
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
+  .json-container {
+    padding: 0;
+    gap: 16px;
+  }
+
+  .page-header {
+    padding: 0 12px;
+  }
+
+  .mode-switch {
+    padding: 0 12px;
+
+    :deep(.el-radio-group) {
+      width: 100%;
+    }
+
+    :deep(.el-radio-button) {
+      flex: 1;
+
+      .el-radio-button__inner {
+        width: 100%;
+      }
+    }
+  }
+
+  .json-toolbar {
+    padding: 0 12px;
+    flex-wrap: wrap;
+
+    .el-button {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
   .json-editor {
     grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 12px;
+  }
+
+  .json-section {
+    gap: 8px;
+
+    h4 {
+      font-size: 14px;
+    }
+  }
+
+  .json-input {
+    font-size: 12px;
+  }
+
+  .json-highlight {
+    min-height: 200px;
+    padding: 12px;
+    font-size: 12px;
   }
 
   .json-compare {
     grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 12px;
   }
 
   .diff-section {
     grid-column: span 1;
+  }
+
+  .section-tip {
+    font-size: 11px;
+  }
+
+  .diff-message {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .diff-scroll {
+    max-height: 300px;
+  }
+
+  .diff-item {
+    gap: 6px;
+  }
+
+  .diff-value pre {
+    padding: 10px;
+    font-size: 11px;
   }
 }
 </style>

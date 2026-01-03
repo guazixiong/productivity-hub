@@ -226,6 +226,15 @@ const loadExerciseTrend = async () => {
     })
     await nextTick()
     if (exerciseChartRef.value && data) {
+      // 检查 DOM 元素是否有有效的尺寸
+      const rect = exerciseChartRef.value.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        // 如果尺寸为 0，延迟重试
+        setTimeout(() => {
+          loadExerciseTrend()
+        }, 100)
+        return
+      }
       if (!exerciseChart) {
         exerciseChart = echarts.init(exerciseChartRef.value)
       }
@@ -296,6 +305,15 @@ const loadWaterTrend = async () => {
     const data = await healthApi.getWaterTrend({ days: parseInt(timeRange.value) })
     await nextTick()
     if (waterChartRef.value && data) {
+      // 检查 DOM 元素是否有有效的尺寸
+      const rect = waterChartRef.value.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        // 如果尺寸为 0，延迟重试
+        setTimeout(() => {
+          loadWaterTrend()
+        }, 100)
+        return
+      }
       if (!waterChart) {
         waterChart = echarts.init(waterChartRef.value)
       }
@@ -382,6 +400,15 @@ const loadWeightTrend = async () => {
     const data = await healthApi.getWeightTrend({ days: parseInt(timeRange.value) })
     await nextTick()
     if (weightChartRef.value && data) {
+      // 检查 DOM 元素是否有有效的尺寸
+      const rect = weightChartRef.value.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        // 如果尺寸为 0，延迟重试
+        setTimeout(() => {
+          loadWeightTrend()
+        }, 100)
+        return
+      }
       if (!weightChart) {
         weightChart = echarts.init(weightChartRef.value)
       }

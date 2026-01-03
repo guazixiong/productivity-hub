@@ -90,12 +90,13 @@
       </div>
 
       <!-- 数据表格 -->
-      <el-table
-        :data="records"
-        v-loading="loading"
-        :default-sort="{ prop: 'recordDate', order: 'descending' }"
-        style="width: 100%"
-      >
+      <div class="table-wrapper">
+        <el-table
+          :data="records"
+          v-loading="loading"
+          :default-sort="{ prop: 'recordDate', order: 'descending' }"
+          style="width: 100%"
+        >
         <el-table-column prop="recordDate" label="日期" width="120" sortable />
         <el-table-column prop="recordTime" label="时间" width="100" />
         <el-table-column prop="weightKg" label="体重(kg)" width="120" />
@@ -126,6 +127,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination">
@@ -145,7 +147,8 @@
     <el-dialog
       v-model="formVisible"
       :title="currentRecord?.id ? '编辑体重记录' : '新增体重记录'"
-      width="500px"
+      :width="isMobile ? '90%' : '500px'"
+      :fullscreen="isMobile"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="日期" prop="recordDate">
@@ -208,8 +211,19 @@
       </template>
     </el-dialog>
 
+    <!-- 导入对话框 -->
+    <WeightRecordImportDialog
+      v-model="showImportDialog"
+      @success="handleImportSuccess"
+    />
+
     <!-- 身体信息对话框 -->
-    <el-dialog v-model="showBodyInfoDialog" title="身体信息" width="500px">
+    <el-dialog 
+      v-model="showBodyInfoDialog" 
+      title="身体信息" 
+      :width="isMobile ? '90%' : '500px'"
+      :fullscreen="isMobile"
+    >
       <el-form ref="bodyInfoFormRef" :model="bodyInfoForm" :rules="bodyInfoRules" label-width="120px">
         <el-form-item label="身高(cm)">
           <el-input-number
@@ -267,6 +281,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, User, Upload } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { healthApi } from '@/services/healthApi'
 import type {
   WeightRecord,
@@ -276,7 +291,11 @@ import type {
   UserBodyInfoDTO,
 } from '@/types/health'
 import StatisticsCard from '@/components/health/StatisticsCard.vue'
+import WeightRecordImportDialog from '@/components/health/WeightRecordImportDialog.vue'
 import type { FormInstance, FormRules } from 'element-plus'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const loading = ref(false)
 const records = ref<WeightRecord[]>([])
@@ -630,6 +649,11 @@ const handleSizeChange = (size: number) => {
   loadData()
 }
 
+const handleImportSuccess = async () => {
+  await loadData()
+  await loadBodyInfo()
+}
+
 const getHealthStatusTagType = (healthStatus: string): 'info' | 'success' | 'warning' | 'danger' => {
   switch (healthStatus) {
     case '偏瘦':
@@ -680,6 +704,80 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .weight-view {
+    padding: 0;
+    font-size: 0.9em;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions .el-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-actions .el-button span {
+    display: none;
+  }
+
+  .filter-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form-item) {
+    margin: 0;
+    width: 100%;
+  }
+
+  .filter-toolbar :deep(.el-date-picker) {
+    width: 100% !important;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrapper :deep(.el-table) {
+    font-size: 0.9em;
+  }
+
+  .table-wrapper :deep(.el-table th),
+  .table-wrapper :deep(.el-table td) {
+    padding: 8px 4px;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+
+  .pagination :deep(.el-pagination) {
+    font-size: 0.9em;
+  }
+
+  .pagination :deep(.el-pagination__sizes),
+  .pagination :deep(.el-pagination__jump) {
+    display: none;
+  }
 }
 </style>
 

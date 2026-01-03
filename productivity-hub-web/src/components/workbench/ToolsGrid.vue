@@ -15,9 +15,6 @@
 <script setup lang="ts">
 /**
  * 常用工具网格组件
- * 
- * 关联需求: REQ-009
- * 关联组件: COMP-REQ-003-01-02
  */
 
 import { useRouter } from 'vue-router'

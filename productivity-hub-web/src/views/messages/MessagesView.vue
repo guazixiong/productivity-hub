@@ -1,12 +1,19 @@
 <script setup lang="ts">
+/**
+ * 消息中心页面组件
+ */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { useRoute } from 'vue-router'
+import { useDevice } from '@/composables/useDevice'
 import { useConfigStore } from '@/stores/config'
 import { useMessageStore } from '@/stores/messages'
 import type { MessageChannel, MessageHistoryItem } from '@/types/messages'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 marked.setOptions({ gfm: true, breaks: true })
 
@@ -1060,13 +1067,269 @@ watch(
   }
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
-  .history-date-picker {
-    width: 100%;
+  .messages-shell {
+    padding: 0;
+  }
+
+  .messages-card {
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .messages-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  /* 标签页移动端优化 */
+  .messages-card :deep(.el-tabs__header) {
+    margin: 0 0 16px;
+  }
+
+  .messages-card :deep(.el-tabs__item) {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* 渠道选择卡片移动端优化 */
+  .channel-panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .panel-header h3 {
+    font-size: 16px;
+  }
+
+  .panel-header p {
+    font-size: 12px;
   }
 
   .channel-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .channel-card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .channel-card h3 {
+    font-size: 15px;
+  }
+
+  .channel-card p {
+    font-size: 12px;
+  }
+
+  /* 表单移动端优化 */
+  .composer-panel-header {
+    margin-bottom: 12px;
+  }
+
+  .composer-panel-header :deep(.el-button) {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .composer-card,
+  .result-card {
+    border-radius: 16px;
+    padding: 12px;
+  }
+
+  .composer-card :deep(.el-card__header),
+  .result-card :deep(.el-card__header) {
+    padding: 12px;
+  }
+
+  .card-title h3 {
+    font-size: 16px;
+  }
+
+  .card-title p {
+    font-size: 12px;
+  }
+
+  .message-form {
+    margin-top: 8px;
+  }
+
+  .message-form :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
+
+  .message-form :deep(.el-form-item__label) {
+    font-size: 13px;
+    padding-bottom: 6px;
+    width: 100% !important;
+    text-align: left;
+  }
+
+  .message-form :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+  }
+
+  .form-actions :deep(.el-form-item__content) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .form-actions :deep(.el-button) {
+    width: 100%;
+    font-size: 13px;
+  }
+
+  /* 历史记录工具栏移动端优化 */
+  .history-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .history-filters-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .history-status-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .history-filter-label {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .status-filter-group {
+    width: 100%;
+  }
+
+  .status-filter-group :deep(.el-radio-button) {
+    flex: 1;
+  }
+
+  .history-date-picker,
+  .channel-select {
+    width: 100%;
+  }
+
+  .history-filters-right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .history-filters-right :deep(.el-button) {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  /* 表格移动端优化 - 横向滚动 */
+  .messages-card :deep(.el-table) {
+    font-size: 12px;
+  }
+
+  .messages-card :deep(.el-table__header-wrapper),
+  .messages-card :deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .messages-card :deep(.el-table__header th),
+  .messages-card :deep(.el-table__body td) {
+    padding: 8px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .messages-card :deep(.el-table__header th .cell),
+  .messages-card :deep(.el-table__body td .cell) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .messages-card :deep(.el-table-column--selection) {
+    width: 40px;
+    min-width: 40px;
+  }
+
+  /* 分页移动端优化 */
+  .history-pagination {
+    margin-top: 12px;
+  }
+
+  .history-pagination :deep(.el-pagination) {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .history-pagination :deep(.el-pagination__total),
+  .history-pagination :deep(.el-pagination__sizes),
+  .history-pagination :deep(.el-pagination__jump) {
+    font-size: 12px;
+  }
+
+  /* 抽屉移动端优化 */
+  .messages-card :deep(.el-drawer) {
+    width: 90% !important;
+  }
+
+  .history-json {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .history-json h4 {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .history-json pre {
+    font-size: 11px;
+  }
+
+  /* 对话框移动端优化 */
+  .messages-card :deep(.el-dialog) {
+    width: 90% !important;
+    margin: 5vh auto !important;
+  }
+
+  .markdown-dialog-content {
+    padding: 16px;
+    font-size: 13px;
+  }
+
+  /* 收件人标签移动端优化 */
+  .recipients-tags {
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .recipients-tags :deep(.el-tag) {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  /* 禁用移动端hover效果 */
+  .channel-card:hover {
+    transform: none;
+  }
+
+  .channel-card:hover::before {
+    height: 0;
   }
 }
 </style>

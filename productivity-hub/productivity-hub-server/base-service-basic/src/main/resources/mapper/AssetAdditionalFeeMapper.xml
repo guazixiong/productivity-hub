@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.asset.mapper.AssetAdditionalFeeMapper">
+
+    <resultMap id="AssetAdditionalFeeResultMap" type="com.pbad.asset.domain.po.AssetAdditionalFeePO">
+        <id property="id" column="id"/>
+        <result property="assetId" column="asset_id"/>
+        <result property="name" column="name"/>
+        <result property="amount" column="amount"/>
+        <result property="feeDate" column="fee_date"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, asset_id, name, amount, fee_date, remark, created_at, updated_at
+    </sql>
+
+    <select id="selectByAssetId" resultMap="AssetAdditionalFeeResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_additional_fee
+        WHERE asset_id = #{assetId}
+        ORDER BY fee_date DESC, created_at DESC
+    </select>
+
+    <select id="selectById" resultMap="AssetAdditionalFeeResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_additional_fee
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <insert id="insertFee" parameterType="com.pbad.asset.domain.po.AssetAdditionalFeePO">
+        INSERT INTO asset_additional_fee (
+            id, asset_id, name, amount, fee_date, remark, created_at, updated_at
+        ) VALUES (
+            #{id}, #{assetId}, #{name}, #{amount}, #{feeDate}, #{remark},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="updateFee" parameterType="com.pbad.asset.domain.po.AssetAdditionalFeePO">
+        UPDATE asset_additional_fee
+        SET
+            name = #{name},
+            amount = #{amount},
+            fee_date = #{feeDate},
+            remark = #{remark},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteFee">
+        DELETE FROM asset_additional_fee
+        WHERE id = #{id}
+    </delete>
+
+</mapper>
+

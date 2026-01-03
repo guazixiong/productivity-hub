@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.asset.mapper.WishlistMapper">
+
+    <resultMap id="WishlistResultMap" type="com.pbad.asset.domain.po.WishlistPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="price" column="price"/>
+        <result property="link" column="link"/>
+        <result property="remark" column="remark"/>
+        <result property="achieved" column="achieved"/>
+        <result property="achievedAt" column="achieved_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, name, price, link, remark, achieved, achieved_at, created_at, updated_at
+    </sql>
+
+    <select id="selectAll" resultMap="WishlistResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM wishlist
+        WHERE user_id = #{userId}
+        <if test="achieved != null">
+            AND achieved = #{achieved}
+        </if>
+        ORDER BY price ASC, created_at DESC
+    </select>
+
+    <select id="selectById" resultMap="WishlistResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM wishlist
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertWishlist" parameterType="com.pbad.asset.domain.po.WishlistPO">
+        INSERT INTO wishlist (
+            id, user_id, name, price, link, remark, achieved, achieved_at, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{name}, #{price}, #{link}, #{remark},
+            IFNULL(#{achieved}, FALSE), #{achievedAt},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="updateWishlist" parameterType="com.pbad.asset.domain.po.WishlistPO">
+        UPDATE wishlist
+        SET
+            name = #{name},
+            price = #{price},
+            link = #{link},
+            remark = #{remark},
+            achieved = #{achieved},
+            achieved_at = #{achievedAt},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteWishlist">
+        DELETE FROM wishlist
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+</mapper>
+

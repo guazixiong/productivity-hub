@@ -18,7 +18,7 @@
             <span class="value">{{ todayIntake }}/{{ target }}ml</span>
             <span class="percentage">{{ Math.round((todayIntake / target) * 100) }}%</span>
           </div>
-          <div ref="chartRef" :style="{ height: chartHeight, width: '100%' }"></div>
+          <div ref="chartRef" class="chart-container" :style="{ height: chartHeight, width: '100%' }"></div>
         </div>
       </template>
     </el-skeleton>
@@ -28,10 +28,6 @@
 <script setup lang="ts">
 /**
  * 饮水达标卡片组件
- * 
- * 关联需求: REQ-007
- * 关联组件: COMP-REQ-002-01-04
- * 关联接口: API-REQ-002-07, API-REQ-002-10
  */
 
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -57,6 +53,16 @@ const chartHeight = computed(() => isMobile.value ? '120px' : '150px')
 
 const initChart = () => {
   if (!chartRef.value) return
+
+  // 检查 DOM 元素是否有有效的尺寸
+  const rect = chartRef.value.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0) {
+    // 如果尺寸为 0，延迟重试
+    setTimeout(() => {
+      initChart()
+    }, 100)
+    return
+  }
 
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
@@ -101,14 +107,20 @@ const resizeChart = () => {
 
 watch(() => [props.todayIntake, props.target], () => {
   nextTick(() => {
-    initChart()
+    // 确保 DOM 更新后再初始化
+    setTimeout(() => {
+      initChart()
+    }, 50)
   })
 })
 
 watch(() => props.loading, (loading) => {
   if (!loading) {
     nextTick(() => {
-      initChart()
+      // 确保 DOM 更新后再初始化
+      setTimeout(() => {
+        initChart()
+      }, 50)
     })
   }
 })
@@ -116,7 +128,10 @@ watch(() => props.loading, (loading) => {
 onMounted(() => {
   window.addEventListener('resize', resizeChart)
   nextTick(() => {
-    initChart()
+    // 确保 DOM 完全渲染后再初始化
+    setTimeout(() => {
+      initChart()
+    }, 100)
   })
 })
 
@@ -157,6 +172,11 @@ onUnmounted(() => {
         color: #4A90E2;
         font-weight: 600;
       }
+    }
+
+    .chart-container {
+      width: 100%;
+      min-height: 120px;
     }
   }
 

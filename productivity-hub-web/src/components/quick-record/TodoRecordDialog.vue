@@ -76,11 +76,6 @@
 <script setup lang="ts">
 /**
  * 新增待办记录弹窗组件
- * 
- * 关联需求: REQ-003
- * 关联组件: COMP-REQ-001-01-03
- * 关联接口: API-REQ-001-01, API-REQ-001-02
- * 关联测试用例: TC-COMP-REQ-001-01-03-01 ~ TC-COMP-REQ-001-01-03-03
  */
 
 import { computed, onMounted, reactive, ref, watch } from 'vue'

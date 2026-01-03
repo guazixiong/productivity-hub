@@ -1,11 +1,18 @@
 <script setup lang="ts">
+/**
+ * Todo大屏页面组件
+ */
 import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useDevice } from '@/composables/useDevice'
 import { todoApi } from '@/services/todoApi'
 import type { TodoModule, TodoTask, TodoStats } from '@/types/todo'
 import TodoDashboard from './TodoDashboard.vue'
 
 const route = useRoute()
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const loading = ref(false)
 const modules = ref<TodoModule[]>([])
@@ -23,6 +30,10 @@ const dashboardInnerRef = ref<HTMLElement | null>(null)
 const BASE_WIDTH = 1920
 const BASE_HEIGHT = 1080
 
+// 移动端基准尺寸（优化移动端显示） - REQ-001-02
+const MOBILE_BASE_WIDTH = 768
+const MOBILE_BASE_HEIGHT = 1024
+
 // 计算并应用缩放
 const updateScale = () => {
   if (!dashboardInnerRef.value) return
@@ -30,18 +41,26 @@ const updateScale = () => {
   const windowWidth = window.innerWidth
   const windowHeight = window.innerHeight
 
+  // 移动端使用不同的基准尺寸 - REQ-001-02
+  const baseWidth = isMobile.value ? MOBILE_BASE_WIDTH : BASE_WIDTH
+  const baseHeight = isMobile.value ? MOBILE_BASE_HEIGHT : BASE_HEIGHT
+
   // 计算宽高缩放比例，取较小值以保持宽高比
-  const scaleX = windowWidth / BASE_WIDTH
-  const scaleY = windowHeight / BASE_HEIGHT
+  const scaleX = windowWidth / baseWidth
+  const scaleY = windowHeight / baseHeight
   const newScale = Math.min(scaleX, scaleY)
 
   // 应用缩放
   dashboardInnerRef.value.style.transform = `scale(${newScale})`
   dashboardInnerRef.value.style.transformOrigin = 'top left'
   
+  // 更新内部容器尺寸
+  dashboardInnerRef.value.style.width = `${baseWidth}px`
+  dashboardInnerRef.value.style.height = `${baseHeight}px`
+  
   // 计算缩放后的实际尺寸
-  const scaledWidth = BASE_WIDTH * newScale
-  const scaledHeight = BASE_HEIGHT * newScale
+  const scaledWidth = baseWidth * newScale
+  const scaledHeight = baseHeight * newScale
   
   // 居中显示（如果屏幕比例不同）
   const offsetX = (windowWidth - scaledWidth) / 2
@@ -125,7 +144,21 @@ const incompleteTasks = computed(() => tasks.value.filter((task) => task.status 
   height: 1080px;
   top: 0;
   left: 0;
-  transition: transform 0.3s ease, left 0.3s ease, top 0.3s ease;
+  transition: transform 0.3s ease, left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .todo-dashboard-page {
+    /* 移动端优化背景 */
+    background: #000;
+  }
+
+  .todo-dashboard-inner {
+    /* 移动端基准尺寸由JS动态设置，这里仅作为fallback */
+    width: 768px;
+    height: 1024px;
+  }
 }
 </style>
 

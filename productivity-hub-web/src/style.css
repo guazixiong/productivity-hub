@@ -110,6 +110,114 @@ a {
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
+/* 列表页或卡片内没有边框的按钮添加圆角边框 */
+/* text 和 link 类型的按钮默认没有边框，需要添加 */
+.el-card .el-button--text,
+.el-table .el-button--text,
+.el-card .el-button.is-link,
+.el-table .el-button.is-link {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  padding: 5px 12px;
+  transition: all 0.2s ease;
+}
+
+/* 根据按钮类型设置不同的边框颜色 */
+.el-card .el-button--text.el-button--primary,
+.el-table .el-button--text.el-button--primary,
+.el-card .el-button.is-link.el-button--primary,
+.el-table .el-button.is-link.el-button--primary {
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.el-card .el-button--text.el-button--primary:hover,
+.el-table .el-button--text.el-button--primary:hover,
+.el-card .el-button.is-link.el-button--primary:hover,
+.el-table .el-button.is-link.el-button--primary:hover {
+  border-color: rgba(37, 99, 235, 0.5);
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+.el-card .el-button--text.el-button--success,
+.el-table .el-button--text.el-button--success,
+.el-card .el-button.is-link.el-button--success,
+.el-table .el-button.is-link.el-button--success {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.el-card .el-button--text.el-button--success:hover,
+.el-table .el-button--text.el-button--success:hover,
+.el-card .el-button.is-link.el-button--success:hover,
+.el-table .el-button.is-link.el-button--success:hover {
+  border-color: rgba(34, 197, 94, 0.5);
+  background-color: rgba(34, 197, 94, 0.08);
+}
+
+.el-card .el-button--text.el-button--warning,
+.el-table .el-button--text.el-button--warning,
+.el-card .el-button.is-link.el-button--warning,
+.el-table .el-button.is-link.el-button--warning {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.el-card .el-button--text.el-button--warning:hover,
+.el-table .el-button--text.el-button--warning:hover,
+.el-card .el-button.is-link.el-button--warning:hover,
+.el-table .el-button.is-link.el-button--warning:hover {
+  border-color: rgba(251, 191, 36, 0.5);
+  background-color: rgba(251, 191, 36, 0.08);
+}
+
+.el-card .el-button--text.el-button--danger,
+.el-table .el-button--text.el-button--danger,
+.el-card .el-button.is-link.el-button--danger,
+.el-table .el-button.is-link.el-button--danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.el-card .el-button--text.el-button--danger:hover,
+.el-table .el-button--text.el-button--danger:hover,
+.el-card .el-button.is-link.el-button--danger:hover,
+.el-table .el-button.is-link.el-button--danger:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.el-card .el-button--text:hover,
+.el-table .el-button--text:hover,
+.el-card .el-button.is-link:hover,
+.el-table .el-button.is-link:hover {
+  border-color: rgba(148, 163, 184, 0.5);
+  background-color: rgba(148, 163, 184, 0.08);
+}
+
+/* 圆形按钮在卡片或列表内也需要边框（如果原本没有边框） */
+/* 注意：如果按钮已经有边框（通过其他 CSS 规则），那些规则会覆盖这里的规则 */
+.el-card .el-button.is-circle,
+.el-table .el-button.is-circle {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.el-card .el-button.is-circle.el-button--primary,
+.el-table .el-button.is-circle.el-button--primary {
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.el-card .el-button.is-circle.el-button--success,
+.el-table .el-button.is-circle.el-button--success {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.el-card .el-button.is-circle.el-button--warning,
+.el-table .el-button.is-circle.el-button--warning {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.el-card .el-button.is-circle.el-button--danger,
+.el-table .el-button.is-circle.el-button--danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
 /* 输入框样式优化 */
 .el-input__wrapper {
   border-radius: 10px;

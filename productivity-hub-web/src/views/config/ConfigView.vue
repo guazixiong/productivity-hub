@@ -1,10 +1,17 @@
 <script setup lang="ts">
+/**
+ * 参数配置页面组件
+ */
 import { computed, reactive, ref, onMounted, nextTick } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
 import { useConfigStore } from '@/stores/config'
 import type { ConfigItem } from '@/types/config'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const configStore = useConfigStore()
 const searchKeyword = ref('')
@@ -81,6 +88,9 @@ const formatDate = (date: Date): string => {
   const minutes = String(date.getMinutes()).padStart(2, '0')
   return `${year}-${month}-${day} ${hours}:${minutes}`
 }
+
+const drawerSize = computed(() => (isMobile.value ? '90%' : '60%'))
+const detailDrawerSize = computed(() => (isMobile.value ? '90%' : '50%'))
 
 const moduleConfigs = computed(() => {
   if (!editingModule.value) return []
@@ -187,7 +197,7 @@ onMounted(() => {
     </el-table>
   </el-card>
 
-  <el-drawer v-model="editDrawerVisible" title="编辑模块配置" size="60%">
+  <el-drawer v-model="editDrawerVisible" title="编辑模块配置" :size="drawerSize">
     <div class="edit-drawer-content">
       <!-- 配置项列表 - 简洁列表布局 -->
       <el-card class="configs-card" shadow="never">
@@ -243,7 +253,7 @@ onMounted(() => {
     </template>
   </el-drawer>
 
-  <el-drawer v-model="detailDrawerVisible" :title="`模块详情 - ${viewingModule}`" size="50%">
+  <el-drawer v-model="detailDrawerVisible" :title="`模块详情 - ${viewingModule}`" :size="detailDrawerSize">
     <template v-if="viewingModuleConfigs.length > 0">
       <el-descriptions :column="1" border class="detail-descriptions" style="margin-bottom: 24px">
         <el-descriptions-item label="模块">
@@ -360,11 +370,11 @@ onMounted(() => {
   color: #0f172a;
 }
 
-.config-table :deep(.el-table__body tr:nth-child(2n + 1) > td) {
+.config-table :deep(.el-table__body tr:nth-child(odd) td) {
   background: #f8fafc;
 }
 
-.config-table :deep(.el-table__body tr:hover > td) {
+.config-table :deep(.el-table__body tr:hover td) {
   background: #eef2ff !important;
 }
 
@@ -504,21 +514,21 @@ onMounted(() => {
   overflow-x: hidden;
 }
 
-.configs-card :deep(.el-card__body)::-webkit-scrollbar {
+.configs-card :deep(.el-card__body::-webkit-scrollbar) {
   width: 6px;
 }
 
-.configs-card :deep(.el-card__body)::-webkit-scrollbar-track {
+.configs-card :deep(.el-card__body::-webkit-scrollbar-track) {
   background: #f1f5f9;
   border-radius: 3px;
 }
 
-.configs-card :deep(.el-card__body)::-webkit-scrollbar-thumb {
+.configs-card :deep(.el-card__body::-webkit-scrollbar-thumb) {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
-.configs-card :deep(.el-card__body)::-webkit-scrollbar-thumb:hover {
+.configs-card :deep(.el-card__body::-webkit-scrollbar-thumb:hover) {
   background: #94a3b8;
 }
 
@@ -625,6 +635,129 @@ onMounted(() => {
   line-height: 1.6;
   resize: vertical;
   min-height: 60px;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .config-card {
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-header h2 {
+    font-size: 20px;
+  }
+
+  .card-header p {
+    font-size: 13px;
+  }
+
+  .actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actions .el-input {
+    width: 100%;
+  }
+
+  .actions .el-button {
+    width: 100%;
+  }
+
+  /* 表格横向滚动支持 - REQ-001-05 */
+  .config-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .config-table :deep(.el-table) {
+    min-width: 600px;
+  }
+
+  .config-table :deep(.el-table__cell) {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+
+  .config-table :deep(.el-table__header-wrapper th) {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  /* 抽屉移动端优化 */
+  .edit-drawer-content {
+    padding-bottom: 16px;
+  }
+
+  .configs-card :deep(.el-card__header) {
+    padding: 10px 12px;
+  }
+
+  .configs-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  .config-item {
+    padding: 12px 16px;
+  }
+
+  .config-item-title {
+    font-size: 13px;
+  }
+
+  .config-key-code-inline {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .config-item-meta {
+    font-size: 11px;
+  }
+
+  .config-value-input :deep(.el-textarea__inner) {
+    font-size: 12px;
+    min-height: 50px;
+  }
+
+  .detail-descriptions {
+    margin-bottom: 16px;
+  }
+
+  .module-configs-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .module-configs-table :deep(.el-table) {
+    min-width: 500px;
+  }
+
+  .module-configs-table :deep(.el-table__cell) {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  /* 禁用移动端hover效果 */
+  .config-item:hover {
+    border-color: rgba(99, 102, 241, 0.12);
+    box-shadow: none;
+  }
+
+  .config-item:hover::before {
+    width: 0;
+  }
+
+  .config-table :deep(.el-table__body tr:hover td) {
+    background: #f8fafc !important;
+  }
 }
 </style>
 

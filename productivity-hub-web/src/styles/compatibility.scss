@@ -1,0 +1,138 @@
+/**
+ * 浏览器兼容性样式
+ * 提供针对不同浏览器的兼容性样式
+ */
+
+// 浏览器前缀工具函数
+@mixin prefix($property, $value, $prefixes: webkit moz ms o) {
+  @each $prefix in $prefixes {
+    -#{$prefix}-#{$property}: $value;
+  }
+  #{$property}: $value;
+}
+
+// Flexbox 兼容性
+.flex {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.flex-column {
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -moz-box-orient: vertical;
+  -moz-box-direction: normal;
+  -ms-flex-direction: column;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+
+// Transform 兼容性
+.transform {
+  @include prefix(transform, translateZ(0));
+}
+
+// Transition 兼容性
+.transition {
+  @include prefix(transition, all 0.3s ease);
+}
+
+// Backdrop Filter 兼容性（毛玻璃效果）
+.backdrop-blur {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+// 滚动条样式兼容性
+.custom-scrollbar {
+  // Webkit 浏览器（Chrome, Safari, Edge）
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.5);
+    }
+  }
+  
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.1);
+}
+
+// 文本选择样式兼容性
+.selectable {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+// 触摸操作兼容性
+.touch-action {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  // iOS Safari 视口修复
+  @supports (-webkit-touch-callout: none) {
+    body {
+      -webkit-text-size-adjust: 100%;
+    }
+  }
+  
+  // Android WebView 适配
+  @supports (not (-webkit-touch-callout: none)) {
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  }
+}
+
+// 高分辨率屏幕适配
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  // 高分辨率屏幕下的优化
+  .high-dpi {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+// 暗色模式兼容性
+@media (prefers-color-scheme: dark) {
+  // 如果浏览器支持暗色模式，可以在这里添加样式
+  // 注意：当前项目使用亮色主题，此部分保留用于未来扩展
+}
+
+// 打印样式兼容性
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+

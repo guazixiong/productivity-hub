@@ -1,5 +1,9 @@
 <script setup lang="ts">
+/**
+ * Todo页面组件
+ */
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useDevice } from '@/composables/useDevice'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   ArrowDown,
@@ -18,6 +22,7 @@ import {
   Plus,
   FullScreen,
   UploadFilled,
+  MoreFilled,
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { todoApi } from '@/services/todoApi'
@@ -26,6 +31,9 @@ import TodoDashboard from './TodoDashboard.vue'
 import * as XLSX from 'xlsx'
 
 const router = useRouter()
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const loading = ref(false)
 const modules = ref<TodoModule[]>([])
@@ -214,6 +222,17 @@ const handleActionCommand = async (command: string, task: TodoTask) => {
       break
     case 'delete':
       await confirmDeleteTask(task)
+      break
+  }
+}
+
+const handleModuleCommand = async (command: string, module: TodoModule) => {
+  switch (command) {
+    case 'edit':
+      openModuleDialog(module)
+      break
+    case 'delete':
+      await confirmDeleteModule(module)
       break
   }
 }
@@ -710,37 +729,61 @@ const getRowErrors = (rowIndex: number) => {
               <el-button type="primary" text @click="openModuleDialog()">新建模块</el-button>
             </div>
             <el-scrollbar class="module-scroll">
-              <el-menu :default-active="selectedModuleId" class="module-menu">
-                <el-menu-item index="" @click="selectedModuleId = ''">
-                  <div class="module-item">
-                    <div class="module-title">全部</div>
-                    <div class="module-meta">
+              <div class="module-list">
+                <!-- 全部模块卡片 -->
+                <el-card
+                  :class="['module-card-item', { active: selectedModuleId === '' }]"
+                  shadow="hover"
+                  @click="selectedModuleId = ''"
+                >
+                  <div class="module-card-content">
+                    <div class="module-card-header">
+                      <div class="module-card-title">全部</div>
+                    </div>
+                    <div class="module-card-meta">
                       <span>任务 {{ stats?.totalTasks ?? 0 }}</span>
                     </div>
                   </div>
-                </el-menu-item>
-                <el-menu-item
+                </el-card>
+                <!-- 具体模块卡片 -->
+                <el-card
                   v-for="item in modules"
                   :key="item.id"
-                  :index="item.id"
+                  :class="['module-card-item', { active: selectedModuleId === item.id }]"
+                  shadow="hover"
                   @click="selectedModuleId = item.id"
                 >
-                  <div class="module-item">
-                    <div class="module-title">
-                      {{ item.name }}
-                      <el-tag size="small" class="ml-4">{{ item.status || 'ENABLED' }}</el-tag>
+                  <div class="module-card-content">
+                    <div class="module-card-header">
+                      <div class="module-card-title">
+                        {{ item.name }}
+                        <el-tag size="small" class="ml-4">{{ item.status || 'ENABLED' }}</el-tag>
+                      </div>
+                      <el-dropdown trigger="click" @command="(cmd) => handleModuleCommand(cmd, item)" @click.stop>
+                        <el-button text size="small" class="module-dropdown-btn">
+                          <el-icon><MoreFilled /></el-icon>
+                        </el-button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item command="edit">
+                              <el-icon class="dropdown-icon"><Edit /></el-icon>
+                              <span>编辑</span>
+                            </el-dropdown-item>
+                            <el-dropdown-item command="delete" divided>
+                              <el-icon class="dropdown-icon"><Delete /></el-icon>
+                              <span style="color: var(--el-color-danger)">删除</span>
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
                     </div>
-                    <div class="module-meta">
+                    <div class="module-card-meta">
                       <span>任务 {{ item.totalTasks ?? 0 }}</span>
                       <span>完成 {{ item.completedTasks ?? 0 }}</span>
                     </div>
-                    <div class="module-actions">
-                      <el-button text size="small" @click.stop="openModuleDialog(item)">编辑</el-button>
-                      <el-button text size="small" type="danger" @click.stop="confirmDeleteModule(item)">删除</el-button>
-                    </div>
                   </div>
-                </el-menu-item>
-              </el-menu>
+                </el-card>
+              </div>
             </el-scrollbar>
           </div>
         </el-card>
@@ -1285,6 +1328,28 @@ const getRowErrors = (rowIndex: number) => {
   overflow: hidden;
 }
 
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .todo-page {
+    gap: 10px; /* 移动端间距缩放 */
+  }
+
+  .todo-layout {
+    flex-direction: column; /* 移动端垂直排列 */
+    gap: 12px; /* 移动端间距缩放 */
+  }
+
+  .todo-left-col {
+    /* 移动端隐藏左侧模块列表（可通过顶部菜单访问） */
+    display: none;
+  }
+
+  .todo-right-col {
+    width: 100%;
+    flex: 1;
+  }
+}
+
 .todo-right-col.expanded {
   flex: 1;
 }
@@ -1326,6 +1391,36 @@ const getRowErrors = (rowIndex: number) => {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .summary {
+    gap: 10px; /* 移动端间距缩放 */
+  }
+
+  .summary-item {
+    padding: 10px 12px; /* 移动端间距缩放 */
+    border-radius: 6px;
+    flex: 1 1 auto; /* 移动端允许自动调整 */
+    min-width: 0;
+  }
+
+  .summary-item .label {
+    font-size: 11px; /* 移动端字体缩放 */
+  }
+
+  .summary-item .value {
+    font-size: 16px; /* 移动端字体缩放 */
+    margin-top: 3px; /* 移动端间距缩放 */
+  }
+
+  .actions {
+    margin-left: 0; /* 移动端取消左边距 */
+    margin-top: 8px; /* 移动端添加上边距 */
+    width: 100%; /* 移动端全宽 */
+    flex-wrap: wrap; /* 移动端允许换行 */
+  }
 }
 
 .module-card {
@@ -1408,46 +1503,72 @@ const getRowErrors = (rowIndex: number) => {
   transition: all 0.3s ease;
 }
 
-.module-menu {
-  border: none;
+.module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
 }
 
-.module-menu :deep(.el-menu-item) {
-  height: auto;
-  line-height: 1.4;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  border-radius: 8px;
-  margin-bottom: 4px;
+.module-card-item {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #ebeef5;
 }
 
-.module-menu :deep(.el-menu-item.is-active) {
+.module-card-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.1);
+}
+
+.module-card-item.active {
+  border-color: #409eff;
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
 }
 
-.module-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.module-card-item :deep(.el-card__body) {
+  padding: 12px;
 }
 
-.module-title {
+.module-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.module-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.module-card-title {
   display: flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+  flex: 1;
+  min-width: 0;
 }
 
-.module-meta {
+.module-card-meta {
   display: flex;
   gap: 12px;
   color: #909399;
   font-size: 12px;
 }
 
-.module-actions {
-  display: flex;
-  gap: 8px;
+.module-dropdown-btn {
+  flex-shrink: 0;
+  padding: 4px;
+  color: #909399;
+}
+
+.module-dropdown-btn:hover {
+  color: #409eff;
 }
 
 .summary-card {
@@ -1562,6 +1683,47 @@ const getRowErrors = (rowIndex: number) => {
   overflow-x: hidden;
 }
 
+/* 移动端适配 - REQ-001-02, REQ-001-05 */
+@media (max-width: 768px) {
+  .task-table {
+    /* 移动端表格横向滚动 - REQ-001-05 */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .task-table :deep(.el-table) {
+    min-width: 800px; /* 确保表格最小宽度，触发横向滚动 */
+  }
+
+  .task-table :deep(.el-table__body-wrapper) {
+    max-height: calc(100vh - 300px); /* 移动端调整高度 */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .task-table :deep(.el-table__header-wrapper) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-header {
+    margin-bottom: 10px; /* 移动端间距缩放 */
+    flex-direction: column; /* 移动端垂直排列 */
+    align-items: flex-start; /* 移动端左对齐 */
+    gap: 8px; /* 移动端间距缩放 */
+  }
+
+  .table-title {
+    font-size: 14px; /* 移动端字体缩放 */
+  }
+
+  .table-actions {
+    width: 100%; /* 移动端全宽 */
+    flex-wrap: wrap; /* 移动端允许换行 */
+    gap: 6px; /* 移动端间距缩放 */
+  }
+}
+
 .task-table :deep(.el-table__header) {
   background-color: #f5f7fa;
 }
@@ -1664,6 +1826,81 @@ const getRowErrors = (rowIndex: number) => {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #ebeef5;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .summary-card {
+    margin-bottom: 10px; /* 移动端间距缩放 */
+  }
+
+  .task-list-card {
+    margin-top: 10px; /* 移动端间距缩放 */
+  }
+
+  .active-banner {
+    margin-top: 10px; /* 移动端间距缩放 */
+    padding: 10px; /* 移动端间距缩放 */
+    border-radius: 6px;
+    flex-direction: column; /* 移动端垂直排列 */
+    align-items: flex-start; /* 移动端左对齐 */
+    gap: 8px; /* 移动端间距缩放 */
+  }
+
+  .active-banner .value {
+    font-size: 14px; /* 移动端字体缩放 */
+  }
+
+  .active-banner .muted {
+    font-size: 11px; /* 移动端字体缩放 */
+  }
+
+  .banner-actions {
+    width: 100%; /* 移动端全宽 */
+    flex-wrap: wrap; /* 移动端允许换行 */
+    gap: 6px; /* 移动端间距缩放 */
+  }
+
+  .task-table :deep(.el-table__header th) {
+    padding: 10px 0; /* 移动端间距缩放 */
+    font-size: 12px; /* 移动端字体缩放 */
+  }
+
+  .task-table :deep(.el-table__row td) {
+    padding: 10px 0; /* 移动端间距缩放 */
+    font-size: 12px; /* 移动端字体缩放 */
+  }
+
+  .task-title {
+    font-size: 13px; /* 移动端字体缩放 */
+  }
+
+  .due-date-cell {
+    font-size: 11px; /* 移动端字体缩放 */
+  }
+
+  .duration-text {
+    font-size: 11px; /* 移动端字体缩放 */
+  }
+
+  .pagination-wrapper {
+    margin-top: 12px; /* 移动端间距缩放 */
+    padding-top: 12px; /* 移动端间距缩放 */
+    justify-content: center; /* 移动端居中 */
+  }
+
+  /* 移动端禁用hover效果 - REQ-001-03 */
+  .task-table :deep(.el-table__row:hover) {
+    background-color: transparent;
+  }
+
+  .task-table :deep(.row-in-progress:hover) {
+    background-color: rgba(103, 194, 58, 0.08);
+  }
+
+  .task-table :deep(.row-completed:hover) {
+    background-color: rgba(144, 147, 153, 0.05);
+  }
 }
 
 .dashboard-dialog :deep(.el-dialog__body) {

@@ -1,12 +1,19 @@
 <script setup lang="ts">
+/**
+ * 工具箱页面组件
+ */
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { useNavigationStore } from '@/stores/navigation'
 import type { ToolStat } from '@/types/tools'
 import { toolApi } from '@/services/api'
 import { toolList, toolMetaMap, type ToolMeta } from '@/data/tools'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 const navigationStore = useNavigationStore()
@@ -161,6 +168,72 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
+}
+
+/* 移动端适配 - REQ-001-02, REQ-001-05 */
+@media (max-width: 1024px) {
+  .tools-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tools-container {
+    gap: 16px;
+    padding: 4px 0;
+  }
+
+  .tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .tools-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .tool-search {
+    max-width: 100%;
+  }
+
+  .tool-card {
+    border-radius: 16px;
+  }
+
+  .tool-content {
+    gap: 12px;
+    padding: 6px;
+  }
+
+  .tool-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+  }
+
+  .tool-icon {
+    font-size: 24px;
+  }
+
+  .tool-name {
+    font-size: 16px;
+    margin: 0 0 6px 0;
+  }
+
+  .tool-description {
+    font-size: 12px;
+  }
+
+  .tool-hot-badge {
+    top: 8px;
+    right: 8px;
+    padding: 3px 8px;
+    font-size: 10px;
+    border-radius: 8px;
+  }
 }
 
 .tool-card {

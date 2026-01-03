@@ -1,8 +1,15 @@
 <script setup lang="ts">
+/**
+ * 系统用户管理页面组件
+ */
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
 import { adminUserApi } from '@/services/api'
 import type { ManagedUser, UserCreatePayload } from '@/types/auth'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const users = ref<ManagedUser[]>([])
 const loading = ref(false)
@@ -104,7 +111,8 @@ onMounted(fetchUsers)
       </div>
     </template>
 
-    <el-table :data="users" :loading="loading" border>
+    <div class="table-wrapper">
+      <el-table :data="users" :loading="loading" border class="user-table">
       <el-table-column prop="username" label="用户名" width="160" />
       <el-table-column prop="name" label="姓名" width="140" />
       <el-table-column label="角色" width="200">
@@ -131,9 +139,10 @@ onMounted(fetchUsers)
         </template>
       </el-table-column>
     </el-table>
+    </div>
   </el-card>
 
-  <el-dialog v-model="dialogVisible" title="新增用户" width="520px" destroy-on-close>
+  <el-dialog v-model="dialogVisible" title="新增用户" :width="isMobile ? '90%' : '520px'" destroy-on-close>
     <el-form ref="formRef" :model="formModel" :rules="rules" label-width="90px" label-position="left">
       <el-form-item label="用户名" prop="username">
         <el-input 
@@ -199,6 +208,94 @@ onMounted(fetchUsers)
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.user-table {
+  min-width: 700px;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header h3 {
+    font-size: 18px;
+    margin: 0;
+  }
+
+  .desc {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .header .el-button {
+    width: 100%;
+  }
+
+  /* 表格横向滚动支持 - REQ-001-05 */
+  .table-wrapper {
+    margin: 0 -12px;
+  }
+
+  :deep(.el-table__cell) {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+
+  :deep(.el-table__header-wrapper th) {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  /* 对话框移动端优化 */
+  :deep(.el-dialog) {
+    margin: 5vh auto;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+  }
+
+  :deep(.el-input__inner),
+  :deep(.el-select) {
+    font-size: 14px;
+  }
+
+  /* 禁用移动端hover效果 */
+  :deep(.el-table__body tr:hover > td) {
+    background: transparent !important;
+  }
 }
 </style>
 

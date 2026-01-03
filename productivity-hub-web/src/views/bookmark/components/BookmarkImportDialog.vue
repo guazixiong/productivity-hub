@@ -46,15 +46,33 @@
           </div>
         </div>
 
-        <!-- 步骤2：预览数据（简化版，直接导入） -->
+        <!-- 步骤2：预览数据 -->
         <div v-if="currentStep === 1" class="preview-step">
           <div class="preview-info">
             <el-alert
-              title="文件已选择，点击确认导入按钮开始导入"
+              :title="previewTitle"
               type="info"
               :closable="false"
               show-icon
             />
+          </div>
+
+          <el-table
+            v-if="previewData && previewData.items && previewData.items.length > 0"
+            :data="previewData.items"
+            size="small"
+            border
+            max-height="260"
+          >
+            <el-table-column prop="parentTagName" label="一级标签" width="120" />
+            <el-table-column prop="childTagName" label="二级标签" width="120" />
+            <el-table-column prop="title" label="标题" min-width="160" />
+            <el-table-column prop="url" label="URL" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+          </el-table>
+
+          <div v-else class="preview-empty">
+            <el-empty description="未解析到可预览的数据" />
           </div>
 
           <div class="preview-actions">
@@ -101,7 +119,7 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { bookmarkApi } from '@/services/bookmarkApi'
-import type { BookmarkImportResult } from '@/types/bookmark'
+import type { BookmarkImportPreview, BookmarkImportResult } from '@/types/bookmark'
 
 interface Props {
   modelValue: boolean
@@ -121,6 +139,7 @@ const visible = computed({
 
 const currentStep = ref(0)
 const selectedFile = ref<File | null>(null)
+const previewData = ref<BookmarkImportPreview | null>(null)
 const importResult = ref<BookmarkImportResult>({
   total: 0,
   success: 0,
@@ -131,18 +150,34 @@ const importResult = ref<BookmarkImportResult>({
 const importing = ref(false)
 const uploadRef = ref()
 
+const previewTitle = computed(() => {
+  if (!previewData.value) {
+    return '文件已选择，正在准备预览数据'
+  }
+  const total = previewData.value.total ?? 0
+  const count = previewData.value.items?.length ?? 0
+  return `共解析到 ${total} 行数据，预览展示前 ${count} 行`
+})
+
 // 文件选择
 const handleFileChange = (file: any) => {
   selectedFile.value = file.raw
 }
 
-// 预览数据（简化版，直接进入下一步）
-const handlePreview = () => {
+// 预览数据
+const handlePreview = async () => {
   if (!selectedFile.value) {
     ElMessage.warning('请先选择文件')
     return
   }
-  currentStep.value = 1
+
+  try {
+    const result = await bookmarkApi.previewImport(selectedFile.value)
+    previewData.value = result
+    currentStep.value = 1
+  } catch (error: any) {
+    ElMessage.error(error.message || '预览失败，请检查文件格式')
+  }
 }
 
 // 导入
@@ -158,7 +193,7 @@ const handleImport = async () => {
     importResult.value = result
     currentStep.value = 2
 
-    if (result.failed === 0) {
+    if (result.success > 0) {
       emit('success')
     }
   } catch (error: any) {
@@ -183,6 +218,7 @@ const handleClose = () => {
   visible.value = false
   currentStep.value = 0
   selectedFile.value = null
+  previewData.value = null
   importResult.value = {
     total: 0,
     success: 0,
@@ -202,6 +238,7 @@ watch(
   }
 )
 </script>
+
 
 <style scoped>
 .import-content {

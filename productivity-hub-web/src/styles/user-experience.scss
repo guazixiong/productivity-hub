@@ -1,0 +1,123 @@
+/**
+ * 用户体验样式
+ * 包含交互反馈、表单验证反馈等样式
+ */
+
+// 按钮点击反馈
+.button-click-feedback {
+  transform: scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+// 表单字段验证反馈
+.form-field-error {
+  border-color: var(--el-color-error) !important;
+  
+  &:focus {
+    border-color: var(--el-color-error) !important;
+    box-shadow: 0 0 0 2px rgba(var(--el-color-error-rgb), 0.2);
+  }
+}
+
+.form-field-success {
+  border-color: var(--el-color-success) !important;
+  
+  &:focus {
+    border-color: var(--el-color-success) !important;
+    box-shadow: 0 0 0 2px rgba(var(--el-color-success-rgb), 0.2);
+  }
+}
+
+.form-field-warning {
+  border-color: var(--el-color-warning) !important;
+  
+  &:focus {
+    border-color: var(--el-color-warning) !important;
+    box-shadow: 0 0 0 2px rgba(var(--el-color-warning-rgb), 0.2);
+  }
+}
+
+// 加载动画
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-animated {
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+// 淡入动画
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+// 空状态样式增强
+.empty-state-enhanced {
+  padding: 60px 20px;
+  text-align: center;
+  
+  .empty-icon {
+    font-size: 64px;
+    color: #c0c4cc;
+    margin-bottom: 16px;
+  }
+  
+  .empty-description {
+    color: #909399;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
+  .empty-action {
+    margin-top: 16px;
+  }
+}
+
+// 加载状态样式
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+// 进度提示样式
+.progress-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #606266;
+  font-size: 14px;
+  
+  .progress-text {
+    flex: 1;
+  }
+  
+  .progress-percent {
+    color: #409eff;
+    font-weight: 500;
+  }
+}
+

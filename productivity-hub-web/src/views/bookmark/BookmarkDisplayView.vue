@@ -60,7 +60,12 @@
               <div class="url-card__glow" />
               <div class="url-card__body">
                 <div class="url-icon">
-                  <img v-if="url.iconUrl" :src="url.iconUrl" :alt="url.title" />
+                  <img 
+                    v-if="url.iconUrl && !failedImages[url.id]" 
+                    :src="url.iconUrl" 
+                    :alt="url.title"
+                    @error="handleImageError(url.id)"
+                  />
                   <el-icon v-else><Link /></el-icon>
                 </div>
                 <div class="url-info">
@@ -98,6 +103,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useDevice } from '@/composables/useDevice'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Link, Setting } from '@element-plus/icons-vue'
@@ -119,6 +128,7 @@ const childTags = ref<BookmarkTag[]>([])
 const urlsByTag = ref<Record<string, BookmarkUrl[]>>({})
 const selectedParentTagId = ref<string | null>(null)
 const selectedChildTagId = ref<string | null>(null)
+const failedImages = ref<Record<string, boolean>>({})
 
 // 当前显示的网址列表
 const currentUrls = computed(() => {
@@ -222,6 +232,11 @@ const getDomain = (rawUrl: string) => {
   } catch {
     return rawUrl
   }
+}
+
+// 处理图片加载错误
+const handleImageError = (urlId: string) => {
+  failedImages.value[urlId] = true
 }
 
 onMounted(() => {
@@ -795,27 +810,91 @@ onMounted(() => {
   }
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
   .bookmark-display-view {
-    padding: 16px;
+    padding: 0;
   }
   
   .main-card {
-    border-radius: 20px;
+    border-radius: 0;
+    margin: 0 -12px;
+
+    :deep(.el-card__header) {
+      padding: 12px 16px;
+    }
+
+    :deep(.el-card__body) {
+      padding: 16px;
+    }
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+
+    .el-button {
+      width: 100%;
+    }
+  }
+  
+  .title {
+    font-size: 18px;
+  }
+
+  .top-tags {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .top-tag-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content-wrapper {
+    gap: 16px;
+  }
+
+  .child-tags-sidebar {
+    max-height: 200px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+
+  .child-tag-item {
+    font-size: 12px;
+    padding: 6px 12px;
   }
   
   .url-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
-  
-  .title {
-    font-size: 20px;
+
+  .url-card {
+    padding: 12px;
   }
-  
-  .top-tag-item {
-    padding: 10px 18px;
-    font-size: 14px;
+
+  .url-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .url-title {
+    font-size: 15px;
+  }
+
+  .url-description {
+    font-size: 12px;
+    min-height: 36px;
   }
 }
 </style>

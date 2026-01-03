@@ -44,10 +44,6 @@
 <script setup lang="ts">
 /**
  * 工作台页面
- * 
- * 关联需求: REQ-009
- * 关联页面: PAGE-REQ-003-01
- * 关联接口: API-REQ-001-04, API-REQ-001-05, API-REQ-001-06, API-REQ-001-02
  */
 
 import { onMounted, ref } from 'vue'

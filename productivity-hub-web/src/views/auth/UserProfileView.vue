@@ -2,11 +2,15 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
 import { useAuthStore } from '@/stores/auth'
 import { userApi } from '@/services/api'
 import type { UserProfileUpdatePayload } from '@/types/auth'
 import { ArrowLeft, User, Upload, Loading } from '@element-plus/icons-vue'
 import { getImageUrl } from '@/utils/imageUtils'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -462,14 +466,55 @@ onMounted(async () => {
   margin-top: 4px;
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
   .user-profile-page {
-    padding: 16px;
+    padding: 0;
+  }
+
+  .profile-card {
+    border-radius: 0;
+    margin: 0 -12px;
+
+    :deep(.el-card__header) {
+      padding: 16px;
+    }
+
+    :deep(.el-card__body) {
+      padding: 16px;
+    }
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .avatar-section {
+    width: 100%;
+    align-items: center;
   }
 
   .profile-form {
     :deep(.el-form-item__label) {
-      width: 80px !important;
+      width: 100% !important;
+      text-align: left;
+      margin-bottom: 8px;
+    }
+
+    :deep(.el-form-item__content) {
+      width: 100%;
+    }
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+
+    .el-button {
+      width: 100%;
     }
   }
 }

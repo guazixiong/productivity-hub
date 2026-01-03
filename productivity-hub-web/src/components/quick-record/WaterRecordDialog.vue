@@ -51,11 +51,6 @@
 <script setup lang="ts">
 /**
  * 新增饮水记录弹窗组件
- * 
- * 关联需求: REQ-005
- * 关联组件: COMP-REQ-001-01-05
- * 关联接口: API-REQ-002-03
- * 关联测试用例: TC-COMP-REQ-001-01-05-01, TC-COMP-REQ-001-01-05-02
  */
 
 import { computed, reactive, ref } from 'vue'

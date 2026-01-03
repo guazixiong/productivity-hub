@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.asset.mapper.AssetCategoryMapper">
+
+    <resultMap id="AssetCategoryResultMap" type="com.pbad.asset.domain.po.AssetCategoryPO">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="icon" column="icon"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="level" column="level"/>
+        <result property="isDefault" column="is_default"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, icon, parent_id, level, is_default, sort_order, created_at, updated_at
+    </sql>
+
+    <select id="selectAll" resultMap="AssetCategoryResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_category
+        ORDER BY sort_order ASC, created_at ASC
+    </select>
+
+    <select id="selectById" resultMap="AssetCategoryResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_category
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectByName" resultMap="AssetCategoryResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_category
+        WHERE name = #{name}
+        LIMIT 1
+    </select>
+
+    <select id="selectByNameAndParentId" resultMap="AssetCategoryResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_category
+        WHERE name = #{name}
+        <if test="parentId == null or parentId == ''">
+            AND (parent_id IS NULL OR parent_id = '')
+        </if>
+        <if test="parentId != null and parentId != ''">
+            AND parent_id = #{parentId}
+        </if>
+        LIMIT 1
+    </select>
+
+    <select id="selectByParentId" resultMap="AssetCategoryResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_category
+        WHERE parent_id = #{parentId}
+        ORDER BY sort_order ASC, created_at ASC
+    </select>
+
+    <insert id="insertCategory" parameterType="com.pbad.asset.domain.po.AssetCategoryPO">
+        INSERT INTO asset_category (
+            id, name, icon, parent_id, level, is_default, sort_order, created_at, updated_at
+        ) VALUES (
+            #{id}, #{name}, #{icon}, #{parentId}, #{level}, #{isDefault}, #{sortOrder},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="updateCategory" parameterType="com.pbad.asset.domain.po.AssetCategoryPO">
+        UPDATE asset_category
+        SET
+            name = #{name},
+            icon = #{icon},
+            parent_id = #{parentId},
+            level = #{level},
+            is_default = #{isDefault},
+            sort_order = #{sortOrder},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteCategory">
+        DELETE FROM asset_category
+        WHERE id = #{id}
+    </delete>
+
+    <select id="countAssetsByCategoryId" resultType="int">
+        SELECT COUNT(1)
+        FROM asset
+        WHERE category_id = #{categoryId}
+          AND deleted = FALSE
+    </select>
+
+    <!-- 统计分类及其所有子分类下的总资产数量 -->
+    <select id="countTotalAssetsByCategoryId" resultType="int">
+        SELECT COUNT(1)
+        FROM asset a
+        WHERE (
+            a.category_id = #{categoryId}
+            OR a.category_id IN (
+                SELECT id 
+                FROM asset_category 
+                WHERE parent_id = #{categoryId}
+            )
+        )
+        AND a.deleted = FALSE
+    </select>
+
+    <!-- 批量统计所有分类下的资产数量 -->
+    <select id="countAssetsByCategoryIds" resultType="map">
+        SELECT 
+            category_id AS categoryId,
+            COUNT(1) AS assetCount
+        FROM asset
+        WHERE deleted = FALSE
+          AND category_id IS NOT NULL
+        GROUP BY category_id
+    </select>
+
+</mapper>
+

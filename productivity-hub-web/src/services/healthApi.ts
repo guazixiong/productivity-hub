@@ -114,6 +114,48 @@ export const healthApi = {
     })
     return response.data
   },
+
+  /**
+   * 导入运动记录（Excel格式）
+   */
+  importExerciseRecords: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await http.request<{
+      total: number
+      success: number
+      failed: number
+      skipped: number
+      errors: string[]
+    }>({
+      url: '/api/health/exercise/records/import',
+      method: 'POST',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  /**
+   * 下载运动记录导入模板
+   */
+  downloadExerciseRecordTemplate: async () => {
+    const response = await http.request<Blob>({
+      url: '/api/health/exercise/records/import/template',
+      method: 'GET',
+      responseType: 'blob',
+    })
+    const url = window.URL.createObjectURL(response.data)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `运动记录导入模板.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  },
   
   // ==================== 训练计划 ====================
   

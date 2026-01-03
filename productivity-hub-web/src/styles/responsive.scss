@@ -1,0 +1,238 @@
+/**
+ * 响应式样式文件
+ * 
+ * 提供响应式布局相关的样式变量和工具类
+ */
+
+/* ==================== 响应式断点变量 ==================== */
+
+/** 移动端断点（< 768px） */
+$mobile-breakpoint: 768px;
+
+/** 平板端断点（768px - 1024px） */
+$tablet-breakpoint: 1024px;
+
+/* ==================== 移动端样式变量 ==================== */
+
+/** 移动端字体缩放比例 */
+$mobile-font-scale: 0.9;
+
+/** 移动端间距缩放比例 */
+$mobile-padding-scale: 0.7;
+
+/** 移动端最小字体大小 */
+$mobile-min-font-size: 12px;
+
+/** 移动端行高 */
+$mobile-line-height: 1.5;
+
+/* ==================== 响应式工具类 ==================== */
+
+/** 仅移动端显示 */
+.mobile-only {
+  @media (min-width: $mobile-breakpoint) {
+    display: none !important;
+  }
+}
+
+/** 仅平板端显示 */
+.tablet-only {
+  display: none !important;
+  
+  @media (min-width: $mobile-breakpoint) and (max-width: $tablet-breakpoint - 1px) {
+    display: block !important;
+  }
+  
+  @media (min-width: $tablet-breakpoint) {
+    display: none !important;
+  }
+}
+
+/** 仅PC端显示 */
+.desktop-only {
+  display: none !important;
+  
+  @media (min-width: $tablet-breakpoint) {
+    display: block !important;
+  }
+}
+
+/** 移动端隐藏 */
+.mobile-hidden {
+  @media (max-width: $mobile-breakpoint - 1px) {
+    display: none !important;
+  }
+}
+
+/** 平板端隐藏 */
+.tablet-hidden {
+  @media (min-width: $mobile-breakpoint) and (max-width: $tablet-breakpoint - 1px) {
+    display: none !important;
+  }
+}
+
+/** PC端隐藏 */
+.desktop-hidden {
+  @media (min-width: $tablet-breakpoint) {
+    display: none !important;
+  }
+}
+
+/* ==================== 移动端通用样式 ==================== */
+
+/** 移动端字体样式 */
+@media (max-width: $mobile-breakpoint - 1px) {
+  html {
+    font-size: calc(1rem * #{$mobile-font-scale});
+  }
+  
+  body {
+    font-size: max($mobile-min-font-size, 1rem * $mobile-font-scale);
+    line-height: $mobile-line-height;
+  }
+}
+
+/** 移动端间距样式 */
+@media (max-width: $mobile-breakpoint - 1px) {
+  /* 通用间距类 */
+  .mobile-padding {
+    padding: calc(1rem * #{$mobile-padding-scale}) !important;
+  }
+  
+  .mobile-padding-x {
+    padding-left: calc(1rem * #{$mobile-padding-scale}) !important;
+    padding-right: calc(1rem * #{$mobile-padding-scale}) !important;
+  }
+  
+  .mobile-padding-y {
+    padding-top: calc(1rem * #{$mobile-padding-scale}) !important;
+    padding-bottom: calc(1rem * #{$mobile-padding-scale}) !important;
+  }
+  
+  .mobile-margin {
+    margin: calc(1rem * #{$mobile-padding-scale}) !important;
+  }
+  
+  .mobile-margin-x {
+    margin-left: calc(1rem * #{$mobile-padding-scale}) !important;
+    margin-right: calc(1rem * #{$mobile-padding-scale}) !important;
+  }
+  
+  .mobile-margin-y {
+    margin-top: calc(1rem * #{$mobile-padding-scale}) !important;
+    margin-bottom: calc(1rem * #{$mobile-padding-scale}) !important;
+  }
+}
+
+/** 移动端布局样式 */
+@media (max-width: $mobile-breakpoint - 1px) {
+  /* 容器样式 */
+  .mobile-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: calc(1rem * #{$mobile-padding-scale});
+    padding-right: calc(1rem * #{$mobile-padding-scale});
+  }
+  
+  /* 全宽样式 */
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* 垂直排列样式 */
+  .mobile-flex-column {
+    flex-direction: column !important;
+  }
+  
+  /* 隐藏滚动条（移动端优化） */
+  .mobile-hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+/** 移动端表格横向滚动 */
+@media (max-width: $mobile-breakpoint - 1px) {
+  .mobile-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+    }
+  }
+}
+
+/** 移动端触摸优化 */
+@media (max-width: $mobile-breakpoint - 1px) {
+  /* 触摸目标最小尺寸（44x44px，符合移动端交互规范） */
+  .mobile-touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* 禁用文本选择（移动端优化） */
+  .mobile-no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+/* ==================== 横竖屏切换适配 ==================== */
+
+/** 横竖屏切换过渡动画 */
+* {
+  transition: width 0.3s ease, height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+}
+
+/** 布局容器横竖屏切换过渡 */
+.layout-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/** 侧边栏横竖屏切换过渡 */
+.sidebar-container {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/** 内容区域横竖屏切换过渡 */
+.content-container {
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/** 横屏适配样式 */
+@media (orientation: landscape) and (max-width: $mobile-breakpoint - 1px) {
+  /* 横屏时优化布局 */
+  .mobile-landscape-optimize {
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+/** 竖屏适配样式 */
+@media (orientation: portrait) and (max-width: $mobile-breakpoint - 1px) {
+  /* 竖屏时优化布局 */
+  .mobile-portrait-optimize {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+

@@ -1,9 +1,5 @@
 /**
  * BMI计算工具函数单元测试
- * 
- * 关联测试用例: TC-COMP-REQ-001-01-06-02, TC-COMP-REQ-001-01-06-03
- * 关联需求: REQ-006
- * 关联组件: COMP-REQ-001-01-06
  */
 
 import { describe, it, expect } from 'vitest'

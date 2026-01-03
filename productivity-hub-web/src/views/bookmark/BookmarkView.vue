@@ -266,8 +266,15 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 书签管理页面组件
+ */
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 import {
   Plus,
   Edit,
@@ -1225,35 +1232,305 @@ onMounted(() => {
   }
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
   .bookmark-view {
-    padding: 16px;
+    padding: 0;
   }
   
   .main-card {
-    border-radius: 18px;
+    border-radius: 0;
+    margin: 0;
+    min-height: auto;
+  }
+
+  .main-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  .main-card :deep(.el-card__header) {
+    padding: 12px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .title {
+    font-size: 18px;
+    padding-left: 8px;
+  }
+
+  .title::before {
+    width: 3px;
+    height: 18px;
+  }
+  
+  .header-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-actions :deep(.el-button) {
+    padding: 6px 12px;
+    font-size: 12px;
+    flex: 1;
+    min-width: calc(50% - 4px);
+  }
+
+  .header-actions :deep(.el-button .el-icon) {
+    font-size: 14px;
+  }
+  
+  .content-wrapper {
+    flex-direction: column;
+    gap: 16px;
+    min-height: auto;
+  }
+  
+  .tag-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    padding-right: 0;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    position: static;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-top: 0;
+  }
+
+  .tag-header {
+    font-size: 15px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .tag-header :deep(.el-button) {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .tree-node {
+    padding: 8px 10px;
+    margin: 2px 0;
+  }
+
+  .node-label {
+    font-size: 13px;
+  }
+
+  .node-count {
+    font-size: 11px;
+    padding: 2px 6px;
+    margin-left: 6px;
+  }
+
+  .node-actions {
+    gap: 2px;
+    margin-left: 4px;
+  }
+
+  .node-actions :deep(.el-button) {
+    padding: 4px;
+  }
+
+  .tag-actions-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .tag-actions-footer :deep(.el-button) {
+    padding: 8px;
+    font-size: 12px;
+  }
+  
+  .url-content {
+    min-width: 0;
+  }
+
+  .search-bar {
+    margin-bottom: 16px;
+  }
+
+  .search-bar :deep(.el-input__wrapper) {
+    padding: 10px 12px;
+  }
+
+  .search-bar :deep(.el-input__inner) {
+    font-size: 14px;
+  }
+
+  .main-content-layout {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .url-content-area {
+    min-width: 0;
+  }
+
+  .group-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .group-header h3 {
+    font-size: 16px;
+  }
+  
+  .group-count {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .subtags-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    padding-left: 0;
+    padding-top: 16px;
+    margin-top: 16px;
+    position: static;
+    max-height: none;
+  }
+
+  .subtags-header {
+    font-size: 14px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  .subtags-list {
+    gap: 8px;
+  }
+
+  .sub-tag-item {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .sub-tag-name {
+    font-size: 12px;
+    max-width: 200px;
+  }
+
+  .sub-tag-count {
+    font-size: 11px;
   }
   
   .url-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
-  
-  .title {
-    font-size: 20px;
+
+  .url-card {
+    padding: 12px;
+    gap: 10px;
+    border-radius: 12px;
   }
-  
-  .header-actions :deep(.el-button) {
-    padding: 8px 16px;
+
+  .url-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0;
+    border-radius: 10px;
+  }
+
+  .url-icon .el-icon {
+    font-size: 24px;
+  }
+
+  .url-info {
+    gap: 4px;
+  }
+
+  .url-title {
+    font-size: 14px;
+  }
+
+  .url-description {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+  }
+
+  .url-tags {
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .url-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .url-actions {
+    top: 8px;
+    right: 8px;
+    gap: 4px;
+    padding: 3px 4px;
+  }
+
+  .url-actions .el-button {
+    padding: 4px;
+  }
+
+  .url-actions .el-icon {
+    font-size: 14px;
+  }
+
+  .empty-state {
+    min-height: 300px;
+    margin: 12px 0;
+    border-radius: 16px;
+  }
+
+  .empty-state :deep(.el-empty) {
+    padding: 30px 16px;
+  }
+
+  .empty-state :deep(.el-empty__description) {
     font-size: 13px;
   }
-  
-  .group-header h3 {
-    font-size: 18px;
+
+  // 禁用移动端hover效果
+  .tree-node:hover {
+    transform: none;
   }
-  
-  .sub-group-header h4 {
-    font-size: 15px;
+
+  .tree-node:hover::before {
+    transform: translateY(-50%) scaleY(0);
+    height: 0;
+  }
+
+  .url-card:hover {
+    transform: none;
+  }
+
+  .url-card:hover::before {
+    opacity: 0;
+  }
+
+  .url-card:hover::after {
+    opacity: 0;
+  }
+
+  .url-card:hover .url-icon {
+    transform: none;
+  }
+
+  .sub-tag-item:hover {
+    transform: none;
+  }
+
+  .url-tag:hover {
+    transform: none;
   }
 }
 

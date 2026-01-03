@@ -1,0 +1,17 @@
+# 浏览器兼容性配置
+# 支持现代浏览器和移动端浏览器
+
+# 现代浏览器（支持 ES6+）
+> 0.5%
+last 2 versions
+Firefox ESR
+not dead
+
+# 移动端浏览器
+iOS >= 12
+Android >= 6
+
+# 排除已停止维护的浏览器
+not IE 11
+not op_mini all
+

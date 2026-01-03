@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 const iframeLoaded = ref(false)
 const iframeKey = ref(0)
-const iframeSrc = '/蓝图展示.html'
+const iframeSrc = '/blueprint-roadmap.html'
 
 const handleIframeLoad = () => {
   iframeLoaded.value = true

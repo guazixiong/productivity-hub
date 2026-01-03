@@ -1,8 +1,12 @@
 <script setup lang="ts">
+/**
+ * 首页组件
+ */
 import { computed, markRaw, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '@/stores/config'
 import { useNavigationStore } from '@/stores/navigation'
+import { useDevice } from '@/composables/useDevice'
 import { ElMessage } from 'element-plus'
 import { 
   Location, 
@@ -20,6 +24,9 @@ import { toolList, toolMetaMap, type ToolMeta } from '@/data/tools'
 
 const router = useRouter()
 const configStore = useConfigStore()
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 // 地理位置（默认郑州）
 const location = ref<{ city?: string; province?: string; address?: string }>({
@@ -990,6 +997,7 @@ onUnmounted(() => {
   flex: 1 1 auto;
 }
 
+/* 平板端适配 - REQ-001-02 */
 @media (max-width: 1200px) {
   .info-cards {
     flex-direction: column;
@@ -997,6 +1005,24 @@ onUnmounted(() => {
 
   .info-left-column {
     flex: 1 1 auto;
+  }
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .info-cards {
+    flex-direction: column;
+    gap: 16px; /* 移动端间距缩放 */
+  }
+
+  .info-left-column {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 16px; /* 移动端间距缩放 */
+  }
+
+  .combined-countdown-card {
+    min-width: 0;
   }
 }
 
@@ -1223,22 +1249,52 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
+/* 移动端适配 - REQ-001-02 */
 @media (max-width: 768px) {
   .location-weather-content {
-    gap: 24px;
+    gap: 20px; /* 移动端间距缩放 */
   }
 
   .location-main {
-    font-size: 28px;
+    font-size: 24px; /* 移动端字体缩放 */
+  }
+
+  .location-province {
+    font-size: 13px; /* 移动端字体缩放 */
+  }
+
+  .location-detail {
+    font-size: 12px; /* 移动端字体缩放 */
   }
 
   .weather-block {
-    padding-top: 20px;
+    padding-top: 16px; /* 移动端间距缩放 */
+  }
+
+  .weather-icon {
+    font-size: 24px; /* 移动端字体缩放 */
+  }
+
+  .weather-temp {
+    font-size: 32px; /* 移动端字体缩放 */
+  }
+
+  .weather-desc {
+    font-size: 14px; /* 移动端字体缩放 */
   }
 
   .weather-details {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px; /* 移动端间距缩放 */
+    padding-top: 12px; /* 移动端间距缩放 */
+  }
+
+  .weather-detail-label {
+    font-size: 10px; /* 移动端字体缩放 */
+  }
+
+  .weather-detail-value {
+    font-size: 12px; /* 移动端字体缩放 */
   }
 }
 
@@ -1275,6 +1331,30 @@ onUnmounted(() => {
   text-align: center;
   padding-top: 8px;
   border-top: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .fortune-content {
+    gap: 10px; /* 移动端间距缩放 */
+    min-height: 80px;
+    padding-top: 2px; /* 移动端间距缩放 */
+  }
+
+  .fortune-name {
+    font-size: 24px; /* 移动端字体缩放 */
+    padding: 10px 0; /* 移动端间距缩放 */
+  }
+
+  .fortune-description {
+    font-size: 14px; /* 移动端字体缩放 */
+    line-height: 1.6;
+  }
+
+  .fortune-advice {
+    font-size: 12px; /* 移动端字体缩放 */
+    padding-top: 6px; /* 移动端间距缩放 */
+  }
 }
 
 .countdown-content {
@@ -1506,19 +1586,63 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
+/* 移动端适配 - REQ-001-02 */
 @media (max-width: 768px) {
   .combined-countdown-content {
     flex-direction: column;
+    gap: 16px; /* 移动端间距缩放 */
+  }
+
+  .countdown-block {
+    gap: 6px; /* 移动端间距缩放 */
+  }
+
+  .countdown-title {
+    font-size: 12px; /* 移动端字体缩放 */
+  }
+
+  .countdown-time {
+    font-size: clamp(20px, 5vw, 32px); /* 移动端字体缩放 */
+  }
+
+  .countdown-label {
+    font-size: 12px; /* 移动端字体缩放 */
+  }
+
+  .off-work-time {
+    font-size: 14px; /* 移动端字体缩放 */
+  }
+
+  .weekend-overtime-tip {
+    padding: 10px 16px; /* 移动端间距缩放 */
+    font-size: 14px; /* 移动端字体缩放 */
+    margin: 10px 0; /* 移动端间距缩放 */
   }
   
   .salary-date-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
+    padding: 8px 10px; /* 移动端间距缩放 */
+  }
+
+  .salary-date-display {
+    font-size: 12px; /* 移动端字体缩放 */
   }
   
   .salary-date-days {
     align-self: flex-end;
+    font-size: 11px; /* 移动端字体缩放 */
+  }
+
+  .salary-today-badge,
+  .salary-tomorrow-badge {
+    padding: 3px 8px; /* 移动端间距缩放 */
+    font-size: 11px; /* 移动端字体缩放 */
+  }
+
+  .salary-days-number {
+    font-size: 14px; /* 移动端字体缩放 */
   }
 }
 
@@ -1537,7 +1661,8 @@ onUnmounted(() => {
 
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  /* 固定为 4 列，配合 MAX_QUICK_TOOLS = 8，自然形成“上四下四”两行布局 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1553,6 +1678,9 @@ onUnmounted(() => {
   background: rgba(248, 250, 252, 0.98);
   position: relative;
   overflow: hidden;
+  min-height: 64px;
+  height: 64px;
+  box-sizing: border-box;
 }
 
 .tool-item:hover {
@@ -1565,12 +1693,59 @@ onUnmounted(() => {
 .tool-icon {
   font-size: 28px;
   color: #2563eb;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tool-name {
   font-size: 14px;
   color: var(--text-secondary);
   font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 移动端适配 - REQ-001-02, REQ-001-03 */
+@media (max-width: 768px) {
+  .tools-grid {
+    /* 移动端同样保持 4 列，上四下四的布局视觉一致 */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px; /* 移动端间距缩放 */
+  }
+
+  .tool-item {
+    gap: 10px; /* 移动端间距缩放 */
+    padding: 12px 14px; /* 移动端间距缩放 */
+    border-radius: 10px;
+    min-height: 56px;
+    height: 56px;
+    /* 移动端禁用hover效果，改为点击激活 - REQ-001-03 */
+    &:active {
+      background: #eff6ff;
+      border-color: rgba(37, 99, 235, 0.7);
+      transform: scale(0.98);
+    }
+  }
+
+  .tool-item:hover {
+    /* 移动端禁用hover效果 */
+    background: rgba(248, 250, 252, 0.98);
+    border-color: rgba(203, 213, 225, 0.9);
+    transform: none;
+    box-shadow: none;
+  }
+
+  .tool-icon {
+    font-size: 24px; /* 移动端字体缩放 */
+  }
+
+  .tool-name {
+    font-size: 12px; /* 移动端字体缩放 */
+  }
 }
 
 .tool-empty {
@@ -1602,9 +1777,54 @@ onUnmounted(() => {
   text-align: center;
 }
 
+/* 移动端适配 - REQ-001-02 */
 @media (max-width: 768px) {
+  .home-container {
+    gap: 16px; /* 移动端间距缩放 */
+    padding: 0; /* 移动端移除额外padding */
+  }
+
   .info-cards {
     flex-direction: column;
+    gap: 16px; /* 移动端间距缩放 */
+  }
+
+  .info-card {
+    border-radius: 12px; /* 移动端圆角调整 */
+  }
+
+  .card-header {
+    font-size: 14px; /* 移动端字体缩放 */
+  }
+
+  .card-header .el-icon {
+    font-size: 16px; /* 移动端字体缩放 */
+  }
+
+  .sub-label {
+    font-size: 10px; /* 移动端字体缩放 */
+  }
+
+  .quick-tools-section {
+    gap: 10px; /* 移动端间距缩放 */
+    margin-top: 6px; /* 移动端间距缩放 */
+  }
+
+  .quick-tools-header {
+    font-size: 14px; /* 移动端字体缩放 */
+  }
+
+  .tool-empty {
+    padding: 16px; /* 移动端间距缩放 */
+    font-size: 13px; /* 移动端字体缩放 */
+  }
+
+  .tool-empty .el-icon {
+    font-size: 28px; /* 移动端字体缩放 */
+  }
+
+  .tool-empty-hint {
+    font-size: 11px; /* 移动端字体缩放 */
   }
 }
 </style>

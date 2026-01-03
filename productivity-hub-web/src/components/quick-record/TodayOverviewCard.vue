@@ -37,11 +37,6 @@
 <script setup lang="ts">
 /**
  * 今日概览卡片组件
- * 
- * 关联需求: REQ-001
- * 关联组件: COMP-REQ-001-01-01
- * 关联接口: API-REQ-001-03, API-REQ-002-01
- * 关联测试用例: TC-COMP-REQ-001-01-01-01 ~ TC-COMP-REQ-001-01-01-05
  */
 
 import { computed } from 'vue'
@@ -110,7 +105,7 @@ const exerciseText = computed(() => {
   .overview-content {
     .overview-item {
       display: flex;
-      align-items: center;
+      align-items: baseline; // 文本上下对齐到同一水平线
       margin-bottom: 12px;
       font-size: 14px;
 
@@ -121,7 +116,8 @@ const exerciseText = computed(() => {
       .label {
         color: #666;
         margin-right: 8px;
-        min-width: 50px;
+        min-width: 60px; // 固定宽度，保证「待办」「饮水」对齐
+        text-align: right;
       }
 
       .value {

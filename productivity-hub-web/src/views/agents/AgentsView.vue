@@ -4,7 +4,11 @@ import { Search } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
+import { useDevice } from '@/composables/useDevice'
 import { useAgentStore } from '@/stores/agents'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const agentStore = useAgentStore()
 const searchKeyword = ref('')
@@ -874,23 +878,133 @@ onMounted(async () => {
   gap: 12px;
 }
 
+/* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
+  .agents-shell {
+    padding: 0;
+  }
+
+  .agents-card {
+    border-radius: 0;
+    margin: 0 -12px;
+  }
+
   .catalog-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    h2 {
+      font-size: 20px;
+    }
+  }
+
+  .catalog-filters {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+
+    .catalog-search {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+    }
+  }
+
+  .agent-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .agent-tile {
+    padding: 16px !important;
+
+    .card-title {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+
+  .detail-header {
+    margin-bottom: 16px;
   }
 
   .detail-title {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .detail-body {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .invoke-card,
+  .result-card {
+    :deep(.el-card__header) {
+      padding: 16px;
+    }
+
+    :deep(.el-card__body) {
+      padding: 16px;
+    }
+  }
+
+  .agent-meta {
+    :deep(.el-descriptions__table) {
+      .el-descriptions__label {
+        width: 80px;
+      }
+    }
+  }
+
+  .logs-filters {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
   }
 
   .logs-search {
     width: 100%;
     max-width: none;
+  }
+
+  .logs-table {
+    :deep(.el-table) {
+      font-size: 0.9em;
+    }
+
+    :deep(.el-table th),
+    :deep(.el-table td) {
+      padding: 8px 4px;
+    }
+  }
+
+  .logs-pagination {
+    justify-content: center;
+
+    :deep(.el-pagination) {
+      font-size: 0.9em;
+    }
+
+    :deep(.el-pagination__sizes),
+    :deep(.el-pagination__jump) {
+      display: none;
+    }
+  }
+
+  .log-detail-drawer {
+    :deep(.el-drawer__body) {
+      padding: 16px;
+    }
+  }
+
+  .log-content-box {
+    padding: 12px;
+    font-size: 0.9em;
   }
 }
 </style>

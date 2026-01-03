@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.asset.mapper.AssetSoldMapper">
+
+    <resultMap id="AssetSoldResultMap" type="com.pbad.asset.domain.po.AssetSoldPO">
+        <id property="id" column="id"/>
+        <result property="assetId" column="asset_id"/>
+        <result property="soldPrice" column="sold_price"/>
+        <result property="soldDate" column="sold_date"/>
+        <result property="soldReason" column="sold_reason"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, asset_id, sold_price, sold_date, sold_reason, remark, created_at, updated_at
+    </sql>
+
+    <select id="selectByAssetId" resultMap="AssetSoldResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_sold
+        WHERE asset_id = #{assetId}
+        LIMIT 1
+    </select>
+
+    <select id="selectById" resultMap="AssetSoldResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset_sold
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <insert id="insertSold" parameterType="com.pbad.asset.domain.po.AssetSoldPO">
+        INSERT INTO asset_sold (
+            id, asset_id, sold_price, sold_date, sold_reason, remark, created_at, updated_at
+        ) VALUES (
+            #{id}, #{assetId}, #{soldPrice}, #{soldDate}, #{soldReason}, #{remark},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="updateSold" parameterType="com.pbad.asset.domain.po.AssetSoldPO">
+        UPDATE asset_sold
+        SET
+            sold_price = #{soldPrice},
+            sold_date = #{soldDate},
+            sold_reason = #{soldReason},
+            remark = #{remark},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+

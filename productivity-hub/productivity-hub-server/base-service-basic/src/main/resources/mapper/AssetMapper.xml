@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.asset.mapper.AssetMapper">
+
+    <resultMap id="AssetResultMap" type="com.pbad.asset.domain.po.AssetPO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="name" column="name"/>
+        <result property="price" column="price"/>
+        <result property="image" column="image"/>
+        <result property="remark" column="remark"/>
+        <result property="purchaseDate" column="purchase_date"/>
+        <result property="warrantyEnabled" column="warranty_enabled"/>
+        <result property="warrantyEndDate" column="warranty_end_date"/>
+        <result property="depreciationByUsageCount" column="depreciation_by_usage_count"/>
+        <result property="expectedUsageCount" column="expected_usage_count"/>
+        <result property="depreciationByUsageDate" column="depreciation_by_usage_date"/>
+        <result property="usageDate" column="usage_date"/>
+        <result property="inService" column="in_service"/>
+        <result property="retiredDate" column="retired_date"/>
+        <result property="status" column="status"/>
+        <result property="version" column="version"/>
+        <result property="deleted" column="deleted"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, category_id, name, price, image, remark, purchase_date,
+        warranty_enabled, warranty_end_date, depreciation_by_usage_count, expected_usage_count,
+        depreciation_by_usage_date, usage_date, in_service, retired_date, status,
+        version, deleted, created_at, updated_at
+    </sql>
+
+    <select id="selectPage" resultMap="AssetResultMap">
+        SELECT
+        a.id, a.user_id, a.category_id, a.name, a.price, a.image, a.remark, a.purchase_date,
+        a.warranty_enabled, a.warranty_end_date, a.depreciation_by_usage_count, a.expected_usage_count,
+        a.depreciation_by_usage_date, a.usage_date, a.in_service, a.retired_date, a.status,
+        a.version, a.deleted, a.created_at, a.updated_at
+        FROM asset a
+        LEFT JOIN (
+            SELECT asset_id, COALESCE(SUM(amount), 0) as total_fees
+            FROM asset_additional_fee
+            GROUP BY asset_id
+        ) fees ON a.id = fees.asset_id
+        WHERE a.user_id = #{userId}
+          AND a.deleted = FALSE
+        <if test="categoryId != null and categoryId != ''">
+            AND a.category_id = #{categoryId}
+        </if>
+        <if test="status != null and status != ''">
+            AND a.status = #{status}
+        </if>
+        ORDER BY 
+            CASE 
+                WHEN a.purchase_date IS NOT NULL THEN
+                    (a.price + COALESCE(fees.total_fees, 0)) / 
+                    GREATEST(DATEDIFF(COALESCE(a.retired_date, CURDATE()), a.purchase_date), 1)
+                ELSE 0
+            END DESC,
+            a.created_at DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(1)
+        FROM asset
+        WHERE user_id = #{userId}
+          AND deleted = FALSE
+        <if test="categoryId != null and categoryId != ''">
+            AND category_id = #{categoryId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="selectById" resultMap="AssetResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND deleted = FALSE
+        LIMIT 1
+    </select>
+
+    <select id="selectAllByUserId" resultMap="AssetResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM asset
+        WHERE user_id = #{userId}
+          AND deleted = FALSE
+        ORDER BY purchase_date DESC, created_at DESC
+    </select>
+
+    <insert id="insertAsset" parameterType="com.pbad.asset.domain.po.AssetPO">
+        INSERT INTO asset (
+            id, user_id, category_id, name, price, image, remark, purchase_date,
+            warranty_enabled, warranty_end_date, depreciation_by_usage_count, expected_usage_count,
+            depreciation_by_usage_date, usage_date, in_service, retired_date, status,
+            version, deleted, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{categoryId}, #{name}, #{price}, #{image}, #{remark}, #{purchaseDate},
+            #{warrantyEnabled}, #{warrantyEndDate}, #{depreciationByUsageCount}, #{expectedUsageCount},
+            #{depreciationByUsageDate}, #{usageDate}, #{inService}, #{retiredDate}, #{status},
+            IFNULL(#{version}, 0), IFNULL(#{deleted}, FALSE),
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <update id="updateAsset" parameterType="com.pbad.asset.domain.po.AssetPO">
+        UPDATE asset
+        SET
+            category_id = #{categoryId},
+            name = #{name},
+            price = #{price},
+            image = #{image},
+            remark = #{remark},
+            purchase_date = #{purchaseDate},
+            warranty_enabled = #{warrantyEnabled},
+            warranty_end_date = #{warrantyEndDate},
+            depreciation_by_usage_count = #{depreciationByUsageCount},
+            expected_usage_count = #{expectedUsageCount},
+            depreciation_by_usage_date = #{depreciationByUsageDate},
+            usage_date = #{usageDate},
+            in_service = #{inService},
+            retired_date = #{retiredDate},
+            status = #{status},
+            version = #{version},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND version = #{version} - 1
+    </update>
+
+    <update id="deleteAsset">
+        UPDATE asset
+        SET deleted = TRUE,
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND deleted = FALSE
+    </update>
+
+    <update id="batchDeleteAssets">
+        UPDATE asset
+        SET deleted = TRUE,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND deleted = FALSE
+          AND id IN
+          <foreach collection="ids" item="id" open="(" close=")" separator=",">
+              #{id}
+          </foreach>
+    </update>
+
+</mapper>
+

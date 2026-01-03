@@ -88,12 +88,13 @@
       </div>
 
       <!-- 数据表格 -->
-      <el-table
-        :data="filteredPlans"
-        v-loading="loading"
-        :default-sort="{ prop: 'createdAt', order: 'descending' }"
-        style="width: 100%"
-      >
+      <div class="table-wrapper">
+        <el-table
+          :data="filteredPlans"
+          v-loading="loading"
+          :default-sort="{ prop: 'createdAt', order: 'descending' }"
+          style="width: 100%"
+        >
         <el-table-column prop="planName" label="计划名称" width="200" />
         <el-table-column prop="planType" label="计划类型" width="120" />
         <el-table-column prop="status" label="状态" width="100">
@@ -165,6 +166,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </el-card>
 
     <!-- 新增/编辑对话框 -->
@@ -180,10 +182,14 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { healthApi } from '@/services/healthApi'
 import type { TrainingPlan, TrainingPlanDTO, PlanType, PlanStatus } from '@/types/health'
 import StatisticsCard from '@/components/health/StatisticsCard.vue'
 import TrainingPlanForm from '@/components/health/TrainingPlanForm.vue'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const loading = ref(false)
 const plans = ref<TrainingPlan[]>([])
@@ -390,6 +396,65 @@ onMounted(() => {
 
 .filter-toolbar {
   margin-bottom: 20px;
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .training-plan-view {
+    padding: 0;
+    font-size: 0.9em;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .el-button {
+    width: 100%;
+  }
+
+  .filter-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-toolbar :deep(.el-form-item) {
+    margin: 0;
+    width: 100%;
+  }
+
+  .filter-toolbar :deep(.el-select) {
+    width: 100% !important;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrapper :deep(.el-table) {
+    font-size: 0.9em;
+  }
+
+  .table-wrapper :deep(.el-table th),
+  .table-wrapper :deep(.el-table td) {
+    padding: 8px 4px;
+  }
+
+  .table-wrapper :deep(.el-table__fixed-right) {
+    right: 0 !important;
+  }
 }
 </style>
 

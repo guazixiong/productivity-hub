@@ -1,10 +1,17 @@
 <script setup lang="ts">
+/**
+ * 公告管理页面组件
+ */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Refresh, Search, Upload, Timer } from '@element-plus/icons-vue'
+import { useDevice } from '@/composables/useDevice'
 import { announcementApi } from '@/services/announcementApi'
 import type { Announcement, AnnouncementCreateDTO, AnnouncementStats } from '@/types/announcement'
 import type { PageResult } from '@/types/common'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 interface QueryParams {
   page: number
@@ -299,13 +306,14 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="table-card">
-      <el-table
-        v-loading="loading"
-        :data="filteredTableData"
-        border
-        style="width: 100%"
-        empty-text="暂无公告"
-      >
+      <div class="table-wrapper">
+        <el-table
+          v-loading="loading"
+          :data="filteredTableData"
+          border
+          class="announcement-table"
+          empty-text="暂无公告"
+        >
         <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
         <el-table-column label="类型" width="110">
           <template #default="{ row }">
@@ -365,6 +373,7 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
+      </div>
       <div class="pager">
         <el-pagination
           v-model:current-page="query.page"
@@ -382,7 +391,8 @@ onMounted(() => {
     <el-dialog
       v-model="formVisible"
       :title="formMode === 'create' ? '新建公告' : '编辑公告'"
-      width="700px"
+      :width="isMobile ? '100%' : '700px'"
+      :fullscreen="isMobile"
       destroy-on-close
     >
       <el-form ref="formRef" :model="formModel" :rules="formRules" label-width="96px" label-position="right">
@@ -461,7 +471,7 @@ onMounted(() => {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="statsVisible" title="阅读统计" size="360px">
+    <el-drawer v-model="statsVisible" title="阅读统计" :size="isMobile ? '100%' : '360px'">
       <el-skeleton v-if="statsLoading" rows="4" animated />
       <el-empty v-else-if="!stats" description="暂无数据" />
       <div v-else class="stats-panel">
@@ -530,6 +540,33 @@ onMounted(() => {
   border-radius: 10px;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.announcement-table {
+  min-width: 1000px;
+}
+
 .cell-text {
   display: flex;
   flex-direction: column;
@@ -577,6 +614,165 @@ onMounted(() => {
 
 .tag-icon {
   margin-right: 4px;
+}
+
+/* 移动端适配 - REQ-001-02 */
+@media (max-width: 768px) {
+  .page {
+    gap: 8px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .page-title h2 {
+    font-size: 18px;
+  }
+
+  .page-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .page-actions .el-button {
+    width: 100%;
+  }
+
+  .filters {
+    padding: 12px 8px;
+  }
+
+  .filters :deep(.el-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filters :deep(.el-form-item) {
+    margin: 0;
+    width: 100%;
+  }
+
+  .filters :deep(.el-form-item__label) {
+    width: 80px !important;
+    text-align: left;
+  }
+
+  .filters :deep(.el-select),
+  .filters :deep(.el-input) {
+    width: 100% !important;
+  }
+
+  .filters :deep(.el-form-item__content) {
+    flex: 1;
+  }
+
+  .filters :deep(.el-button) {
+    width: 100%;
+  }
+
+  /* 表格横向滚动支持 - REQ-001-05 */
+  .table-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  .table-card :deep(.el-table__cell) {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+
+  .table-card :deep(.el-table__header-wrapper th) {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  /* 禁用移动端hover效果 */
+  .table-card :deep(.el-table__body tr:hover > td) {
+    background: transparent !important;
+  }
+
+  .pager {
+    padding: 12px 4px 0;
+  }
+
+  .pager :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pager :deep(.el-pagination__sizes),
+  .pager :deep(.el-pagination__jump) {
+    margin-top: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 对话框移动端适配 */
+  .el-dialog {
+    margin: 0 !important;
+    max-height: 100vh;
+  }
+
+  .el-dialog :deep(.el-dialog__body) {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .el-dialog :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
+
+  .el-dialog :deep(.el-form-item__label) {
+    width: 96px !important;
+  }
+
+  .el-dialog :deep(.el-radio-group) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .el-dialog :deep(.el-radio-button) {
+    width: 100%;
+  }
+
+  .el-dialog :deep(.el-radio-button__inner) {
+    width: 100%;
+  }
+
+  .el-dialog :deep(.el-space) {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .el-dialog :deep(.el-space__item) {
+    width: 100%;
+  }
+
+  .el-dialog :deep(.el-date-picker) {
+    width: 100% !important;
+  }
+
+  /* 抽屉移动端适配 */
+  .el-drawer {
+    border-radius: 0;
+  }
+
+  .stats-panel {
+    gap: 10px;
+  }
+
+  .stat-item {
+    padding: 12px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
 }
 </style>
 

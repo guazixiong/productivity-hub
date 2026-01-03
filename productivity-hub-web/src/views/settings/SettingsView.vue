@@ -1,10 +1,17 @@
 <script setup lang="ts">
+/**
+ * 设置页面组件
+ */
 import { computed, reactive, ref, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
 import { useConfigStore } from '@/stores/config'
 import type { ConfigItem } from '@/types/config'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const configStore = useConfigStore()
 const searchKeyword = ref('')
@@ -140,43 +147,47 @@ onMounted(() => {
 <template>
   <el-card class="config-card">
     <template #header>
-      <div class="card-header">
+      <div class="card-header" :class="{ 'mobile-layout': isMobile }">
         <div>
           <h2>全局参数配置</h2>
           <p>配置项通过 Pinia 缓存，编辑后自动刷新</p>
         </div>
-        <div class="actions">
+        <div class="actions" :class="{ 'mobile-actions': isMobile }">
           <el-input v-model="searchKeyword" placeholder="搜索模块 / Key / 描述" clearable :prefix-icon="Search" />
           <el-button :loading="configStore.loading" @click="configStore.fetchConfigs(true)">刷新缓存</el-button>
         </div>
       </div>
     </template>
 
-    <el-table
-      :data="moduleList"
-      :loading="configStore.loading"
-      stripe
-      class="config-table"
-      empty-text="暂无配置"
-    >
-      <el-table-column prop="module" label="模块" width="160">
-        <template #default="{ row }">
-          <el-tag type="primary" size="large">{{ row.module }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="150" />
-      <el-table-column prop="createdAt" label="创建时间" width="180" />
-      <el-table-column prop="updatedAt" label="最近更新时间" width="180" />
-      <el-table-column label="操作" width="200" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="openDetailDrawer(row.module)">详情</el-button>
-          <el-button link type="primary" @click="openEditDrawer(row.module)">编辑模块</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-wrapper">
+      <el-table
+        :data="moduleList"
+        :loading="configStore.loading"
+        stripe
+        class="config-table"
+        empty-text="暂无配置"
+      >
+        <el-table-column prop="module" label="模块" :width="isMobile ? 120 : 160">
+          <template #default="{ row }">
+            <el-tag type="primary" :size="isMobile ? 'default' : 'large'">{{ row.module }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" :min-width="isMobile ? 120 : 150" />
+        <el-table-column v-if="!isMobile" prop="createdAt" label="创建时间" width="180" />
+        <el-table-column v-if="!isMobile" prop="updatedAt" label="最近更新时间" width="180" />
+        <el-table-column label="操作" :width="isMobile ? 120 : 200" fixed="right">
+          <template #default="{ row }">
+            <div class="action-buttons" :class="{ 'mobile-actions': isMobile }">
+              <el-button link type="primary" :size="isMobile ? 'small' : 'default'" @click="openDetailDrawer(row.module)">详情</el-button>
+              <el-button link type="primary" :size="isMobile ? 'small' : 'default'" @click="openEditDrawer(row.module)">编辑</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
   </el-card>
 
-  <el-drawer v-model="editDrawerVisible" :title="`编辑模块配置 - ${editingModule}`" size="60%">
+  <el-drawer v-model="editDrawerVisible" :title="`编辑模块配置 - ${editingModule}`" :size="isMobile ? '100%' : '60%'">
     <div class="edit-drawer-content">
       <el-card class="module-description-card" shadow="never">
         <template #header>
@@ -244,7 +255,7 @@ onMounted(() => {
     </template>
   </el-drawer>
 
-  <el-drawer v-model="detailDrawerVisible" :title="`模块详情 - ${viewingModule}`" size="50%">
+  <el-drawer v-model="detailDrawerVisible" :title="`模块详情 - ${viewingModule}`" :size="isMobile ? '100%' : '50%'">
     <template v-if="viewingModuleConfigs.length > 0">
       <el-descriptions :column="1" border class="detail-descriptions" style="margin-bottom: 24px">
         <el-descriptions-item label="模块">
@@ -263,23 +274,25 @@ onMounted(() => {
 
       <el-divider>配置项列表</el-divider>
 
-      <el-table :data="viewingModuleConfigs" border size="small" class="module-configs-table">
-        <el-table-column prop="key" label="配置 Key" min-width="200">
-          <template #default="{ row }">
-            <code class="config-key-code">{{ row.key }}</code>
-          </template>
-        </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="200" />
-        <el-table-column prop="value" label="当前值" min-width="200" show-overflow-tooltip />
-        <el-table-column label="更新时间" width="160">
-          <template #default="{ row }">
-            <div class="update-info">
-              <span>{{ row.updatedAt }}</span>
-              <span style="color: #94a3b8; font-size: 12px">{{ row.updatedBy }}</span>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrapper">
+        <el-table :data="viewingModuleConfigs" border :size="isMobile ? 'small' : 'small'" class="module-configs-table">
+          <el-table-column prop="key" label="配置 Key" :min-width="isMobile ? 150 : 200">
+            <template #default="{ row }">
+              <code class="config-key-code">{{ row.key }}</code>
+            </template>
+          </el-table-column>
+          <el-table-column prop="description" label="描述" :min-width="isMobile ? 120 : 200" />
+          <el-table-column prop="value" label="当前值" :min-width="isMobile ? 150 : 200" show-overflow-tooltip />
+          <el-table-column v-if="!isMobile" label="更新时间" width="160">
+            <template #default="{ row }">
+              <div class="update-info">
+                <span>{{ row.updatedAt }}</span>
+                <span style="color: #94a3b8; font-size: 12px">{{ row.updatedBy }}</span>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </template>
     <template #footer>
       <span class="drawer-footer">
@@ -308,24 +321,87 @@ onMounted(() => {
   gap: 16px;
 }
 
+.card-header.mobile-layout {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .card-header h2 {
   margin: 0;
+  font-size: 20px;
 }
 
 .card-header p {
   margin: 4px 0 0;
   color: #475569;
+  font-size: 13px;
 }
 
 .actions {
   display: flex;
   gap: 12px;
   align-items: center;
+  width: 100%;
+}
+
+.actions.mobile-actions {
+  flex-direction: column;
+  width: 100%;
+}
+
+.actions.mobile-actions .el-input {
+  width: 100%;
+}
+
+.actions.mobile-actions .el-button {
+  width: 100%;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons.mobile-actions {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action-buttons.mobile-actions .el-button {
+  width: 100%;
+  text-align: left;
+  padding: 4px 0;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .config-table {
   border-radius: 12px;
   overflow: hidden;
+  min-width: 600px;
 }
 
 .config-table :deep(.el-table__header-wrapper th) {
@@ -372,10 +448,81 @@ onMounted(() => {
 
 .module-configs-table {
   margin-top: 16px;
+  min-width: 600px;
 }
 
 .module-configs-table :deep(.el-table__cell) {
   padding: 12px;
+}
+
+@media (max-width: 768px) {
+  .config-card {
+    border-radius: 12px;
+    margin: 0 -12px;
+  }
+
+  .config-card :deep(.el-card__header) {
+    padding: 12px;
+  }
+
+  .config-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  .card-header h2 {
+    font-size: 18px;
+  }
+
+  .card-header p {
+    font-size: 12px;
+  }
+
+  .config-table :deep(.el-table__header-wrapper th) {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .config-table :deep(.el-table__body-wrapper td) {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .module-configs-table :deep(.el-table__cell) {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .config-item {
+    padding: 12px;
+  }
+
+  .config-item-title {
+    font-size: 13px;
+  }
+
+  .config-key-code-inline {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .config-item-meta {
+    font-size: 11px;
+  }
+
+  .config-value-input :deep(.el-textarea__inner) {
+    font-size: 12px;
+    min-height: 50px;
+  }
+
+  .drawer-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .drawer-footer .el-button {
+    width: 100%;
+    margin: 0;
+  }
 }
 
 .edit-drawer-content {

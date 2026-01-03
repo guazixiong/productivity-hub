@@ -3,7 +3,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
+import { useDevice } from '@/composables/useDevice'
 import { useAuthStore } from '@/stores/auth'
+
+// 响应式设备检测 - REQ-001
+const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -143,6 +147,70 @@ const handleResetPassword = async () => {
 
 .action-buttons .el-button {
   min-width: 120px;
+}
+
+/* 移动端适配 - REQ-001 */
+@media (max-width: 768px) {
+  .reset-password-page {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .reset-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px;
+
+    :deep(.el-card__body) {
+      padding: 24px 20px;
+    }
+  }
+
+  .card-header h1 {
+    font-size: 20px;
+  }
+
+  .card-header p {
+    font-size: 13px;
+  }
+
+  .warning-box {
+    margin-bottom: 20px;
+  }
+
+  .warning-content {
+    font-size: 12px;
+  }
+
+  .warning-content strong {
+    font-size: 13px;
+  }
+
+  .warning-content code {
+    font-size: 12px;
+    padding: 2px 4px;
+  }
+
+  .user-info {
+    margin-bottom: 20px;
+
+    :deep(.el-descriptions) {
+      .el-descriptions__label {
+        width: 100px;
+      }
+    }
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 12px;
+
+    .el-button {
+      width: 100%;
+      min-width: 0;
+    }
+  }
 }
 </style>
 
