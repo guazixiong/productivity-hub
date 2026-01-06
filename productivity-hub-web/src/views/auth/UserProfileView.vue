@@ -198,7 +198,7 @@ onMounted(async () => {
       authStore.user = user
       localStorage.setItem('phub/user', JSON.stringify(user))
     } catch (error) {
-      console.error('获取用户信息失败:', error)
+      // 忽略获取用户信息错误
     }
   }
   initForm()

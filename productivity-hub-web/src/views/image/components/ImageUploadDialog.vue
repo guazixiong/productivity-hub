@@ -2,10 +2,11 @@
   <el-dialog
     v-model="dialogVisible"
     title="上传图片"
-    width="600px"
+    width="640px"
+    class="ph-dialog"
     @close="handleClose"
   >
-    <el-form :model="form" label-width="100px">
+    <el-form :model="form" label-width="90px" class="upload-form">
       <el-form-item label="图片文件" required>
         <el-upload
           ref="uploadRef"
@@ -356,7 +357,6 @@ const handleUpload = async () => {
     handleClose()
   } catch (error) {
     ElMessage.error('上传失败')
-    console.error(error)
   } finally {
     uploading.value = false
   }
@@ -364,6 +364,15 @@ const handleUpload = async () => {
 </script>
 
 <style scoped lang="scss">
+.upload-form {
+  padding-top: 4px;
+
+  :deep(.el-form-item__label) {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -372,9 +381,10 @@ const handleUpload = async () => {
 
 .upload-progress-list {
   margin-top: 16px;
-  padding: 16px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  padding: 14px 16px;
+  background: var(--ph-bg-card-subtle);
+  border-radius: 12px;
+  border: 1px dashed var(--ph-border-subtle);
 
   .upload-progress-item {
     margin-bottom: 12px;
@@ -391,7 +401,7 @@ const handleUpload = async () => {
 
       .progress-filename {
         font-size: 13px;
-        color: #606266;
+        color: var(--text-secondary);
         flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;

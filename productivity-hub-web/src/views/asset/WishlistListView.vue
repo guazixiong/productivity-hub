@@ -764,7 +764,7 @@ const handleFormSubmit = async () => {
             drawerTitle.value = '心愿单详情'
             return // 不关闭抽屉，保持在详情页面
           } catch (error) {
-            console.error('重新加载详情失败:', error)
+            // 忽略重新加载错误
           }
         }
       } else {
@@ -1026,7 +1026,6 @@ const handleAssetFormSubmit = async () => {
           }
         } catch (error) {
           // 忽略更新心愿单状态的错误，不影响资产创建
-          console.error('更新心愿单同步状态失败:', error)
         }
       }
       

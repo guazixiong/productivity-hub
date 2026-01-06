@@ -194,7 +194,7 @@ const handleDateCalculation = () => {
       form.startDate = calculateStartDate(form.endDate!, form.targetDurationDays!)
     }
   } catch (error) {
-    console.error('日期计算错误:', error)
+    // 忽略日期计算错误
   } finally {
     // 使用 setTimeout 确保 DOM 更新完成后再重置标志
     setTimeout(() => {

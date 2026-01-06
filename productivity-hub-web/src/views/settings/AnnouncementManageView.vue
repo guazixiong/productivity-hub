@@ -110,7 +110,6 @@ const fetchList = async () => {
     total.value = res.total ?? 0
   } catch (error) {
     ElMessage.error('加载公告列表失败')
-    console.error(error)
   } finally {
     loading.value = false
   }
@@ -188,7 +187,6 @@ const submitForm = async () => {
     fetchList()
   } catch (error) {
     ElMessage.error('保存失败，请稍后重试')
-    console.error(error)
   } finally {
     saving.value = false
   }
@@ -202,7 +200,6 @@ const handlePublish = async (row: Announcement) => {
     fetchList()
   } catch (error) {
     ElMessage.error('发布失败')
-    console.error(error)
   }
 }
 
@@ -214,7 +211,6 @@ const handleWithdraw = async (row: Announcement) => {
     fetchList()
   } catch (error) {
     ElMessage.error('撤回失败')
-    console.error(error)
   }
 }
 
@@ -226,7 +222,6 @@ const handleDelete = async (row: Announcement) => {
     fetchList()
   } catch (error) {
     ElMessage.error('删除失败')
-    console.error(error)
   }
 }
 
@@ -237,7 +232,6 @@ const openStats = async (row: Announcement) => {
     stats.value = await announcementApi.admin.getStats(row.id)
   } catch (error) {
     ElMessage.error('获取统计失败')
-    console.error(error)
   } finally {
     statsLoading.value = false
   }

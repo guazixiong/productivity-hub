@@ -304,12 +304,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
       },
       {
-        path: 'health-stats',
-        name: 'HealthStats',
-        meta: { title: '健康统计' },
-        component: () => import('@/views/workbench/UnifiedWorkbenchView.vue'),
-      },
-      {
         path: 'asset/categories',
         name: 'AssetCategoryList',
         meta: { title: '资产分类管理', requiresAdmin: true },
@@ -374,12 +368,6 @@ const routes: RouteRecordRaw[] = [
         name: 'CurrencySettings',
         meta: { title: '货币设置' },
         component: () => import('@/views/asset/CurrencySettingsView.vue'),
-      },
-      {
-        path: 'settings/asset',
-        name: 'AssetSettings',
-        meta: { title: '资产设置' },
-        component: () => import('@/views/asset/AssetSettingsView.vue'),
       },
       {
         path: 'data/management',

@@ -42,7 +42,7 @@ const saveConversationId = async (conversationId: string) => {
     await configStore.fetchConfigs(true)
     currentConversationId.value = conversationId
   } catch (error) {
-    console.warn('Failed to save conversation ID:', error)
+    // 忽略保存会话ID错误
   }
 }
 
@@ -165,7 +165,7 @@ const clearMessages = async () => {
     })
     await configStore.fetchConfigs(true)
   } catch (error) {
-    console.warn('Failed to clear conversation ID:', error)
+    // 忽略清空会话ID错误
   }
 }
 

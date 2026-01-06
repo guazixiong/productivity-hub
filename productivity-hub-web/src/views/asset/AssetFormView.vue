@@ -234,7 +234,6 @@ const loadCategoryName = async (categoryId: string) => {
     const categories = await getSelectableCategories()
     selectedCategoryName.value = findCategoryName(categoryId, categories)
   } catch (error) {
-    console.error('加载分类名称失败:', error)
     selectedCategoryName.value = ''
   }
 }
@@ -277,14 +276,10 @@ const loadDetailIfEdit = async () => {
   loading.value = true
   try {
     const res = await assetApi.getAssetById(id)
-    console.log('资产详情数据:', res)
     if (res) {
       fillFormFromDetail(res)
-    } else {
-      console.warn('资产详情数据为空')
     }
   } catch (error) {
-    console.error('加载资产详情失败:', error)
     ElMessage.error('加载资产详情失败')
   } finally {
     loading.value = false

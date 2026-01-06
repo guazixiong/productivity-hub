@@ -71,8 +71,7 @@ const trackToolClick = (toolId: string) => {
       toolStats.value = stats
     })
     .catch((error) => {
-      // 静默失败，只记录日志，不显示错误消息
-      console.debug('记录工具点击失败（已忽略）', error)
+      // 静默失败，不显示错误消息
     })
 }
 

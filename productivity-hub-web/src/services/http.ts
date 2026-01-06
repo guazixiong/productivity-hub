@@ -72,10 +72,7 @@ const getApiBaseURL = (): string => {
     // 在 Android WebView 中，必须使用完整的 API 地址
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
     if (!apiBaseUrl) {
-      console.warn(
-        '⚠️ 检测到 Android WebView 环境，但未配置 VITE_API_BASE_URL。' +
-        '请在 .env.production 文件中设置 VITE_API_BASE_URL，例如：VITE_API_BASE_URL=http://192.168.1.100:9881'
-      )
+      // 未配置 API 地址，使用默认值
       // 如果未配置，尝试使用默认值（需要用户根据实际情况修改）
       return 'http://127.0.0.1:9881'
     }

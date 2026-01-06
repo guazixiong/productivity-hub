@@ -223,7 +223,7 @@ const loadStats = async () => {
     const data = await healthApi.getExerciseStatistics({ period: 'week' })
     stats.value = data
   } catch (error: any) {
-    console.error('加载统计失败:', error)
+    // 忽略加载错误
   }
 }
 
@@ -232,7 +232,7 @@ const loadTrainingPlans = async () => {
     const data = await healthApi.listTrainingPlans()
     trainingPlans.value = data || []
   } catch (error: any) {
-    console.error('加载训练计划失败:', error)
+    // 忽略加载错误
   }
 }
 

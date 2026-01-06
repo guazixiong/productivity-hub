@@ -20,7 +20,7 @@ export const imageApi = {
    */
   upload: (formData: FormData) =>
     request<ImageUploadResponse>({
-      url: '/api/image/upload',
+      url: '/api/images/upload',
       method: 'POST',
       data: formData,
       headers: {
@@ -33,7 +33,7 @@ export const imageApi = {
    */
   batchUpload: (formData: FormData) =>
     request<BatchUploadResponse>({
-      url: '/api/image/upload/batch',
+      url: '/api/images/upload/batch',
       method: 'POST',
       data: formData,
       headers: {
@@ -46,7 +46,7 @@ export const imageApi = {
    */
   list: (params?: ImageListQuery) =>
     request<PageResult<Image>>({
-      url: '/api/image/list',
+      url: '/api/images/list',
       method: 'GET',
       params,
     }),
@@ -56,7 +56,7 @@ export const imageApi = {
    */
   getById: (id: string) =>
     request<Image>({
-      url: `/api/image/${id}`,
+      url: `/api/images/${id}`,
       method: 'GET',
     }),
 
@@ -65,7 +65,7 @@ export const imageApi = {
    */
   update: (id: string, data: ImageUpdateDTO) =>
     request<Image>({
-      url: `/api/image/${id}`,
+      url: `/api/images/${id}`,
       method: 'PUT',
       data,
     }),
@@ -75,7 +75,7 @@ export const imageApi = {
    */
   delete: (id: string) =>
     request<void>({
-      url: `/api/image/${id}`,
+      url: `/api/images/${id}`,
       method: 'DELETE',
     }),
 
@@ -84,7 +84,7 @@ export const imageApi = {
    */
   batchDelete: (data: BatchDeleteRequest) =>
     request<BatchDeleteResponse>({
-      url: '/api/image/batch',
+      url: '/api/images/batch',
       method: 'DELETE',
       data,
     }),
@@ -94,7 +94,7 @@ export const imageApi = {
    */
   restore: (id: string) =>
     request<Image>({
-      url: `/api/image/${id}/restore`,
+      url: `/api/images/${id}/restore`,
       method: 'POST',
     }),
 
@@ -103,7 +103,7 @@ export const imageApi = {
    */
   archive: (id: string) =>
     request<Image>({
-      url: `/api/image/${id}/archive`,
+      url: `/api/images/${id}/archive`,
       method: 'POST',
     }),
 
@@ -112,7 +112,7 @@ export const imageApi = {
    */
   share: (id: string, data?: ShareImageRequest) =>
     request<ShareImageResponse>({
-      url: `/api/image/${id}/share`,
+      url: `/api/images/${id}/share`,
       method: 'POST',
       data,
     }),
@@ -122,7 +122,7 @@ export const imageApi = {
    */
   revokeShare: (id: string) =>
     request<void>({
-      url: `/api/image/${id}/share`,
+      url: `/api/images/${id}/share`,
       method: 'DELETE',
     }),
 
@@ -131,9 +131,18 @@ export const imageApi = {
    */
   statistics: (params?: { startTime?: string; endTime?: string }) =>
     request<ImageStatistics>({
-      url: '/api/image/statistics',
+      url: '/api/images/statistics',
       method: 'GET',
       params,
+    }),
+
+  /**
+   * 访问图片（增加访问统计）
+   */
+  access: (id: string) =>
+    request<Image>({
+      url: `/api/images/${id}/access`,
+      method: 'GET',
     }),
 }
 

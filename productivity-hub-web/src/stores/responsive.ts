@@ -146,7 +146,7 @@ export const useResponsiveStore = defineStore('responsive', () => {
       localStorage.setItem(STORAGE_KEYS.SIDEBAR_STATE, sidebarState.value)
       localStorage.setItem(STORAGE_KEYS.MENU_STATE, menuState.value)
     } catch (error) {
-      console.warn('Failed to persist responsive state:', error)
+      // 忽略持久化错误
     }
   }
 

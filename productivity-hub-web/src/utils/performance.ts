@@ -34,7 +34,6 @@ class PerformanceMonitor {
    */
   init() {
     if (typeof window === 'undefined' || !window.performance) {
-      console.warn('Performance API is not supported')
       return
     }
 
@@ -70,7 +69,7 @@ class PerformanceMonitor {
       observer.observe({ entryTypes: ['largest-contentful-paint'] })
       this.observers.push(observer)
     } catch (error) {
-      console.warn('Failed to observe LCP:', error)
+      // 忽略观察错误
     }
   }
 
@@ -94,7 +93,7 @@ class PerformanceMonitor {
       observer.observe({ entryTypes: ['first-input'] })
       this.observers.push(observer)
     } catch (error) {
-      console.warn('Failed to observe FID:', error)
+      // 忽略观察错误
     }
   }
 
@@ -119,7 +118,7 @@ class PerformanceMonitor {
       observer.observe({ entryTypes: ['layout-shift'] })
       this.observers.push(observer)
     } catch (error) {
-      console.warn('Failed to observe CLS:', error)
+      // 忽略观察错误
     }
   }
 
@@ -142,7 +141,7 @@ class PerformanceMonitor {
       observer.observe({ entryTypes: ['paint'] })
       this.observers.push(observer)
     } catch (error) {
-      console.warn('Failed to observe FCP:', error)
+      // 忽略观察错误
     }
   }
 

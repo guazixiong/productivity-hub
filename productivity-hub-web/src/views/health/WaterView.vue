@@ -314,7 +314,6 @@ const loadStats = async () => {
       }
     }
   } catch (error: any) {
-    console.error('加载统计失败:', error)
     // 错误时设置为默认值，避免显示旧数据
     if (isMounted.value) {
       stats.value = {
@@ -357,7 +356,6 @@ const loadTodayProgress = async () => {
       }
     }
   } catch (error: any) {
-    console.error('加载今日进度失败:', error)
     // 错误时设置为默认值，但只在组件仍然挂载时
     if (isMounted.value) {
       todayProgress.value = {
@@ -383,7 +381,7 @@ const loadWaterTarget = async () => {
       }
     }
   } catch (error: any) {
-    console.error('加载饮水目标失败:', error)
+    // 忽略加载错误
   }
 }
 

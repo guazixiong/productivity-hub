@@ -2,7 +2,8 @@
   <el-dialog
     v-model="dialogVisible"
     title="图片统计信息"
-    width="900px"
+    width="960px"
+    class="ph-dialog"
     @close="handleClose"
   >
     <div v-loading="loading" class="statistics-content">
@@ -234,7 +235,6 @@ const loadStatistics = async () => {
     updateCharts()
   } catch (error) {
     ElMessage.error('加载统计信息失败')
-    console.error(error)
   } finally {
     loading.value = false
   }
@@ -351,26 +351,39 @@ const refreshStatistics = () => {
 
 <style scoped lang="scss">
 .statistics-content {
+  .el-card {
+    border-radius: 14px;
+    border: 1px solid var(--ph-border-subtle);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+  }
+
   .hot-images {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 16px;
 
     .hot-image-item {
+      display: flex;
+      flex-direction: column;
       cursor: pointer;
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
+      border: 1px solid var(--ph-border-subtle);
+      border-radius: 12px;
       overflow: hidden;
-      transition: all 0.3s;
+      transition: all 0.25s;
+      background: var(--ph-bg-card);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
 
       &:hover {
-        border-color: #409eff;
-        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-color);
+        box-shadow: 0 20px 44px rgba(37, 99, 235, 0.22);
+        transform: translateY(-2px);
       }
 
       .hot-thumbnail {
         width: 100%;
         height: 120px;
+        display: block;
+        object-fit: cover;
       }
 
       .image-error {
@@ -379,8 +392,8 @@ const refreshStatistics = () => {
         align-items: center;
         width: 100%;
         height: 120px;
-        background-color: #f5f7fa;
-        color: #909399;
+        background-color: var(--ph-bg-card-subtle);
+        color: var(--text-tertiary);
       }
 
       .hot-info {
@@ -395,7 +408,7 @@ const refreshStatistics = () => {
         }
 
         .hot-count {
-          color: #909399;
+          color: var(--text-secondary);
         }
       }
     }

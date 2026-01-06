@@ -133,13 +133,8 @@ const loadDetail = async () => {
   loading.value = true
   try {
     const res = await assetApi.getAssetById(id)
-    console.log('资产详情数据:', res)
     asset.value = res || null
-    if (!res) {
-      console.warn('资产详情数据为空')
-    }
   } catch (error) {
-    console.error('加载资产详情失败:', error)
     ElMessage.error('加载资产详情失败')
   } finally {
     loading.value = false

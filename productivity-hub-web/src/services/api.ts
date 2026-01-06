@@ -549,7 +549,6 @@ export const chatWithDify = async (options: DifyChatOptions): Promise<void> => {
               }
             } catch (e) {
               // 忽略 JSON 解析错误，可能是部分数据
-              console.warn('Failed to parse SSE data:', dataStr, e)
             }
           }
         }

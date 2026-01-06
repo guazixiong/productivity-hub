@@ -144,7 +144,7 @@ export const useNotificationStore = defineStore('notifications', () => {
         }
       }
     } catch (e) {
-      console.warn('[Notification] 拉取消息失败:', e)
+      // 忽略拉取消息失败
     } finally {
       fetching.value = false
     }
@@ -192,7 +192,6 @@ export const useNotificationStore = defineStore('notifications', () => {
       })
     } catch (e) {
       // 消息处理失败不影响连接
-      console.warn('Error handling incoming message:', e)
     }
   }
 
@@ -205,33 +204,27 @@ export const useNotificationStore = defineStore('notifications', () => {
       }, RECONNECT_DELAY)
     } catch (e) {
       // 重连调度失败不影响用户正常使用
-      console.warn('Error scheduling reconnect:', e)
     }
   }
 
   const connect = (forceReconnect = false) => {
     try {
       if (!authStore.isAuthenticated || !authStore.user?.id) {
-        console.log('[WebSocket] 未认证，跳过连接')
         return
       }
       if (connecting.value) {
-        console.log('[WebSocket] 正在连接中，跳过重复连接')
         return
       }
 
       if (socket.value && connected.value && !forceReconnect) {
-        console.log('[WebSocket] 已连接，跳过重复连接')
         return
       }
 
       if (socket.value && forceReconnect) {
         try {
-          console.log('[WebSocket] 强制重连，关闭旧连接')
           socket.value.close()
         } catch (e) {
           // 忽略关闭时的错误
-          console.warn('[WebSocket] 关闭旧连接时出错:', e)
         }
         socket.value = null
       }
@@ -241,43 +234,29 @@ export const useNotificationStore = defineStore('notifications', () => {
       let wsHost: string
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
       
-      console.log('[WebSocket] 环境变量 VITE_API_BASE_URL:', apiBaseUrl || '(未设置)')
-      console.log('[WebSocket] 当前页面 host:', window.location.host)
-      
       if (apiBaseUrl) {
         // 从 API 基础地址提取 host
         try {
           const urlObj = new URL(apiBaseUrl)
           wsHost = urlObj.host
-          console.log('[WebSocket] 从环境变量提取的 host:', wsHost)
-          
-          // 验证端口是否合理（后端默认端口是 9881）
-          const port = urlObj.port ? parseInt(urlObj.port, 10) : (urlObj.protocol === 'https:' ? 443 : 80)
-          if (port && port !== 9881 && port !== 443 && port !== 80) {
-            console.warn(`[WebSocket] 警告: 检测到非常规端口 ${port}，后端服务默认端口为 9881。如果连接失败，请检查 .env.production 文件中的 VITE_API_BASE_URL 配置。`)
-          }
         } catch (e) {
           // 如果解析失败，使用 window.location.host
-          console.warn('[WebSocket] 环境变量解析失败，使用当前页面 host:', e)
           wsHost = window.location.host
         }
       } else {
         // 开发环境：使用当前 host（通过 Vite 代理）
-        console.log('[WebSocket] 环境变量未设置，使用当前页面 host（开发环境通过 Vite 代理）')
         wsHost = window.location.host
       }
       
       // 根据 API 基础地址的协议确定 WebSocket 协议
       const wsProtocol = apiBaseUrl && apiBaseUrl.startsWith('https') ? 'wss' : 'ws'
       const url = `${wsProtocol}://${wsHost}/socketServer/${CLIENT}/${encodeURIComponent(authStore.user.id)}`
-      console.log('[WebSocket] 尝试连接:', url)
 
       let ws: WebSocket
       try {
         ws = new WebSocket(url)
       } catch (e) {
         // WebSocket 创建失败，不影响用户正常使用
-        console.error('[WebSocket] 创建连接失败:', e)
         connecting.value = false
         connected.value = false
         lastError.value = '连接失败，稍后自动重试'
@@ -290,7 +269,6 @@ export const useNotificationStore = defineStore('notifications', () => {
       lastError.value = null
 
       ws.onopen = () => {
-        console.log('[WebSocket] 连接成功')
         connecting.value = false
         connected.value = true
         lastError.value = null
@@ -305,34 +283,27 @@ export const useNotificationStore = defineStore('notifications', () => {
           handleIncoming(event.data)
         } catch (e) {
           // 消息处理失败不影响连接
-          console.warn('[WebSocket] 处理消息失败:', e)
         }
       }
 
       ws.onerror = (error) => {
         // 连接错误，不影响用户正常使用
-        console.error('[WebSocket] 连接错误:', error)
         lastError.value = '连接异常，稍后自动重试'
         connecting.value = false
       }
 
       ws.onclose = (event) => {
-        console.log(`[WebSocket] 连接关闭，code: ${event.code}, reason: ${event.reason || '无原因'}`)
         connected.value = false
         connecting.value = false
         // 停止轮询
         stopPolling()
         // 只有在非正常关闭时才重连（code 1000 是正常关闭）
         if (event.code !== 1000) {
-          console.log('[WebSocket] 非正常关闭，将自动重连')
           scheduleReconnect()
-        } else {
-          console.log('[WebSocket] 正常关闭，不重连')
         }
       }
     } catch (e) {
       // 捕获所有未预期的错误，确保不影响用户正常使用
-      console.error('[WebSocket] 连接过程中发生未预期错误:', e)
       connecting.value = false
       connected.value = false
       lastError.value = '连接失败，稍后自动重试'

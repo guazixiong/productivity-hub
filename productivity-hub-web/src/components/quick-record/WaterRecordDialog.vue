@@ -2,38 +2,63 @@
   <el-dialog
     v-model="dialogVisible"
     title="记录饮水量"
-    :width="isMobile ? '90%' : '400px'"
+    :width="isMobile ? '90%' : '500px'"
     @close="handleClose"
   >
     <div class="water-record-content">
-      <div class="quick-buttons">
-        <el-button
-          v-for="volume in quickVolumes"
-          :key="volume"
-          type="primary"
-          size="large"
-          @click="handleQuickSubmit(volume)"
-          :loading="submitting"
-        >
-          {{ volume }}ml
-        </el-button>
-      </div>
-
-      <el-divider>或自定义</el-divider>
-
       <el-form
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-width="0"
+        label-width="100px"
       >
-        <el-form-item prop="volumeMl">
+        <el-form-item label="饮水量" prop="volumeMl">
           <el-input-number
             v-model="form.volumeMl"
             :min="1"
             :max="10000"
             placeholder="请输入饮水量(ml)"
             style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="快捷饮水量">
+          <div class="quick-buttons">
+            <el-button
+              v-for="volume in quickVolumes"
+              :key="volume"
+              type="primary"
+              size="large"
+              @click="handleQuickSelect(volume)"
+              :loading="submitting"
+            >
+              {{ volume }}ml
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="饮水类型" prop="waterType">
+          <el-select
+            v-model="form.waterType"
+            placeholder="请选择饮水类型"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="type in waterTypes"
+              :key="type"
+              :label="type"
+              :value="type"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注" prop="notes">
+          <el-input
+            v-model="form.notes"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注（可选）"
+            maxlength="200"
+            show-word-limit
           />
         </el-form-item>
       </el-form>
@@ -53,10 +78,10 @@
  * 新增饮水记录弹窗组件
  */
 
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { healthApi } from '@/services/healthApi'
-import type { WaterIntakeDTO } from '@/types/health'
+import type { WaterIntakeDTO, WaterType } from '@/types/health'
 
 interface Props {
   visible: boolean
@@ -83,8 +108,16 @@ const submitting = ref(false)
 
 const quickVolumes = [200, 400, 500]
 
-const form = reactive<{ volumeMl: number }>({
+const waterTypes: WaterType[] = ['白开水', '矿泉水', '纯净水', '茶水', '咖啡', '果汁', '运动饮料', '其他']
+
+const form = reactive<{
+  volumeMl: number
+  waterType: WaterType
+  notes?: string
+}>({
   volumeMl: 0,
+  waterType: '白开水',
+  notes: '',
 })
 
 const rules: FormRules = {
@@ -92,15 +125,19 @@ const rules: FormRules = {
     { required: true, message: '请输入饮水量', trigger: 'blur' },
     { type: 'number', min: 1, message: '饮水量必须大于0', trigger: 'blur' },
   ],
+  waterType: [
+    { required: true, message: '请选择饮水类型', trigger: 'change' },
+  ],
 }
 
-const submitWaterIntake = async (volumeMl: number) => {
+const submitWaterIntake = async (volumeMl: number, waterType?: WaterType, notes?: string) => {
   try {
     submitting.value = true
 
     const dto: WaterIntakeDTO = {
-      waterType: '白开水',
+      waterType: waterType || form.waterType || '白开水',
       volumeMl,
+      notes: notes || form.notes || undefined,
     }
 
     await healthApi.createWaterIntake(dto)
@@ -116,8 +153,9 @@ const submitWaterIntake = async (volumeMl: number) => {
   }
 }
 
-const handleQuickSubmit = (volume: number) => {
-  submitWaterIntake(volume)
+// 选择快捷饮水量：仅填充到表单中，需点击“确认”按钮才会真正保存
+const handleQuickSelect = (volume: number) => {
+  form.volumeMl = volume
 }
 
 const handleCustomSubmit = async () => {
@@ -129,7 +167,7 @@ const handleCustomSubmit = async () => {
       ElMessage.error('请输入有效的饮水量')
       return
     }
-    await submitWaterIntake(form.volumeMl)
+    await submitWaterIntake(form.volumeMl, form.waterType, form.notes)
   } catch (error: any) {
     // 验证失败,不处理
   }
@@ -140,7 +178,34 @@ const handleClose = () => {
   emit('close')
   formRef.value?.resetFields()
   form.volumeMl = 0
+  form.waterType = '白开水'
+  form.notes = ''
 }
+
+// 弹窗打开时，自动加载用户最近一次饮水记录并填充表单
+watch(
+  () => dialogVisible.value,
+  async (visible) => {
+    if (!visible) return
+
+    try {
+      const latest = await healthApi.getLatestWaterIntake()
+      if (latest) {
+        form.volumeMl = latest.volumeMl
+        form.waterType = latest.waterType
+        form.notes = latest.notes || ''
+      } else {
+        // 如果没有历史记录，保持默认值
+        form.volumeMl = 0
+        form.waterType = '白开水'
+        form.notes = ''
+      }
+    } catch (error) {
+      // 忽略预填充失败，不影响用户手动输入
+    }
+  },
+  { immediate: false }
+)
 </script>
 
 <style scoped lang="scss">

@@ -776,7 +776,6 @@ const getCategoryDisplayName = async (categoryId: string): Promise<string> => {
     const categoryList = await getSelectableCategories()
     return findCategoryName(categoryId, categoryList)
   } catch (error) {
-    console.error('加载分类名称失败:', error)
     return ''
   }
 }
@@ -824,7 +823,6 @@ const loadCategoryName = async (categoryId: string) => {
     const categoryList = await getSelectableCategories()
     selectedCategoryName.value = findCategoryName(categoryId, categoryList)
   } catch (error) {
-    console.error('加载分类名称失败:', error)
     selectedCategoryName.value = ''
   }
 }
@@ -892,7 +890,6 @@ const fillFormFromDetail = async (detail: AssetDetail) => {
         remark: fee.remark || '',
       }))
     } catch (error) {
-      console.error('加载附加费用失败:', error)
       formAdditionalFees.value = []
     }
   } else {
@@ -1051,7 +1048,6 @@ const handleFormSubmit = async () => {
             }
           }
         } catch (error) {
-          console.error('保存附加费用失败:', error)
           ElMessage.warning('资产保存成功，但附加费用保存失败')
         }
       }

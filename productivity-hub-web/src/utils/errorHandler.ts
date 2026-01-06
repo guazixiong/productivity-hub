@@ -84,7 +84,6 @@ class ErrorHandler {
    */
   init() {
     if (this.isInitialized) {
-      console.warn('ErrorHandler has already been initialized')
       return
     }
 
@@ -156,10 +155,7 @@ class ErrorHandler {
       this.errors.shift()
     }
 
-    // 控制台输出
-    if (this.options.enableConsole) {
-      console.error('[ErrorHandler]', error)
-    }
+    // 控制台输出已禁用
 
     // 错误上报
     if (this.options.enableReport) {
@@ -186,7 +182,7 @@ class ErrorHandler {
         await this.options.reportFn(error)
       }
     } catch (err) {
-      console.error('[ErrorHandler] Failed to report error:', err)
+      // 忽略上报错误
     }
   }
 

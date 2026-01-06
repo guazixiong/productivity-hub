@@ -340,16 +340,12 @@ const loadOverview = async () => {
       ...queryParams,
       ...dateRange,
     }
-    console.log('调用统计概览接口，参数:', params)
     const res = await statisticsApi.getOverview(params)
-    console.log('统计概览接口响应:', res)
     if (res) {
       overview.value = res
-      console.log('统计概览数据已更新:', overview.value)
     }
   } catch (error: any) {
     ElMessage.error(error.message || '加载统计概览失败')
-    console.error('加载统计概览失败:', error)
   }
 }
 
@@ -408,7 +404,6 @@ const calculateAssetCardStats = async () => {
       dailyAverageTotal,
     }
   } catch (error: any) {
-    console.error('计算资产卡片统计数据失败:', error)
     ElMessage.error('加载资产统计失败')
   }
 }
@@ -421,18 +416,14 @@ const loadAssetCardStatistics = async () => {
       ...queryParams,
       ...dateRange,
     }
-    console.log('调用资产卡片统计接口，参数:', params)
     const res = await statisticsApi.getAssetCardStatistics(params)
-    console.log('资产卡片统计接口响应:', res)
     if (res) {
       assetCardStats.value = res
-      console.log('资产卡片统计数据已更新:', assetCardStats.value)
     } else {
       // 如果后端接口不存在，使用前端计算
       await calculateAssetCardStats()
     }
   } catch (error: any) {
-    console.warn('加载资产卡片统计失败，使用前端计算:', error)
     // 如果接口不存在，使用前端计算
     await calculateAssetCardStats()
   }
@@ -441,34 +432,26 @@ const loadAssetCardStatistics = async () => {
 // 加载资产统计信息
 const loadAssetStatistics = async () => {
   try {
-    console.log('调用资产统计接口')
     const res = await statisticsApi.getAssetStatistics()
-    console.log('资产统计接口响应:', res)
     if (res) {
       assetStatistics.value = res
-      console.log('资产统计数据已更新:', assetStatistics.value)
     }
   } catch (error: any) {
     ElMessage.error(error.message || '加载资产统计失败')
-    console.error('加载资产统计失败:', error)
   }
 }
 
 // 加载心愿单卡片统计信息
 const loadWishlistCardStatistics = async () => {
   try {
-    console.log('调用心愿单卡片统计接口')
     const res = await statisticsApi.getWishlistCardStatistics()
-    console.log('心愿单卡片统计接口响应:', res)
     if (res) {
       wishlistCardStats.value = res
-      console.log('心愿单卡片统计数据已更新:', wishlistCardStats.value)
     } else {
       // 如果后端接口不存在，使用前端计算
       await calculateWishlistStats()
     }
   } catch (error: any) {
-    console.warn('加载心愿单卡片统计失败，使用前端计算:', error)
     // 如果接口不存在，使用前端计算
     await calculateWishlistStats()
   }
@@ -525,7 +508,6 @@ const calculateWishlistStats = async () => {
       achievedCount,
     }
   } catch (error: any) {
-    console.error('计算心愿单统计数据失败:', error)
     ElMessage.error('加载心愿单统计失败')
   }
 }
@@ -634,14 +616,13 @@ const loadDailyAverageTrend = async () => {
           try {
             dailyAverageChart.value.resize()
           } catch (error) {
-            console.warn('日均趋势图 resize 失败:', error)
+            // 忽略 resize 错误
           }
         }
       }, 200)
     }
   } catch (error: any) {
     ElMessage.error(error.message || '加载日均趋势失败')
-    console.error('加载日均趋势失败:', error)
   }
 }
 
@@ -749,14 +730,13 @@ const loadTotalValueTrend = async () => {
           try {
             totalValueChart.value.resize()
           } catch (error) {
-            console.warn('资产总额趋势图 resize 失败:', error)
+            // 忽略 resize 错误
           }
         }
       }, 200)
     }
   } catch (error: any) {
     ElMessage.error(error.message || '加载资产总额趋势失败')
-    console.error('加载资产总额趋势失败:', error)
   }
 }
 
@@ -844,14 +824,13 @@ const loadAssetDistribution = async () => {
           try {
             distributionChart.value.resize()
           } catch (error) {
-            console.warn('资产分布图 resize 失败:', error)
+            // 忽略 resize 错误
           }
         }
       }, 200)
     }
   } catch (error: any) {
     ElMessage.error(error.message || '加载资产分布失败')
-    console.error('加载资产分布失败:', error)
   }
 }
 
@@ -972,14 +951,13 @@ const loadCategoryStatistics = async () => {
           try {
             categoryChart.value.resize()
           } catch (error) {
-            console.warn('分类统计图 resize 失败:', error)
+            // 忽略 resize 错误
           }
         }
       }, 200)
     }
   } catch (error: any) {
     ElMessage.error(error.message || '加载分类统计失败')
-    console.error('加载分类统计失败:', error)
   }
 }
 
@@ -987,8 +965,6 @@ const loadCategoryStatistics = async () => {
 const loadAllData = async () => {
   loading.value = true
   try {
-    console.log('开始加载统计数据，查询参数:', queryParams)
-    
     // 更新日期范围
     const dateRange = getDateRange()
     queryParams.startDate = dateRange.startDate
@@ -1003,9 +979,7 @@ const loadAllData = async () => {
       loadAssetDistribution(),
       loadCategoryStatistics(),
     ])
-    console.log('统计数据加载完成')
   } catch (error: any) {
-    console.error('加载统计数据时发生错误:', error)
     ElMessage.error('加载统计数据失败，请刷新重试')
   } finally {
     loading.value = false
@@ -1030,7 +1004,6 @@ const handleResize = () => {
     categoryChart.value?.resize()
   } catch (error) {
     // 忽略 resize 错误，避免影响用户体验
-    console.warn('图表 resize 失败:', error)
   }
 }
 
@@ -1053,7 +1026,6 @@ onUnmounted(() => {
     categoryChart.value?.dispose()
   } catch (error) {
     // 忽略 dispose 错误
-    console.warn('图表 dispose 失败:', error)
   }
 })
 </script>

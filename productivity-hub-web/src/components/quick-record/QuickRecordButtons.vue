@@ -90,11 +90,13 @@ const handleWeightClick = () => {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     padding: 16px 0;
+    align-items: stretch; // 确保所有卡片在同一水平线
   }
 
   .record-button {
     width: 100%;
     min-height: 120px;
+    height: 100%; // 确保卡片高度一致
     padding: 16px;
     border-radius: 12px;
     display: flex;
@@ -156,12 +158,15 @@ const handleWeightClick = () => {
 @media (min-width: 769px) {
   .quick-record-buttons {
     .buttons-grid {
-      max-width: 600px;
+      max-width: 900px;
       margin: 0 auto;
+      align-items: stretch; // PC端确保对齐
+      grid-template-columns: repeat(4, 1fr); // PC端四列展示，四个卡片同一行
     }
 
     .record-button {
       min-height: 120px;
+      height: 100%; // PC端确保高度一致
     }
   }
 }

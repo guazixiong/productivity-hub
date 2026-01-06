@@ -77,7 +77,6 @@ mvn test jacoco:report
 
 #### 集成测试
 - ✅ Controller 层测试：
-  - AssetSettingsController
   - CurrencyController
   - DataManagementController
   - AssetController

@@ -182,7 +182,6 @@ const loadTrainingPlans = async () => {
     const data = await healthApi.listTrainingPlans({ status: 'ACTIVE' })
     localTrainingPlans.value = data || []
   } catch (error: any) {
-    console.error('加载训练计划失败:', error)
     ElMessage.warning('加载训练计划失败，请稍后重试')
   } finally {
     loadingPlans.value = false

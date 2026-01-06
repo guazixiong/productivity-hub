@@ -276,6 +276,15 @@ export const healthApi = {
       method: 'GET',
       params,
     }),
+
+  /**
+   * 查询最近一条饮水记录（按时间倒序）
+   */
+  getLatestWaterIntake: () =>
+    request<WaterIntake | null>({
+      url: '/api/health/water/records/latest',
+      method: 'GET',
+    }),
   
   /**
    * 查询饮水记录详情

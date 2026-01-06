@@ -14,7 +14,7 @@ import TabsView from '@/components/TabsView.vue'
 import ChatWidget from '@/components/ChatWidget.vue'
 import AnnouncementDialog from '@/components/AnnouncementDialog.vue'
 import NotificationDetailDialog from '@/components/NotificationDetailDialog.vue'
-import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled, Menu } from '@element-plus/icons-vue'
+import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled, Menu, Picture, Money } from '@element-plus/icons-vue'
 import logoIcon from '@/assets/logo.svg'
 import { announcementApi } from '@/services/announcementApi'
 import type { Announcement } from '@/types/announcement'
@@ -58,8 +58,9 @@ const activeMenu = computed(() => {
   if (route.path.startsWith('/asset') || route.path.startsWith('/assets')) return route.path
   if (route.path.startsWith('/wishlist')) return route.path
   if (route.path.startsWith('/data/management')) return '/data/management'
+  if (route.path.startsWith('/settings/currency')) return '/settings/currency'
+  if (route.path.startsWith('/image')) return '/image'
   if (route.path.startsWith('/quick-record')) return '/quick-record'
-  if (route.path.startsWith('/health-stats')) return '/health-stats'
   if (route.path.startsWith('/common-tools')) return '/common-tools'
   return route.path
 })
@@ -89,7 +90,8 @@ const defaultOpenMenus = computed(() => {
     route.path.startsWith('/asset') ||
     route.path.startsWith('/assets') ||
     route.path.startsWith('/wishlist') ||
-    route.path.startsWith('/data/management')
+    route.path.startsWith('/data/management') ||
+    route.path.startsWith('/settings/currency')
   ) {
     openeds.push('workbench')
     // 如果是健康管理相关路径，还需要打开健康管理子菜单
@@ -101,7 +103,8 @@ const defaultOpenMenus = computed(() => {
       route.path.startsWith('/asset') ||
       route.path.startsWith('/assets') ||
       route.path.startsWith('/wishlist') ||
-      route.path.startsWith('/data/management')
+      route.path.startsWith('/data/management') ||
+      route.path.startsWith('/settings/currency')
     ) {
       openeds.push('asset-management')
     }
@@ -165,9 +168,6 @@ const handleMenuSelect = (index: string) => {
   if (route.path !== index) {
     router.push(index).catch((err) => {
       // 忽略重复导航错误
-      if (err.name !== 'NavigationDuplicated') {
-        console.error('Navigation error:', err)
-      }
     })
   }
 }
@@ -211,7 +211,7 @@ const fetchUnreadAnnouncements = async () => {
     unreadAnnouncements.value = result ?? []
     announcementDialogVisible.value = unreadAnnouncements.value.length > 0
   } catch (error) {
-    console.error('Failed to load announcements:', error)
+    // 忽略加载公告错误
   } finally {
     fetchingAnnouncements.value = false
   }
@@ -233,7 +233,7 @@ onMounted(() => {
     try {
       notificationStore.connect()
     } catch (error) {
-      console.warn('Failed to connect notifications:', error)
+      // 忽略连接错误
     }
     fetchUnreadAnnouncements()
   }
@@ -327,8 +327,14 @@ const isSubMenuPage = (path: string): boolean => {
     path.startsWith('/assets') ||
     path.startsWith('/wishlist') ||
     path === '/data/management' ||
-    path.startsWith('/data/management')
+    path.startsWith('/data/management') ||
+    path.startsWith('/settings/currency')
   ) {
+    return true
+  }
+  
+  // 图片管理
+  if (path === '/image' || path.startsWith('/image')) {
     return true
   }
   
@@ -421,7 +427,7 @@ watch(
       try {
         notificationStore.connect(true)
       } catch (error) {
-        console.warn('Failed to connect notifications:', error)
+        // 忽略连接错误
       }
       fetchUnreadAnnouncements()
     } else {
@@ -441,7 +447,7 @@ watch(
       try {
         notificationStore.connect(true)
       } catch (error) {
-        console.warn('Failed to connect notifications:', error)
+        // 忽略连接错误
       }
       fetchUnreadAnnouncements()
     }
@@ -581,6 +587,12 @@ const cachedViews = computed(() => {
             <template #title>快捷记录</template>
           </el-menu-item>
 
+          <!-- 🖼️ 图片管理（一级菜单） -->
+          <el-menu-item index="/image">
+            <el-icon><Picture /></el-icon>
+            <template #title>图片管理</template>
+          </el-menu-item>
+
           <!-- 📊 工作台（一级菜单） -->
           <el-sub-menu index="workbench">
             <template #title>
@@ -641,6 +653,10 @@ const cachedViews = computed(() => {
               <el-menu-item index="/data/management">
                 <el-icon><Setting /></el-icon>
                 <template #title>数据管理</template>
+              </el-menu-item>
+              <el-menu-item index="/settings/currency">
+                <el-icon><Money /></el-icon>
+                <template #title>货币设置</template>
               </el-menu-item>
             </el-sub-menu>
             <el-menu-item index="/messages">

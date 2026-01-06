@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.image.mapper.ImageMapper">
+
+    <resultMap id="ImageResultMap" type="com.pbad.image.domain.po.ImagePO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="originalFilename" column="original_filename"/>
+        <result property="storedFilename" column="stored_filename"/>
+        <result property="filePath" column="file_path"/>
+        <result property="fileUrl" column="file_url"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="fileType" column="file_type"/>
+        <result property="fileExtension" column="file_extension"/>
+        <result property="width" column="width"/>
+        <result property="height" column="height"/>
+        <result property="category" column="category"/>
+        <result property="businessModule" column="business_module"/>
+        <result property="businessId" column="business_id"/>
+        <result property="description" column="description"/>
+        <result property="thumbnailPath" column="thumbnail_path"/>
+        <result property="thumbnailUrl" column="thumbnail_url"/>
+        <result property="shareToken" column="share_token"/>
+        <result property="shareExpiresAt" column="share_expires_at" 
+                jdbcType="TIMESTAMP" 
+                typeHandler="com.pbad.typehandler.DruidLocalDateTimeTypeHandler"/>
+        <result property="accessCount" column="access_count"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at" 
+                jdbcType="TIMESTAMP" 
+                typeHandler="com.pbad.typehandler.DruidLocalDateTimeTypeHandler"/>
+        <result property="updatedAt" column="updated_at" 
+                jdbcType="TIMESTAMP" 
+                typeHandler="com.pbad.typehandler.DruidLocalDateTimeTypeHandler"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, original_filename, stored_filename, file_path, file_url,
+        file_size, file_type, file_extension, width, height, category,
+        business_module, business_id, description, thumbnail_path, thumbnail_url,
+        share_token, share_expires_at, access_count, status, created_at, updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.pbad.image.domain.po.ImagePO">
+        INSERT INTO sys_image (
+            id, user_id, original_filename, stored_filename, file_path, file_url,
+            file_size, file_type, file_extension, width, height, category,
+            business_module, business_id, description, thumbnail_path, thumbnail_url,
+            share_token, share_expires_at, access_count, status, created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{originalFilename}, #{storedFilename}, #{filePath}, #{fileUrl},
+            #{fileSize}, #{fileType}, #{fileExtension}, #{width}, #{height}, #{category},
+            #{businessModule}, #{businessId}, #{description}, #{thumbnailPath}, #{thumbnailUrl},
+            #{shareToken}, #{shareExpiresAt}, IFNULL(#{accessCount}, 0), #{status},
+            IFNULL(#{createdAt}, NOW()), IFNULL(#{updatedAt}, NOW())
+        )
+    </insert>
+
+    <select id="selectByIdAndUserId" resultMap="ImageResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_image
+        WHERE id = #{id}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectById" resultMap="ImageResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_image
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectByShareToken" resultMap="ImageResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_image
+        WHERE share_token = #{shareToken}
+          AND status = 'ACTIVE'
+          AND (share_expires_at IS NULL OR share_expires_at > NOW())
+        LIMIT 1
+    </select>
+
+    <select id="selectByCondition" resultMap="ImageResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_image
+        WHERE user_id = #{userId}
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="businessModule != null and businessModule != ''">
+            AND business_module = #{businessModule}
+        </if>
+        <if test="businessId != null and businessId != ''">
+            AND business_id = #{businessId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (original_filename LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY
+        <choose>
+            <when test="sortBy == 'fileSize'">
+                file_size
+            </when>
+            <when test="sortBy == 'accessCount'">
+                access_count
+            </when>
+            <otherwise>
+                created_at
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="sortOrder == 'asc'">
+                ASC
+            </when>
+            <otherwise>
+                DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_image
+        WHERE user_id = #{userId}
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="businessModule != null and businessModule != ''">
+            AND business_module = #{businessModule}
+        </if>
+        <if test="businessId != null and businessId != ''">
+            AND business_id = #{businessId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (original_filename LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <update id="update" parameterType="com.pbad.image.domain.po.ImagePO">
+        UPDATE sys_image
+        SET
+            original_filename = #{originalFilename},
+            stored_filename = #{storedFilename},
+            file_path = #{filePath},
+            file_url = #{fileUrl},
+            file_size = #{fileSize},
+            file_type = #{fileType},
+            file_extension = #{fileExtension},
+            width = #{width},
+            height = #{height},
+            category = #{category},
+            business_module = #{businessModule},
+            business_id = #{businessId},
+            description = #{description},
+            thumbnail_path = #{thumbnailPath},
+            thumbnail_url = #{thumbnailUrl},
+            share_token = #{shareToken},
+            share_expires_at = #{shareExpiresAt},
+            access_count = #{accessCount},
+            status = #{status},
+            updated_at = IFNULL(#{updatedAt}, NOW())
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <update id="batchUpdateStatus">
+        UPDATE sys_image
+        SET status = #{status},
+            updated_at = #{updatedAt}
+        WHERE user_id = #{userId}
+          AND id IN
+          <foreach collection="ids" item="id" open="(" close=")" separator=",">
+              #{id}
+          </foreach>
+    </update>
+
+    <update id="updateStatus">
+        UPDATE sys_image
+        SET status = #{status},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <update id="updateShareInfo">
+        UPDATE sys_image
+        SET share_token = #{shareToken},
+            share_expires_at = #{shareExpiresAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <update id="clearShareInfo">
+        UPDATE sys_image
+        SET share_token = NULL,
+            share_expires_at = NULL,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <update id="incrementAccessCount">
+        UPDATE sys_image
+        SET access_count = access_count + 1
+        WHERE id = #{id}
+    </update>
+
+    <select id="countTotal" resultType="long">
+        SELECT COUNT(1)
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="sumFileSize" resultType="long">
+        SELECT IFNULL(SUM(file_size), 0)
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="maxFileSize" resultType="long">
+        SELECT IFNULL(MAX(file_size), 0)
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="minFileSize" resultType="long">
+        SELECT IFNULL(MIN(file_size), 0)
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="groupByCategory" resultMap="ImageResultMap">
+        SELECT
+            category,
+            COUNT(1) AS access_count,
+            SUM(file_size) AS file_size
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+        GROUP BY category
+    </select>
+
+    <select id="sumAccessCount" resultType="long">
+        SELECT IFNULL(SUM(access_count), 0)
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+    </select>
+
+    <select id="selectHotImages" resultMap="ImageResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        ORDER BY access_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="groupByUploadDate" resultMap="ImageResultMap">
+        SELECT
+            DATE_FORMAT(created_at, '%Y-%m-%d') AS file_path,
+            COUNT(1) AS access_count
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND created_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at &lt;= #{endTime}
+        </if>
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
+        ORDER BY DATE_FORMAT(created_at, '%Y-%m-%d')
+    </select>
+
+    <select id="groupByAccessDate" resultMap="ImageResultMap">
+        SELECT
+            DATE_FORMAT(updated_at, '%Y-%m-%d') AS file_path,
+            SUM(access_count) AS access_count
+        FROM sys_image
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        <if test="startTime != null">
+            AND updated_at >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND updated_at &lt;= #{endTime}
+        </if>
+        GROUP BY DATE_FORMAT(updated_at, '%Y-%m-%d')
+        ORDER BY DATE_FORMAT(updated_at, '%Y-%m-%d')
+    </select>
+
+</mapper>
+

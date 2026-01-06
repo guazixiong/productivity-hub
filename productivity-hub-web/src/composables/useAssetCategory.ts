@@ -45,7 +45,6 @@ export function useAssetCategory() {
       lastFetched.value = Date.now()
       return categoriesCache.value
     } catch (error) {
-      console.error('加载资产分类失败:', error)
       // 如果请求失败，返回缓存数据（如果有）
       return categoriesCache.value
     } finally {

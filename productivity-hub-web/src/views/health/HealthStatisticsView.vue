@@ -279,7 +279,7 @@ const loadExerciseTrend = async () => {
       exerciseChart.setOption(option)
     }
   } catch (error: any) {
-    console.error('加载运动趋势失败:', error)
+    // 忽略加载错误
   }
 }
 
@@ -374,7 +374,7 @@ const loadWaterTrend = async () => {
       waterChart.setOption(option)
     }
   } catch (error: any) {
-    console.error('加载饮水趋势失败:', error)
+    // 忽略加载错误
   }
 }
 
@@ -483,7 +483,7 @@ const loadWeightTrend = async () => {
       weightChart.setOption(option)
     }
   } catch (error: any) {
-    console.error('加载体重趋势失败:', error)
+    // 忽略加载错误
   }
 }
 

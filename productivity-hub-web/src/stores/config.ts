@@ -36,7 +36,6 @@ export const useConfigStore = defineStore('config', {
         this.lastFetched = Date.now()
       } catch (error) {
         // 配置加载失败时，使用空数组，不影响应用运行
-        console.warn('Failed to fetch configs:', error)
         this.configs = []
         this.lastFetched = Date.now()
       } finally {

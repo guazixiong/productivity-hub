@@ -1,9 +1,22 @@
 <template>
   <div class="image-view">
-    <el-card class="main-card">
+    <el-card class="main-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span class="title">图片管理</span>
+          <div class="header-left">
+            <div class="title-icon">
+              <el-icon><Picture /></el-icon>
+            </div>
+            <div class="title-meta">
+              <div class="title-row">
+                <span class="title">图片管理</span>
+                <el-tag v-if="total > 0" size="small" type="info" effect="plain" class="total-tag">
+                  共 {{ total }} 张
+                </el-tag>
+              </div>
+              <p class="subtitle">统一管理业务素材，支持批量操作与预览</p>
+            </div>
+          </div>
           <div class="header-actions">
             <el-button type="primary" @click="showUploadDialog = true">
               <el-icon><Upload /></el-icon>
@@ -122,8 +135,7 @@
           v-else-if="viewMode === 'table'"
           v-loading="loading"
           :data="imageList"
-          border
-          stripe
+          class="image-table"
           @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="55">
@@ -138,25 +150,30 @@
           <el-table-column label="缩略图" width="120">
             <template #default="{ row }">
               <div class="thumbnail-cell">
-                <el-image
-                  :src="getImageUrl(row.thumbnailUrl || row.fileUrl)"
-                  :preview-src-list="[getImageUrl(row.fileUrl)]"
-                  fit="cover"
-                  class="thumbnail-image"
-                  lazy
-                  loading="lazy"
-                >
-                  <template #placeholder>
-                    <div class="image-placeholder">
-                      <el-icon class="is-loading"><Picture /></el-icon>
-                    </div>
-                  </template>
-                  <template #error>
-                    <div class="image-error">
-                      <el-icon><Picture /></el-icon>
-                    </div>
-                  </template>
-                </el-image>
+                <template v-if="getThumbnailSrc(row)">
+                  <el-image
+                    :src="getThumbnailSrc(row)!"
+                    fit="cover"
+                    class="thumbnail-image"
+                    lazy
+                    loading="lazy"
+                    @click.stop="handlePreview(row)"
+                  >
+                    <template #placeholder>
+                      <div class="image-placeholder">
+                        <el-icon class="is-loading"><Picture /></el-icon>
+                      </div>
+                    </template>
+                    <template #error>
+                      <div class="image-error">
+                        <el-icon><Picture /></el-icon>
+                      </div>
+                    </template>
+                  </el-image>
+                </template>
+                <div v-else class="image-placeholder">
+                  <el-icon class="is-loading"><Picture /></el-icon>
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -193,7 +210,11 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createdAt" label="上传时间" width="180" />
+          <el-table-column label="上传时间" width="180">
+            <template #default="{ row }">
+              {{ formatDateTime(row.createdAt) }}
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" size="small" @click="handleView(row)">
@@ -247,19 +268,24 @@
                 @click.stop
               />
             </div>
-            <el-image
-              :src="getImageUrl(image.thumbnailUrl || image.fileUrl)"
-              :preview-src-list="imageList.map((img) => getImageUrl(img.fileUrl))"
-              fit="cover"
-              class="grid-thumbnail"
-              lazy
-            >
-              <template #error>
-                <div class="image-error">
-                  <el-icon><Picture /></el-icon>
-                </div>
-              </template>
-            </el-image>
+            <template v-if="getThumbnailSrc(image)">
+              <el-image
+                :src="getThumbnailSrc(image)!"
+                fit="cover"
+                class="grid-thumbnail"
+                lazy
+                @click.stop="handlePreview(image)"
+              >
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+            </template>
+            <div v-else class="image-error">
+              <el-icon><Picture /></el-icon>
+            </div>
             <div class="grid-info">
               <div class="grid-filename" :title="image.originalFilename">
                 {{ image.originalFilename }}
@@ -321,19 +347,24 @@
                 @click.stop
               />
             </div>
-            <el-image
-              :src="getImageUrl(image.thumbnailUrl || image.fileUrl)"
-              :preview-src-list="imageList.map((img) => getImageUrl(img.fileUrl))"
-              fit="cover"
-              class="card-thumbnail"
-              lazy
-            >
-              <template #error>
-                <div class="image-error">
-                  <el-icon><Picture /></el-icon>
-                </div>
-              </template>
-            </el-image>
+            <template v-if="getThumbnailSrc(image)">
+              <el-image
+                :src="getThumbnailSrc(image)!"
+                fit="cover"
+                class="card-thumbnail"
+                lazy
+                @click.stop="handlePreview(image)"
+              >
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+            </template>
+            <div v-else class="image-error">
+              <el-icon><Picture /></el-icon>
+            </div>
             <div class="card-overlay">
               <div class="card-actions">
                 <el-button circle size="small" @click.stop="handleView(image)">
@@ -442,6 +473,32 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 图片预览弹窗：居中展示，不带底部列表 -->
+    <el-dialog
+      v-model="showPreviewDialog"
+      :width="isMobile ? '92%' : '70%'"
+      class="preview-dialog"
+      align-center
+      destroy-on-close
+    >
+      <div v-if="previewImage" class="preview-wrapper">
+        <el-image
+          :src="getImageUrl(previewImage.fileUrl)"
+          fit="contain"
+          class="preview-image"
+          :preview-src-list="[]"
+          @error="onPreviewError"
+        >
+          <template #error>
+            <div class="preview-error">
+              <el-icon><Picture /></el-icon>
+              <span>图片加载失败</span>
+            </div>
+          </template>
+        </el-image>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -475,9 +532,16 @@ import {
   getStatusTagType,
   getStatusLabel,
 } from '@/utils/imageUtils'
+import { formatDateTime } from '@/utils/format'
 import ImageUploadDialog from './components/ImageUploadDialog.vue'
 import ImageDetailDialog from './components/ImageDetailDialog.vue'
 import ImageStatisticsDialog from './components/ImageStatisticsDialog.vue'
+
+// 安全获取缩略图/预览地址，避免空字符串导致透明
+const getThumbnailSrc = (image: Image) => {
+  const url = getImageUrl(image.thumbnailUrl || image.fileUrl)
+  return url && url.trim() ? url : null
+}
 
 const loading = ref(false)
 const imageList = ref<Image[]>([])
@@ -501,6 +565,8 @@ const showUploadDialog = ref(false)
 const showDetailDialog = ref(false)
 const showStatisticsDialog = ref(false)
 const showBatchEditDialog = ref(false)
+const showPreviewDialog = ref(false)
+const previewImage = ref<Image | null>(null)
 const currentImage = ref<Image | null>(null)
 const batchEditing = ref(false)
 
@@ -555,7 +621,6 @@ const loadImageList = async () => {
     }
   } catch (error) {
     ElMessage.error('加载图片列表失败')
-    console.error(error)
   } finally {
     loading.value = false
   }
@@ -609,7 +674,7 @@ const loadQueryFromLocal = () => {
       if (queryData.keyword) query.value.keyword = queryData.keyword
       if (queryData.dateRange) dateRange.value = queryData.dateRange
     } catch (e) {
-      console.error('Failed to load query from local storage', e)
+      // 忽略加载查询参数错误
     }
   }
 }
@@ -660,7 +725,6 @@ const handleBatchEdit = async () => {
     loadImageList()
   } catch (error) {
     ElMessage.error('批量编辑失败')
-    console.error(error)
   } finally {
     batchEditing.value = false
   }
@@ -716,9 +780,32 @@ const handleSelectAll = (checked: boolean) => {
 }
 
 // 查看详情
-const handleView = (image: Image) => {
-  currentImage.value = image
-  showDetailDialog.value = true
+const handleView = async (image: Image) => {
+  try {
+    // 调用访问接口，增加访问统计并获取最新数据
+    const updatedImage = await imageApi.access(image.id)
+    currentImage.value = updatedImage
+    showDetailDialog.value = true
+    // 更新列表中的图片数据
+    const index = imageList.value.findIndex(img => img.id === image.id)
+    if (index !== -1) {
+      imageList.value[index] = updatedImage
+    }
+  } catch (error) {
+    // 如果访问接口失败，仍然显示详情（使用原有数据）
+    currentImage.value = image
+    showDetailDialog.value = true
+  }
+}
+
+// 仅预览大图（不展示下方列表）
+const handlePreview = (image: Image) => {
+  previewImage.value = image
+  showPreviewDialog.value = true
+}
+
+const onPreviewError = () => {
+  ElMessage.error('图片加载失败')
 }
 
 // 编辑
@@ -764,7 +851,6 @@ const handleShare = async (image: Image) => {
     )
   } catch (error) {
     ElMessage.error('生成分享链接失败')
-    console.error(error)
   }
 }
 
@@ -782,7 +868,6 @@ const handleRestore = async (image: Image) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error('恢复失败')
-      console.error(error)
     }
   }
 }
@@ -801,7 +886,6 @@ const handleArchive = async (image: Image) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error('归档失败')
-      console.error(error)
     }
   }
 }
@@ -820,7 +904,6 @@ const handleDelete = async (image: Image) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
-      console.error(error)
     }
   }
 }
@@ -852,7 +935,6 @@ const handleBatchDelete = async () => {
   } catch (error: any) {
     if (error !== 'cancel' && error !== 'close') {
       ElMessage.error('批量删除失败')
-      console.error(error)
     }
   }
 }
@@ -911,15 +993,79 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .image-view {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
   .main-card {
+    border-radius: 18px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-color);
+
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
+      padding: 8px 6px;
+      background: var(--brand-gradient-subtle);
+      border-bottom: 1px solid var(--surface-border);
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .title-icon {
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: linear-gradient(145deg, rgba(37, 99, 235, 0.14), rgba(34, 211, 238, 0.12));
+        color: var(--primary-color);
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
+      }
+
+      .title-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
       .title {
-        font-size: 18px;
-        font-weight: 600;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: 0.2px;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--text-tertiary);
+        font-size: 13px;
+      }
+
+      .total-tag {
+        background: #fff;
+        border-color: var(--surface-border);
+        color: var(--text-secondary);
+      }
+
+      .view-mode-switch {
+        background: #fff;
+        border-radius: 12px;
+        padding: 4px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 10px 28px rgba(15, 23, 42, 0.08);
       }
 
       .header-actions {
@@ -927,19 +1073,75 @@ onUnmounted(() => {
         gap: 8px;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: flex-end;
+        padding: 8px 10px;
+        background: var(--ph-bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--ph-border-subtle);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+
+        .el-button {
+          border-radius: 10px;
+        }
       }
     }
   }
 
-      .filter-toolbar {
-    margin-bottom: 16px;
+  .filter-toolbar {
+    margin: 16px 0 10px;
+    padding: 14px 16px;
+    background: var(--ph-bg-card);
+    border: 1px solid var(--ph-border-subtle);
+    border-radius: 14px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
 
     .filter-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px 16px;
       margin: 0;
+
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+      }
+
+      :deep(.el-form-item__label) {
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
     }
   }
 
   .image-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .image-table {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--surface-border);
+
+      :deep(.el-table__inner-wrapper::before) {
+        background-color: transparent;
+      }
+
+      :deep(.el-table__header-wrapper th) {
+        background-color: var(--ph-bg-card-subtle);
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+
+      :deep(.el-table__row) {
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      :deep(.el-table__body tr:hover > td) {
+        background-color: var(--brand-soft);
+      }
+    }
+
     .thumbnail-cell {
       display: flex;
       justify-content: center;
@@ -949,8 +1151,19 @@ onUnmounted(() => {
       .thumbnail-image {
         width: 80px;
         height: 80px;
+        display: block;
         border-radius: 4px;
         cursor: pointer;
+        border: 1px solid var(--surface-border);
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.06);
+
+        // 确保内部图片不会按照原始尺寸撑开单元格
+        :deep(.el-image__inner) {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
       }
 
       .image-placeholder {
@@ -959,8 +1172,10 @@ onUnmounted(() => {
         align-items: center;
         width: 80px;
         height: 80px;
-        background-color: #f5f7fa;
-        color: #c0c4cc;
+        background-color: var(--ph-bg-card-subtle);
+        color: var(--text-tertiary);
+        border: 1px dashed var(--ph-border-subtle);
+        border-radius: 6px;
       }
 
       .image-error {
@@ -969,22 +1184,285 @@ onUnmounted(() => {
         align-items: center;
         width: 80px;
         height: 80px;
-        background-color: #f5f7fa;
-        color: #909399;
+        background-color: var(--ph-bg-card-subtle);
+        color: var(--text-tertiary);
+        border-radius: 6px;
       }
     }
 
     .text-muted {
-      color: #909399;
+      color: var(--text-tertiary);
     }
 
     .pagination-wrapper {
       margin-top: 16px;
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 4px;
+      border-top: 1px solid var(--surface-border);
+    }
+  }
+
+  .image-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+
+    .grid-item {
+      position: relative;
+      border: 1px solid var(--ph-border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: var(--ph-bg-card);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+
+      &:hover {
+        border-color: var(--primary-color);
+        box-shadow: var(--surface-shadow-hover);
+        transform: translateY(-2px);
+
+        .grid-actions {
+          opacity: 1;
+        }
+      }
+
+      &.selected {
+        border-color: var(--primary-color);
+        background: rgba(37, 99, 235, 0.05);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+      }
+
+      .grid-checkbox {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 6px;
+        padding: 4px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+      }
+
+      .grid-thumbnail {
+        width: 100%;
+        height: 200px;
+        background: #f8fafc;
+
+        :deep(.el-image__inner) {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+      }
+
+      .image-error {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 200px;
+        background-color: var(--ph-bg-card-subtle);
+        color: var(--text-tertiary);
+      }
+
+      .grid-info {
+        padding: 12px;
+
+        .grid-filename {
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 8px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--text-primary);
+        }
+
+        .grid-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          color: var(--text-tertiary);
+
+          .grid-size {
+            margin-left: 8px;
+          }
+        }
+      }
+
+      .grid-actions {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        display: flex;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 6px;
+        border-radius: 8px;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+      }
+    }
+  }
+
+  .image-card-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+
+    .card-item {
+      position: relative;
+      border: 1px solid var(--ph-border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: var(--ph-bg-card);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+
+      &:hover {
+        border-color: var(--primary-color);
+        box-shadow: var(--surface-shadow-hover);
+        transform: translateY(-4px);
+
+        .card-overlay {
+          opacity: 1;
+        }
+      }
+
+      &.selected {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+      }
+
+      .card-checkbox {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
+        padding: 4px;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.16);
+      }
+
+      .card-thumbnail {
+        width: 100%;
+        height: 240px;
+        background: #f8fafc;
+
+        :deep(.el-image__inner) {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+      }
+
+      .image-error {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 240px;
+        background-color: var(--ph-bg-card-subtle);
+        color: var(--text-tertiary);
+      }
+
+      .card-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.15), rgba(15, 23, 42, 0.55));
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+
+        .card-actions {
+          display: flex;
+          gap: 12px;
+
+          .el-button {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(255, 255, 255, 0.8);
+          }
+        }
+      }
+
+      .card-info {
+        padding: 14px;
+
+        .card-filename {
+          font-size: 15px;
+          font-weight: 600;
+          margin-bottom: 10px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--text-primary);
+        }
+
+        .card-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13px;
+          color: var(--text-tertiary);
+
+          .card-size {
+            margin-left: 8px;
+          }
+        }
+      }
     }
   }
 }
+
+  .preview-dialog {
+    :deep(.el-dialog__body) {
+      padding: 12px 16px 18px;
+    }
+  }
+
+  .preview-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-height: 72vh;
+  }
+
+  .preview-image {
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+    margin: 0 auto;
+    background: #f8fafc;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  }
+
+  .preview-error {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 320px;
+    color: var(--text-tertiary);
+    background: var(--ph-bg-card-subtle);
+    border-radius: 12px;
+    gap: 6px;
+  }
 
 /* 移动端适配 - REQ-001 */
 @media (max-width: 768px) {
@@ -1077,225 +1555,17 @@ onUnmounted(() => {
       }
     }
 
-    // 网格视图
     .image-grid-view {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
-
-      @media (max-width: 768px) {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 12px;
-      }
-
-      @media (max-width: 480px) {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-      }
-
-      .grid-item {
-        position: relative;
-        border: 1px solid #dcdfe6;
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.3s;
-        background: #fff;
-
-        &:hover {
-          border-color: #409eff;
-          box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-          transform: translateY(-2px);
-
-          .grid-actions {
-            opacity: 1;
-          }
-        }
-
-        &.selected {
-          border-color: #409eff;
-          background: #ecf5ff;
-        }
-
-        .grid-checkbox {
-          position: absolute;
-          top: 8px;
-          left: 8px;
-          z-index: 10;
-          background: rgba(255, 255, 255, 0.9);
-          border-radius: 4px;
-          padding: 4px;
-        }
-
-        .grid-thumbnail {
-          width: 100%;
-          height: 200px;
-        }
-
-        .image-error {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 200px;
-          background-color: #f5f7fa;
-          color: #909399;
-        }
-
-        .grid-info {
-          padding: 12px;
-
-          .grid-filename {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .grid-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: #909399;
-
-            .grid-size {
-              margin-left: 8px;
-            }
-          }
-        }
-
-        .grid-actions {
-          position: absolute;
-          bottom: 12px;
-          right: 12px;
-          opacity: 0;
-          transition: opacity 0.3s;
-          display: flex;
-          gap: 4px;
-          background: rgba(255, 255, 255, 0.9);
-          padding: 4px;
-          border-radius: 4px;
-        }
-      }
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
     }
 
-    // 卡片视图
     .image-card-view {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
 
-      @media (max-width: 768px) {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-      }
-
-      @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .card-item {
-        position: relative;
-        border: 1px solid #dcdfe6;
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.3s;
-        background: #fff;
-
-        &:hover {
-          border-color: #409eff;
-          box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.15);
-          transform: translateY(-4px);
-
-          .card-overlay {
-            opacity: 1;
-          }
-        }
-
-        &.selected {
-          border-color: #409eff;
-          box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
-        }
-
-        .card-checkbox {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          z-index: 10;
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 50%;
-          padding: 4px;
-        }
-
-        .card-thumbnail {
-          width: 100%;
-          height: 250px;
-        }
-
-        .image-error {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 250px;
-          background-color: #f5f7fa;
-          color: #909399;
-        }
-
-        .card-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          opacity: 0;
-          transition: opacity 0.3s;
-
-          .card-actions {
-            display: flex;
-            gap: 12px;
-
-            .el-button {
-              background: rgba(255, 255, 255, 0.9);
-            }
-          }
-        }
-
-        .card-info {
-          padding: 16px;
-
-          .card-filename {
-            font-size: 15px;
-            font-weight: 500;
-            margin-bottom: 12px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .card-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: #909399;
-
-            .card-size {
-              margin-left: 8px;
-            }
-          }
-        }
+      .card-item .card-thumbnail {
+        height: 200px;
       }
     }
   }

@@ -45,7 +45,6 @@ const analyzeCron = async () => {
     // 使用静态导入的 cronstrue
     cronDescription.value = cronstrue.toString(cronExpression.value, { locale: 'zh_CN' })
   } catch (error) {
-    console.error('cronstrue 解析错误:', error)
     cronError.value = `无法解析描述: ${(error as Error).message}`
     return
   }
@@ -73,11 +72,6 @@ const analyzeCron = async () => {
     
     // 验证 parser 对象
     if (!parser || typeof parser.parseExpression !== 'function') {
-      console.error('cron-parser 模块结构:', {
-        module: parserModule,
-        hasDefault: !!parserModule.default,
-        keys: Object.keys(parserModule),
-      })
       throw new Error('cron-parser 模块加载失败：无法找到 parseExpression 方法')
     }
     
@@ -91,7 +85,6 @@ const analyzeCron = async () => {
     cronPreviews.value = previews
     ElMessage.success('解析完成')
   } catch (error) {
-    console.error('cron-parser 解析错误:', error)
     cronError.value = `表达式不合法: ${(error as Error).message}`
   }
 }

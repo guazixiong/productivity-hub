@@ -105,7 +105,6 @@ watch(visible, async (val) => {
       await notificationApi.markRead(props.notification.id)
       emit('read', props.notification.id)
     } catch (error) {
-      console.error('标记已读失败:', error)
       ElMessage.error('标记已读失败')
     } finally {
       markingRead.value = false

@@ -2,7 +2,8 @@
   <el-dialog
     v-model="dialogVisible"
     :title="image ? '图片详情' : ''"
-    width="800px"
+    width="840px"
+    class="ph-dialog"
     @close="handleClose"
   >
     <div v-if="image" class="image-detail">
@@ -42,7 +43,7 @@
 
       <!-- 图片信息 -->
       <div class="image-info">
-        <el-descriptions :column="2" border>
+        <el-descriptions :column="2" border class="info-descriptions">
           <el-descriptions-item label="文件名">
             {{ image.originalFilename }}
           </el-descriptions-item>
@@ -72,10 +73,10 @@
             {{ image.accessCount }}
           </el-descriptions-item>
           <el-descriptions-item label="上传时间">
-            {{ image.createdAt }}
+            {{ formatDateTime(image.createdAt) }}
           </el-descriptions-item>
           <el-descriptions-item label="更新时间" :span="2">
-            {{ image.updatedAt }}
+            {{ formatDateTime(image.updatedAt) }}
           </el-descriptions-item>
           <el-descriptions-item v-if="image.businessModule" label="业务模块" :span="2">
             {{ image.businessModule }}
@@ -99,7 +100,7 @@
               </el-input>
             </div>
             <div v-if="image.shareExpiresAt" class="share-expires">
-              过期时间：{{ image.shareExpiresAt }}
+              过期时间：{{ formatDateTime(image.shareExpiresAt) }}
             </div>
           </el-descriptions-item>
         </el-descriptions>
@@ -108,8 +109,8 @@
         <el-form
           v-if="editing"
           :model="editForm"
-          label-width="100px"
-          style="margin-top: 20px"
+          label-width="96px"
+          class="edit-form"
         >
           <el-form-item label="描述">
             <el-input
@@ -177,6 +178,7 @@ import {
   getStatusTagType,
   getStatusLabel,
 } from '@/utils/imageUtils'
+import { formatDateTime } from '@/utils/format'
 
 const props = defineProps<{
   modelValue: boolean
@@ -219,7 +221,7 @@ watch(dialogVisible, (val) => {
 
 const getShareUrl = () => {
   if (!props.image?.shareToken) return ''
-  return `${window.location.origin}/api/image/share/${props.image.shareToken}`
+  return `${window.location.origin}/api/images/share/${props.image.shareToken}`
 }
 
 const copyShareUrl = async () => {
@@ -261,7 +263,6 @@ const handleSave = async () => {
     emit('update')
   } catch (error) {
     ElMessage.error('保存失败')
-    console.error(error)
   } finally {
     saving.value = false
   }
@@ -276,7 +277,6 @@ const handleGenerateShare = async () => {
     emit('update')
   } catch (error) {
     ElMessage.error('生成分享链接失败')
-    console.error(error)
   }
 }
 
@@ -295,7 +295,6 @@ const handleRevokeShare = async () => {
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error('撤销分享链接失败')
-      console.error(error)
     }
   }
 }
@@ -314,7 +313,6 @@ const downloadImage = async () => {
     ElMessage.success('下载已开始')
   } catch (error) {
     ElMessage.error('下载失败')
-    console.error(error)
   }
 }
 
@@ -327,7 +325,6 @@ const copyImageUrl = async () => {
     ElMessage.success('图片链接已复制到剪贴板')
   } catch (error) {
     ElMessage.error('复制失败')
-    console.error(error)
   }
 }
 
@@ -340,41 +337,51 @@ const openInNewTab = () => {
 </script>
 
 <style scoped lang="scss">
-  .image-detail {
+.image-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
   .image-preview {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 4px;
 
     .preview-container {
       position: relative;
       display: inline-block;
+      padding: 10px;
+      border-radius: 16px;
+      background: var(--ph-bg-card);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+      border: 1px solid var(--ph-border-subtle);
 
       .preview-image {
         max-width: 100%;
-        max-height: 400px;
-        border-radius: 4px;
+        max-height: 420px;
+        border-radius: 12px;
         display: block;
+        background: #f8fafc;
       }
 
       .preview-actions {
         position: absolute;
-        bottom: 12px;
-        right: 12px;
+        bottom: 18px;
+        right: 18px;
         display: flex;
         gap: 8px;
-        background: rgba(0, 0, 0, 0.6);
-        padding: 8px;
-        border-radius: 4px;
+        background: rgba(15, 23, 42, 0.76);
+        padding: 8px 10px;
+        border-radius: 999px;
         opacity: 0;
-        transition: opacity 0.3s;
+        transition: opacity 0.25s;
 
         .el-button {
-          background: rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.96);
           border: none;
 
           &:hover {
-            background: rgba(255, 255, 255, 1);
+            background: #ffffff;
           }
         }
       }
@@ -389,15 +396,40 @@ const openInNewTab = () => {
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      width: 400px;
-      height: 300px;
-      background-color: #f5f7fa;
-      color: #909399;
+      width: 420px;
+      height: 320px;
+      background-color: var(--ph-bg-card-subtle);
+      color: var(--text-tertiary);
       gap: 8px;
+      border-radius: 16px;
     }
   }
 
   .image-info {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    .info-descriptions {
+      :deep(.el-descriptions__header) {
+        margin-bottom: 8px;
+      }
+
+      :deep(.el-descriptions__body) {
+        border-radius: 12px;
+        overflow: hidden;
+      }
+    }
+
+    .edit-form {
+      margin-top: 6px;
+
+      :deep(.el-form-item__label) {
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+    }
+
     .share-link {
       display: flex;
       gap: 8px;
@@ -406,7 +438,7 @@ const openInNewTab = () => {
     .share-expires {
       margin-top: 8px;
       font-size: 12px;
-      color: #909399;
+      color: var(--text-tertiary);
     }
   }
 }

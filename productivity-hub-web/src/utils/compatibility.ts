@@ -163,9 +163,8 @@ export function needsPolyfill(): string[] {
 async function safeImportPolyfill(modulePath: string, name: string): Promise<void> {
   try {
     await import(/* @vite-ignore */ modulePath)
-    console.log(`[Polyfill] ${name} loaded`)
   } catch (error) {
-    console.warn(`[Polyfill] Failed to load ${name}:`, error)
+    // 忽略 polyfill 加载错误
   }
 }
 
@@ -226,9 +225,6 @@ export function checkBrowserCompatibility(): boolean {
 
   const minVersion = minVersions[browser.name]
   if (minVersion && parseInt(browser.version) < minVersion) {
-    console.warn(
-      `[兼容性警告] ${browser.name} 版本 ${browser.version} 可能不完全支持，建议升级到 ${minVersion}+`
-    )
     return false
   }
 

@@ -288,7 +288,7 @@ const getUserIp = async (): Promise<string | null> => {
       }
     }
   } catch (error) {
-    console.warn('获取IP地址失败:', error)
+    // 忽略获取IP错误
   }
   
   return null
@@ -391,7 +391,6 @@ const fetchWeather = async (forceRefresh = false, useLocation = false) => {
       }
     }
   } catch (error) {
-    console.error('获取位置和天气信息失败:', error)
     ElMessage.error('获取天气信息失败，请稍后重试')
     // 使用默认值
     location.value = {
@@ -443,7 +442,6 @@ const fetchDailyFortune = async (forceRefresh = false) => {
       }
     }
   } catch (error) {
-    console.error('获取每日一签失败:', error)
     ElMessage.error('获取每日一签失败，请稍后重试')
     // 使用默认值
     fortune.value = {

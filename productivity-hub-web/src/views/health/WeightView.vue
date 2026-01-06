@@ -485,7 +485,7 @@ const loadBodyInfo = async () => {
       })
     }
   } catch (error: any) {
-    console.error('加载身体信息失败:', error)
+    // 忽略加载错误
   }
 }
 

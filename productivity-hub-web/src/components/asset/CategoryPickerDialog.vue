@@ -127,7 +127,6 @@ const loadCategories = async () => {
     const res = await getSelectableCategories()
     categories.value = res || []
   } catch (error) {
-    console.error('加载分类失败:', error)
     categories.value = []
   }
 }

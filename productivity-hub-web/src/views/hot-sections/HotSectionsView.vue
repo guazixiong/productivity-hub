@@ -139,7 +139,6 @@ const handleZhihuLoginDialogRemoval = () => {
       }, '*')
     } catch (error) {
       // 跨域限制，无法发送消息
-      console.debug('无法与iframe通信（跨域限制）:', error)
     }
     
     // 尝试通过注入样式表来隐藏登录弹窗（只对同源iframe有效）
@@ -200,12 +199,7 @@ const handleZhihuLoginDialogRemoval = () => {
     } catch (error) {
       // 跨域限制，无法访问iframe内容
       // 同时捕获可能的FIDO2脚本重复注入错误
-      if (error instanceof Error && error.message.includes('fido2-page-script-registration')) {
-        // 忽略FIDO2脚本重复注入错误，这是网站自身的问题
-        console.debug('检测到FIDO2脚本重复注入错误（已忽略）:', error.message)
-      } else {
-        console.debug('无法访问iframe内容（跨域限制）:', error)
-      }
+      // 忽略FIDO2脚本重复注入错误和跨域限制错误
     }
   }, 300) // 300ms防抖延迟
 }
@@ -883,7 +877,6 @@ const formatForWeChat = async (sectionName: string): Promise<string> => {
       shortLinkMap.set(response.originalUrl, response.shortLinkUrl)
     })
   } catch (error) {
-    console.error('批量创建短链失败，使用原始URL', error)
     // 如果创建短链失败，使用原始URL
     items.forEach(item => {
       shortLinkMap.set(item.link, item.link)
@@ -959,7 +952,6 @@ const copyCurrentSection = async () => {
     }
   } catch (error) {
     ElMessage.error('复制失败，请重试')
-    console.error('复制失败:', error)
   } finally {
     copying.value = false
   }
@@ -979,7 +971,7 @@ const formatItemForWeChat = async (item: { title: string; link: string; desc?: s
     const response = await shortLinkApi.createShortLink(item.link)
     linkUrl = response.shortLinkUrl
   } catch (error) {
-    console.error('创建短链失败，使用原始URL', error)
+    // 创建短链失败，使用原始URL
   }
   lines.push(linkUrl)
   
@@ -1021,7 +1013,6 @@ const copyHotItem = async (item: { title: string; link: string; desc?: string },
     }
   } catch (error) {
     ElMessage.error('复制失败，请重试')
-    console.error('复制失败:', error)
   } finally {
     copying.value = false
   }
@@ -1049,7 +1040,6 @@ onMounted(async () => {
     if (event.reason instanceof Error && event.reason.message.includes('fido2-page-script-registration')) {
       // 忽略FIDO2脚本重复注入错误，这是网站自身的问题
       event.preventDefault()
-      console.debug('已捕获并忽略FIDO2脚本重复注入错误:', event.reason.message)
     }
   })
   

@@ -35,7 +35,13 @@
 
       <div class="currency-list-section">
         <h3>支持的货币</h3>
-        <el-table :data="currencies" border style="width: 100%; max-width: 600px">
+        <el-table 
+          :data="currencies" 
+          border 
+          style="width: 100%; max-width: 600px"
+          v-loading="loading"
+          element-loading-text="加载中..."
+        >
           <el-table-column prop="code" label="货币代码" width="120" />
           <el-table-column prop="name" label="货币名称" width="150" />
           <el-table-column prop="symbol" label="货币符号" width="120" />
@@ -138,18 +144,31 @@ const exchangeForm = reactive<{
 
 const exchangeRateDisplay = computed(() => {
   if (!exchangeRate.value) return ''
-  return `1 ${exchangeRate.value.from} = ${exchangeRate.value.rate} ${exchangeRate.value.to}`
+  // 格式化汇率，保留4位小数
+  const rate = typeof exchangeRate.value.rate === 'number' 
+    ? exchangeRate.value.rate.toFixed(4) 
+    : exchangeRate.value.rate
+  return `1 ${exchangeRate.value.from} = ${rate} ${exchangeRate.value.to}`
 })
 
 const loadCurrencies = async () => {
   loading.value = true
   try {
     const res = await currencyApi.getCurrencyList()
-    currencies.value = res.data || []
-    if (currencies.value.length > 0 && !form.defaultCurrency) {
-      exchangeForm.from = currencies.value[0].code
-      exchangeForm.to = currencies.value.length > 1 ? currencies.value[1].code : currencies.value[0].code
+    // request 函数已经解包了 data，直接使用 res
+    currencies.value = res || []
+    // 初始化汇率表单的默认值
+    if (currencies.value.length > 0) {
+      if (!exchangeForm.from) {
+        exchangeForm.from = currencies.value[0].code
+      }
+      if (!exchangeForm.to) {
+        exchangeForm.to = currencies.value.length > 1 ? currencies.value[1].code : currencies.value[0].code
+      }
     }
+  } catch (error) {
+    ElMessage.error('获取货币列表失败')
+    console.error('获取货币列表失败:', error)
   } finally {
     loading.value = false
   }
@@ -158,10 +177,19 @@ const loadCurrencies = async () => {
 const loadDefaultCurrency = async () => {
   try {
     const res = await currencyApi.getDefaultCurrency()
-    form.defaultCurrency = res.data || ''
+    // request 函数已经解包了 data，直接使用 res
+    form.defaultCurrency = res || ''
+    // 如果获取到默认货币，且汇率表单未设置，则使用默认货币作为源货币
+    if (form.defaultCurrency && !exchangeForm.from) {
+      exchangeForm.from = form.defaultCurrency
+    }
   } catch (error) {
     // 如果获取失败，使用默认值 CNY
+    console.warn('获取默认货币失败，使用默认值 CNY:', error)
     form.defaultCurrency = 'CNY'
+    if (!exchangeForm.from) {
+      exchangeForm.from = 'CNY'
+    }
   }
 }
 
@@ -170,6 +198,7 @@ const loadExchangeRate = async () => {
     ElMessage.warning('请选择源货币和目标货币')
     return
   }
+  // 相同货币，汇率为1
   if (exchangeForm.from === exchangeForm.to) {
     exchangeRate.value = {
       from: exchangeForm.from,
@@ -185,9 +214,16 @@ const loadExchangeRate = async () => {
       from: exchangeForm.from,
       to: exchangeForm.to,
     })
-    exchangeRate.value = res.data
-  } catch (error) {
-    ElMessage.error('获取汇率失败')
+    // request 函数已经解包了 data，直接使用 res
+    if (res) {
+      exchangeRate.value = res
+    } else {
+      ElMessage.warning('未获取到汇率信息')
+    }
+  } catch (error: any) {
+    const errorMsg = error?.message || '获取汇率失败'
+    ElMessage.error(errorMsg)
+    console.error('获取汇率失败:', error)
   } finally {
     loadingRate.value = false
   }
@@ -199,6 +235,15 @@ const handleDefaultCurrencyChange = () => {
 
 const handleExchangeRateChange = () => {
   exchangeRate.value = null
+  // 如果两个货币都已选择，自动查询汇率
+  if (exchangeForm.from && exchangeForm.to) {
+    // 延迟一下，避免频繁请求
+    setTimeout(() => {
+      if (exchangeForm.from && exchangeForm.to) {
+        loadExchangeRate()
+      }
+    }, 300)
+  }
 }
 
 const handleSave = async () => {
@@ -212,8 +257,10 @@ const handleSave = async () => {
       currencyCode: form.defaultCurrency,
     })
     ElMessage.success('保存成功')
-  } catch (error) {
-    ElMessage.error('保存失败')
+  } catch (error: any) {
+    const errorMsg = error?.message || '保存失败'
+    ElMessage.error(errorMsg)
+    console.error('保存默认货币失败:', error)
   } finally {
     saving.value = false
   }
