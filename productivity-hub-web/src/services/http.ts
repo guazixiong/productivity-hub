@@ -1,5 +1,5 @@
 import axios, { AxiosHeaders } from 'axios'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosInstance, AxiosResponse } from 'axios'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
@@ -65,20 +65,25 @@ const isAndroidWebView = (): boolean => {
 /**
  * 获取 API 基础 URL
  * - 在 Android WebView 中（file:// 协议），使用环境变量 VITE_API_BASE_URL
- * - 在浏览器中（http:// 或 https:// 协议），使用相对路径 '/'（通过 Vite 代理）
+ * - 在生产环境中，使用环境变量 VITE_API_BASE_URL（因为生产环境没有 Vite 代理）
+ * - 在开发环境的浏览器中，使用相对路径 '/'（通过 Vite 代理）
  */
 const getApiBaseURL = (): string => {
-  if (isAndroidWebView()) {
-    // 在 Android WebView 中，必须使用完整的 API 地址
+  // 检查是否为生产环境
+  const isProduction = import.meta.env.MODE === 'production'
+  
+  if (isAndroidWebView() || isProduction) {
+    // 在 Android WebView 或生产环境中，必须使用完整的 API 地址
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
     if (!apiBaseUrl) {
       // 未配置 API 地址，使用默认值
       // 如果未配置，尝试使用默认值（需要用户根据实际情况修改）
+      console.warn('未配置 VITE_API_BASE_URL，使用默认值 http://127.0.0.1:9881')
       return 'http://127.0.0.1:9881'
     }
     return apiBaseUrl
   }
-  // 在浏览器中，使用相对路径，通过 Vite 代理转发
+  // 在开发环境的浏览器中，使用相对路径，通过 Vite 代理转发
   return '/'
 }
 
@@ -132,7 +137,7 @@ http.interceptors.response.use(
     // 处理请求缓存
     if (config.cache && config.method?.toLowerCase() === 'get') {
       const payload = response.data
-      if (payload?.code === 0) {
+      if (payload?.code === 200) {
         requestCache.set(config, payload.data, config.cacheTTL)
       }
     }
@@ -234,7 +239,7 @@ export const request = async <T = unknown>(config: RequestConfig): Promise<T> =>
   const requestFn = async (): Promise<T> => {
     const response: AxiosResponse<ApiEnvelope<T>> = await http.request<ApiEnvelope<T>>(config)
     const payload = response.data
-    if (payload?.code === 0) {
+    if (payload?.code === 200) {
       return payload.data
     }
     
@@ -248,7 +253,11 @@ export const request = async <T = unknown>(config: RequestConfig): Promise<T> =>
       })
     }
     
-    throw new Error(payload?.message ?? '请求失败')
+    // 记录详细的错误信息，便于调试
+    const errorMessage = payload?.message ?? '请求失败'
+    const errorCode = payload?.code ?? 'unknown'
+    console.error(`API 请求失败: ${config.url}, code: ${errorCode}, message: ${errorMessage}`, payload)
+    throw new Error(errorMessage)
   }
 
   // 处理请求重试

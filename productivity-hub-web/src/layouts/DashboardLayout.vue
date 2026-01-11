@@ -9,16 +9,19 @@ import { useNavigationStore } from '@/stores/navigation'
 import { useTabsStore } from '@/stores/tabs'
 import { useNotificationStore } from '@/stores/notifications'
 import { useResponsiveStore, SidebarState } from '@/stores/responsive'
+import { useMenuStore } from '@/stores/menu'
 import { useLayout } from '@/composables/useLayout'
 import TabsView from '@/components/TabsView.vue'
 import ChatWidget from '@/components/ChatWidget.vue'
 import AnnouncementDialog from '@/components/AnnouncementDialog.vue'
 import NotificationDetailDialog from '@/components/NotificationDetailDialog.vue'
-import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled, Menu, Picture, Money } from '@element-plus/icons-vue'
+import { Setting, Message, Cpu, Lock, SwitchButton, ArrowDownBold, HomeFilled, Tools, ArrowLeft, Document, TrendCharts, Collection, Bell, Search, Fold, Expand, User, DataAnalysis, Loading, SuccessFilled, WarningFilled, Menu, Picture, Money, Refresh } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import logoIcon from '@/assets/logo.svg'
 import { announcementApi } from '@/services/announcementApi'
 import type { Announcement } from '@/types/announcement'
 import type { NotificationItem } from '@/stores/notifications'
+import DynamicMenu from '@/components/DynamicMenu.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +30,7 @@ const navigationStore = useNavigationStore()
 const tabsStore = useTabsStore()
 const notificationStore = useNotificationStore()
 const responsiveStore = useResponsiveStore()
+const menuStore = useMenuStore()
 const layout = useLayout()
 
 const notificationVisible = ref(false)
@@ -42,26 +46,37 @@ const showOverlay = ref(false)
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/home')) return '/home'
-  if (route.path.startsWith('/hot-sections')) return '/hot-sections'
-  if (route.path.startsWith('/config')) return '/config'
-  if (route.path.startsWith('/settings/users')) return '/settings/users'
-  if (route.path.startsWith('/settings/announcements')) return '/settings/announcements'
-  if (route.path.startsWith('/settings/schedules')) return '/settings/schedules'
-  if (route.path.startsWith('/messages')) return '/messages'
-  if (route.path.startsWith('/tools')) return '/tools'
-  if (route.path.startsWith('/agents')) return '/agents'
-  if (route.path.startsWith('/ai/')) return route.path
+  if (route.path.startsWith('/ai-daily')) return '/ai-daily'
   if (route.path.startsWith('/todo')) return '/todo'
-  if (route.path.startsWith('/code-generator')) return '/code-generator'
-  if (route.path.startsWith('/bookmark')) return '/bookmark'
+  if (route.path.startsWith('/hot-sections')) return '/hot-sections'
+  if (route.path.startsWith('/quick-record')) return '/quick-record'
   if (route.path.startsWith('/health')) return route.path
   if (route.path.startsWith('/asset') || route.path.startsWith('/assets')) return route.path
   if (route.path.startsWith('/wishlist')) return route.path
   if (route.path.startsWith('/data/management')) return '/data/management'
   if (route.path.startsWith('/settings/currency')) return '/settings/currency'
+  if (route.path.startsWith('/messages')) return '/messages'
+  if (route.path.startsWith('/bookmark')) return '/bookmark'
+  if (route.path.startsWith('/code-generator')) return '/code-generator'
+  if (route.path.startsWith('/ai/')) return route.path
+
+  // 工具箱：根据分类高亮“生活工具”或“技术工具”二级菜单
+  if (route.path === '/tools') {
+    const category = route.query.category as string | undefined
+    if (category === 'life') return '/tools?category=life'
+    if (category === 'tech') return '/tools?category=tech'
+    return '/tools'
+  }
+  if (route.path.startsWith('/tools')) return '/tools'
+
+  if (route.path.startsWith('/settings/schedules')) return '/settings/schedules'
+  if (route.path.startsWith('/config')) return '/config'
   if (route.path.startsWith('/image')) return '/image'
-  if (route.path.startsWith('/quick-record')) return '/quick-record'
-  if (route.path.startsWith('/common-tools')) return '/common-tools'
+  if (route.path.startsWith('/settings/announcements')) return '/settings/announcements'
+  if (route.path.startsWith('/settings/users')) return '/settings/users'
+  if (route.path.startsWith('/settings/menus')) return '/settings/menus'
+  if (route.path.startsWith('/settings/roles')) return '/settings/roles'
+  if (route.path.startsWith('/settings/user-roles')) return '/settings/user-roles'
   return route.path
 })
 
@@ -79,21 +94,18 @@ const pageTitle = computed(() => {
 const defaultOpenMenus = computed(() => {
   const openeds: string[] = []
 
-  // 工作台菜单：包含 todo、hot-sections、bookmark、code-generator、health、messages、asset
+// 生活中心菜单：包含快捷记录、健康管理、资产管理、消息推送
   if (
-    route.path.startsWith('/todo') ||
-    route.path.startsWith('/hot-sections') ||
-    route.path.startsWith('/bookmark') ||
-    route.path.startsWith('/code-generator') ||
+    route.path.startsWith('/quick-record') ||
     route.path.startsWith('/health') ||
-    route.path.startsWith('/messages') ||
     route.path.startsWith('/asset') ||
     route.path.startsWith('/assets') ||
     route.path.startsWith('/wishlist') ||
     route.path.startsWith('/data/management') ||
-    route.path.startsWith('/settings/currency')
+    route.path.startsWith('/settings/currency') ||
+    route.path.startsWith('/messages')
   ) {
-    openeds.push('workbench')
+    openeds.push('life-center')
     // 如果是健康管理相关路径，还需要打开健康管理子菜单
     if (route.path.startsWith('/health')) {
       openeds.push('health-management')
@@ -110,14 +122,39 @@ const defaultOpenMenus = computed(() => {
     }
   }
 
-  // AI工具菜单
-  if (route.path.startsWith('/agents') || route.path.startsWith('/ai/')) {
-    openeds.push('ai-tools')
+  // 技术工作台菜单：包含书签收藏、低代码生成、AI助手
+  if (
+    route.path.startsWith('/bookmark') ||
+    route.path.startsWith('/code-generator') ||
+    route.path.startsWith('/ai/')
+  ) {
+    openeds.push('tech-workbench')
+    // 如果是AI助手相关路径，还需要打开AI助手子菜单
+    if (route.path.startsWith('/ai/')) {
+      openeds.push('ai-assistant')
+    }
   }
 
-  // 系统设置菜单
-  if (route.path.startsWith('/config') || route.path.startsWith('/settings')) {
-    openeds.push('settings')
+  // 工具箱菜单：包含生活工具和技术工具
+  if (route.path.startsWith('/tools')) {
+    openeds.push('tools')
+  }
+
+  // 全局配置菜单：包含定时任务、参数设置
+  if (route.path.startsWith('/settings/schedules') || route.path.startsWith('/config')) {
+    openeds.push('global-config')
+  }
+
+  // 系统管理菜单：包含图片管理、公告管理、用户管理、菜单管理、角色管理、用户角色管理（仅管理员）
+  if (
+    route.path.startsWith('/image') ||
+    route.path.startsWith('/settings/announcements') ||
+    route.path.startsWith('/settings/users') ||
+    route.path.startsWith('/settings/menus') ||
+    route.path.startsWith('/settings/roles') ||
+    route.path.startsWith('/settings/user-roles')
+  ) {
+    openeds.push('system-management')
   }
 
   return openeds
@@ -179,6 +216,17 @@ const handleLogout = () => {
   router.replace({ name: 'Login' })
 }
 
+// 刷新菜单
+const handleRefreshMenus = async () => {
+  try {
+    await menuStore.refreshMenus()
+    // 刷新成功后提示
+    ElMessage.success('菜单已刷新')
+  } catch (error) {
+    ElMessage.error('刷新菜单失败，请稍后重试')
+  }
+}
+
 const handleNotificationClick = (item: NotificationItem) => {
   currentNotification.value = item
   notificationDetailVisible.value = true
@@ -224,11 +272,35 @@ const handleAnnouncementRead = (id: string) => {
   }
 }
 
+// 计算属性：获取排序后的菜单（确保按照 orderNum 排序）
+const sortedMenus = computed(() => {
+  const menus = menuStore.menus || []
+  // 递归排序菜单及其子菜单
+  const sortMenuTree = (menuList: typeof menus): typeof menus => {
+    return menuList
+      .map(menu => ({
+        ...menu,
+        children: menu.children ? sortMenuTree(menu.children) : undefined
+      }))
+      .sort((a, b) => (a.orderNum || 0) - (b.orderNum || 0))
+  }
+  return sortMenuTree(menus)
+})
+
 onMounted(() => {
   if (!authStore.isHydrated) {
     authStore.hydrateFromCache()
+    // 从缓存恢复菜单
+    const menuStore = useMenuStore()
+    menuStore.hydrateFromCache()
   }
   if (authStore.isAuthenticated) {
+    // 如果菜单为空，尝试加载菜单
+    if (!menuStore.hasMenus) {
+      menuStore.fetchMenus().catch(() => {
+        // 加载失败不影响页面显示
+      })
+    }
     // 连接失败不影响用户正常使用，使用 try-catch 保护
     try {
       notificationStore.connect()
@@ -338,7 +410,7 @@ const isSubMenuPage = (path: string): boolean => {
     return true
   }
   
-  // 消息中心
+  // 消息推送
   if (path === '/messages' || path.startsWith('/messages/')) {
     return true
   }
@@ -466,13 +538,13 @@ const commandQuery = ref('')
 
 const quickCommands: QuickCommand[] = [
   { id: 'go-home', label: '首页 / 概览', description: '查看总览与快捷入口', route: '/home' },
-  { id: 'go-todo', label: '我的待办（Todo）', description: '任务管理与计时', route: '/todo' },
-  { id: 'go-messages', label: '消息中心', description: '查看与配置消息推送', route: '/messages' },
+  { id: 'go-ai-daily', label: 'AI日报', description: 'AI生成的个性化日报', route: '/ai-daily' },
+  { id: 'go-todo', label: '待办事项', description: '任务管理与计时', route: '/todo' },
   { id: 'go-hot', label: '热点速览', description: '快速浏览热点与动态', route: '/hot-sections' },
-  { id: 'go-agents', label: '智能体调用', description: '管理与调用智能体', route: '/agents' },
-  { id: 'go-tools', label: '常用工具', description: '常用工程工具与小组件', route: '/tools' },
-  { id: 'go-bookmark', label: '我的书签', description: '站点收藏与导航', route: '/bookmark' },
+  { id: 'go-messages', label: '消息推送', description: '查看与配置消息推送', route: '/messages' },
+  { id: 'go-bookmark', label: '书签收藏', description: '站点收藏与导航', route: '/bookmark' },
   { id: 'go-codegen', label: '低代码生成', description: '快速搭建页面与脚本', route: '/code-generator' },
+  { id: 'go-tools', label: '工具箱', description: '常用工程工具与小组件', route: '/tools' },
   { id: 'go-announcement', label: '公告管理（管理员）', description: '创建/发布/撤回公告', route: '/settings/announcements' },
 ]
 
@@ -549,7 +621,7 @@ const cachedViews = computed(() => {
       class="sidebar-overlay"
       @click="handleOverlayClick"
     />
-    <el-aside
+      <el-aside
       :width="responsiveStore.isMobile ? (responsiveStore.isSidebarExpanded ? '80%' : '0') : (isCollapsed ? '64px' : '228px')"
       class="layout-aside"
       :class="{
@@ -567,6 +639,7 @@ const cachedViews = computed(() => {
           :default-active="activeMenu"
           :default-openeds="defaultOpenMenus"
           :collapse="isCollapsed"
+          :collapse-transition="false"
           router
           unique-opened
           class="menu"
@@ -575,162 +648,17 @@ const cachedViews = computed(() => {
           active-text-color="var(--primary-color)"
           @select="handleMenuSelect"
         >
-          <!-- 🏠 首页/概览（一级菜单） -->
-          <el-menu-item index="/home">
-            <el-icon><HomeFilled /></el-icon>
-            <template #title>首页 / 概览</template>
-          </el-menu-item>
-
-          <!-- 📝 快捷记录（一级菜单） -->
-          <el-menu-item index="/quick-record">
-            <el-icon><Document /></el-icon>
-            <template #title>快捷记录</template>
-          </el-menu-item>
-
-          <!-- 🖼️ 图片管理（一级菜单） -->
-          <el-menu-item index="/image">
-            <el-icon><Picture /></el-icon>
-            <template #title>图片管理</template>
-          </el-menu-item>
-
-          <!-- 📊 工作台（一级菜单） -->
-          <el-sub-menu index="workbench">
-            <template #title>
-              <el-icon><HomeFilled /></el-icon>
-              <span v-show="!isCollapsed">工作台</span>
+          <!-- 动态渲染菜单 -->
+          <template v-if="sortedMenus.length > 0">
+            <DynamicMenu :menus="sortedMenus" :is-collapsed="isCollapsed" />
             </template>
-            <el-menu-item index="/todo">
-              <el-icon><Collection /></el-icon>
-              <template #title>我的待办(Todo)</template>
-            </el-menu-item>
-            <el-menu-item index="/hot-sections">
-              <el-icon><TrendCharts /></el-icon>
-              <template #title>热点速览</template>
-            </el-menu-item>
-            <el-menu-item index="/bookmark">
-              <el-icon><Collection /></el-icon>
-              <template #title>我的书签</template>
-            </el-menu-item>
-            <el-menu-item index="/code-generator">
-              <el-icon><Document /></el-icon>
-              <template #title>低代码生成</template>
-            </el-menu-item>
-            <el-sub-menu index="health-management">
-              <template #title>
-                <el-icon><DataAnalysis /></el-icon>
-                <span>健康管理</span>
+          <!-- 如果菜单为空，显示加载状态或空状态 -->
+          <template v-else>
+            <div v-if="menuStore.loading" class="menu-loading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>加载菜单中...</span>
+            </div>
               </template>
-              <el-menu-item index="/health">
-                <el-icon><DataAnalysis /></el-icon>
-                <template #title>健康记录</template>
-              </el-menu-item>
-              <el-menu-item index="/health/statistics">
-                <el-icon><TrendCharts /></el-icon>
-                <template #title>健康统计</template>
-              </el-menu-item>
-            </el-sub-menu>
-            <el-sub-menu index="asset-management">
-              <template #title>
-                <el-icon><TrendCharts /></el-icon>
-                <span>资产管理</span>
-              </template>
-              <el-menu-item v-if="isAdminUser" index="/asset/categories">
-                <el-icon><Collection /></el-icon>
-                <template #title>资产分类</template>
-              </el-menu-item>
-              <el-menu-item index="/assets">
-                <el-icon><Document /></el-icon>
-                <template #title>资产列表</template>
-              </el-menu-item>
-              <el-menu-item index="/wishlist">
-                <el-icon><Collection /></el-icon>
-                <template #title>心愿单</template>
-              </el-menu-item>
-              <el-menu-item index="/assets/statistics">
-                <el-icon><TrendCharts /></el-icon>
-                <template #title>资产统计</template>
-              </el-menu-item>
-              <el-menu-item index="/data/management">
-                <el-icon><Setting /></el-icon>
-                <template #title>数据管理</template>
-              </el-menu-item>
-              <el-menu-item index="/settings/currency">
-                <el-icon><Money /></el-icon>
-                <template #title>货币设置</template>
-              </el-menu-item>
-            </el-sub-menu>
-            <el-menu-item index="/messages">
-              <el-icon><Message /></el-icon>
-              <template #title>消息中心</template>
-            </el-menu-item>
-          </el-sub-menu>
-
-          <!-- 🧰 工具箱（一级菜单，位于工作台下方、AI 工具上方） -->
-          <el-menu-item index="/tools">
-            <el-icon><Tools /></el-icon>
-            <template #title>工具箱</template>
-          </el-menu-item>
-
-          <!-- 🤖 AI 工具（一级菜单） -->
-          <el-sub-menu index="ai-tools">
-            <template #title>
-              <el-icon><Cpu /></el-icon>
-              <span v-show="!isCollapsed">AI 工具</span>
-            </template>
-            <el-menu-item index="/ai/prompt">
-              <el-icon><Cpu /></el-icon>
-              <template #title>Prompt</template>
-            </el-menu-item>
-            <el-menu-item index="/ai/knowledge-base">
-              <el-icon><Cpu /></el-icon>
-              <template #title>知识库</template>
-            </el-menu-item>
-            <el-menu-item index="/ai/image-generation">
-              <el-icon><Cpu /></el-icon>
-              <template #title>AI生图</template>
-            </el-menu-item>
-            <el-menu-item index="/ai/statistics">
-              <el-icon><Cpu /></el-icon>
-              <template #title>AI统计报表</template>
-            </el-menu-item>
-            <el-menu-item index="/ai/dify-assistant">
-              <el-icon><Cpu /></el-icon>
-              <template #title>Dify助手</template>
-            </el-menu-item>
-            <el-menu-item index="/ai/assistant">
-              <el-icon><Cpu /></el-icon>
-              <template #title>AI助手</template>
-            </el-menu-item>
-          </el-sub-menu>
-
-
-          <!-- 📢 公告管理（一级菜单） -->
-          <el-menu-item v-if="isAdminUser" index="/settings/announcements">
-            <el-icon><Bell /></el-icon>
-            <template #title>公告管理</template>
-          </el-menu-item>
-
-          <!-- ⏰ 定时任务管理（一级菜单） -->
-          <el-menu-item index="/settings/schedules">
-            <el-icon><Setting /></el-icon>
-            <template #title>定时任务管理</template>
-          </el-menu-item>
-
-          <!-- ⚙️ 系统设置（一级菜单） -->
-          <el-sub-menu index="settings">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span v-show="!isCollapsed">系统设置</span>
-            </template>
-            <el-menu-item v-if="isAdminUser" index="/settings/users">
-              <el-icon><Setting /></el-icon>
-              <template #title>系统用户管理</template>
-            </el-menu-item>
-            <el-menu-item index="/config">
-              <el-icon><Setting /></el-icon>
-              <template #title>全局参数设置</template>
-            </el-menu-item>
-          </el-sub-menu>
         </el-menu>
         <div class="collapse-button-wrapper">
           <el-button
@@ -860,6 +788,14 @@ const cachedViews = computed(() => {
               </div>
             </div>
           </el-popover>
+          <el-button
+            circle
+            class="refresh-menu-button"
+            :icon="Refresh"
+            :loading="menuStore.loading"
+            @click="handleRefreshMenus"
+            title="刷新菜单"
+          />
           <el-dropdown trigger="click" @command="(cmd) => cmd === 'logout' && handleLogout()">
             <div class="user-dropdown">
               <el-avatar :size="36" class="user-avatar" :src="authStore.user?.avatar">
@@ -893,7 +829,7 @@ const cachedViews = computed(() => {
       <TabsView />
       <el-main class="layout-main">
         <router-view v-slot="{ Component, route: currentRoute }">
-          <keep-alive>
+          <keep-alive :include="cachedViews">
             <component 
               :is="Component" 
               :key="`${currentRoute.fullPath}-${tabsStore.getRefreshKey(currentRoute.fullPath)}`"
@@ -1226,6 +1162,20 @@ const cachedViews = computed(() => {
 
 .menu :deep(.el-menu--collapse .el-sub-menu__icon-arrow) {
   display: none;
+}
+
+.menu-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.menu-loading .el-icon {
+  font-size: 16px;
 }
 
 .layout-header {

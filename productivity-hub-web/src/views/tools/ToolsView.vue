@@ -4,7 +4,7 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { useDevice } from '@/composables/useDevice'
 import { useNavigationStore } from '@/stores/navigation'
@@ -16,6 +16,7 @@ import { toolList, toolMetaMap, type ToolMeta } from '@/data/tools'
 const { isMobile, isTablet } = useDevice()
 
 const router = useRouter()
+const route = useRoute()
 const navigationStore = useNavigationStore()
 
 const tools: ToolMeta[] = toolList
@@ -34,12 +35,22 @@ const getToolClicks = (toolId: string) => toolStatMap.value.get(toolId)?.clicks 
 
 const sortedTools = computed(() => [...tools].sort((a, b) => getToolClicks(b.id) - getToolClicks(a.id)))
 
+const categoryFilter = computed(() => {
+  const category = route.query.category as string | undefined
+  return category === 'life' || category === 'tech' ? category : undefined
+})
+
 const filteredTools = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
+  const byCategory = categoryFilter.value
+    ? sortedTools.value.filter((tool) => tool.category === categoryFilter.value)
+    : sortedTools.value
+
   if (!keyword) {
-    return sortedTools.value
+    return byCategory
   }
-  return sortedTools.value.filter((tool) => {
+
+  return byCategory.filter((tool) => {
     const haystack = [tool.name, tool.description, ...(tool.keywords ?? [])].join(' ').toLowerCase()
     return haystack.includes(keyword)
   })

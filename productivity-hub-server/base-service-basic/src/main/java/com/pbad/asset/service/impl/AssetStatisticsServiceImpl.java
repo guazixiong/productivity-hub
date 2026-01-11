@@ -8,12 +8,15 @@ import com.pbad.asset.domain.vo.AssetStatisticsVO;
 import com.pbad.asset.domain.vo.CategoryStatisticsVO;
 import com.pbad.asset.domain.vo.StatisticsOverviewVO;
 import com.pbad.asset.domain.vo.StatisticsTrendVO;
+import com.pbad.asset.domain.vo.WishlistCardStatisticsVO;
+import com.pbad.asset.domain.vo.WishlistVO;
 import com.pbad.asset.mapper.AssetAdditionalFeeMapper;
 import com.pbad.asset.mapper.AssetMapper;
 import com.pbad.asset.service.AssetStatisticsService;
 import com.pbad.asset.statistics.factory.ChartDataGeneratorFactory;
 import com.pbad.asset.statistics.factory.ChartType;
 import com.pbad.asset.strategy.DepreciationContext;
+import com.pbad.asset.service.WishlistService;
 import common.exception.BusinessException;
 import common.web.context.RequestUserContext;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
@@ -46,6 +50,7 @@ public class AssetStatisticsServiceImpl implements AssetStatisticsService {
     private final AssetAdditionalFeeMapper additionalFeeMapper;
     private final ChartDataGeneratorFactory chartDataGeneratorFactory;
     private final DepreciationContext depreciationContext;
+    private final WishlistService wishlistService;
     
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -313,6 +318,69 @@ public class AssetStatisticsServiceImpl implements AssetStatisticsService {
         statistics.setTotalValue(totalPrice.add(totalAdditionalFees));
         statistics.setDailyAverageTotal(dailyAverageTotal);
         
+        return statistics;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WishlistCardStatisticsVO getWishlistCardStatistics(StatisticsQueryDTO query) {
+        // 依赖 WishlistService 内部的用户上下文校验
+        List<WishlistVO> wishlists = wishlistService.getWishlistList(null);
+
+        WishlistCardStatisticsVO statistics = new WishlistCardStatisticsVO();
+        statistics.setTotalCount(wishlists.size());
+
+        BigDecimal totalValue = BigDecimal.ZERO;
+        for (WishlistVO item : wishlists) {
+            if (item.getPrice() != null) {
+                totalValue = totalValue.add(item.getPrice());
+            }
+        }
+        statistics.setTotalValue(totalValue);
+
+        Date[] dateRange = calculateDateRange(query);
+        Date startDate = dateRange[0];
+        Date endDate = dateRange[1];
+
+        int addedCount = 0;
+        int achievedCount = 0;
+
+        if (startDate != null && endDate != null) {
+            LocalDateTime start = LocalDateTime.ofInstant(startDate.toInstant(), ZoneId.systemDefault())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime end = LocalDateTime.ofInstant(endDate.toInstant(), ZoneId.systemDefault())
+                    .withHour(23).withMinute(59).withSecond(59).withNano(999_999_999);
+
+            for (WishlistVO item : wishlists) {
+                Date createdAt = item.getCreatedAt();
+                if (createdAt != null) {
+                    LocalDateTime created = LocalDateTime.ofInstant(createdAt.toInstant(), ZoneId.systemDefault());
+                    if (!created.isBefore(start) && !created.isAfter(end)) {
+                        addedCount++;
+                    }
+                }
+
+                if (Boolean.TRUE.equals(item.getAchieved())) {
+                    Date achievedAt = item.getAchievedAt();
+                    if (achievedAt != null) {
+                        LocalDateTime achieved = LocalDateTime.ofInstant(achievedAt.toInstant(), ZoneId.systemDefault());
+                        if (!achieved.isBefore(start) && !achieved.isAfter(end)) {
+                            achievedCount++;
+                        }
+                    }
+                }
+            }
+        } else {
+            // ALL 情况：全部计入新增，已实现计入实现数
+            addedCount = wishlists.size();
+            achievedCount = (int) wishlists.stream()
+                    .filter(w -> Boolean.TRUE.equals(w.getAchieved()))
+                    .count();
+        }
+
+        statistics.setAddedCount(addedCount);
+        statistics.setAchievedCount(achievedCount);
+
         return statistics;
     }
 

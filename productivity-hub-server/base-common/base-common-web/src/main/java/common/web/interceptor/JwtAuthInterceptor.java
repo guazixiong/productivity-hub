@@ -42,6 +42,11 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 允许 OPTIONS 预检请求直接通过（CORS 预检请求）
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         // 检查是否在排除路径中
         String requestURI = request.getRequestURI();
         for (String excludePath : excludePaths) {

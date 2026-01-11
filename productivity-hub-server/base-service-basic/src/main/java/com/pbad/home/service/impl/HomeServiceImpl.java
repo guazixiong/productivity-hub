@@ -96,14 +96,14 @@ public class HomeServiceImpl implements HomeService {
 
     @Override
     public DailyQuoteApi.DailyQuote getDailyQuote(String userId) {
-        if (userId == null || userId.isEmpty()) {
-            log.warn("[HomeService] 用户ID为空，直接调用API获取每日一签");
-            return dailyQuoteApi.getDailyQuote();
-        }
-
+        // 为未登录用户使用全局缓存key，所有未登录用户共享同一个每日缓存
+        String effectiveUserId = (userId == null || userId.isEmpty()) ? "anonymous" : userId;
+        
         String today = getTodayDate();
-        String cacheKey = buildDailyQuoteCacheKey(userId, today);
-        String lockKey = DAILY_QUOTE_LOCK_KEY_PREFIX + userId + DATE_SEPARATOR + today;
+        String cacheKey = buildDailyQuoteCacheKey(effectiveUserId, today);
+        String lockKey = DAILY_QUOTE_LOCK_KEY_PREFIX + effectiveUserId + DATE_SEPARATOR + today;
+        
+        log.info("[HomeService] 获取每日一签，用户ID: {}，缓存key: {}", effectiveUserId, cacheKey);
         
         return getCachedData(
             cacheKey,
@@ -111,7 +111,7 @@ public class HomeServiceImpl implements HomeService {
             "每日一签",
             DailyQuoteApi.DailyQuote.class,
             dailyQuoteApi::getDailyQuote,
-            userId
+            effectiveUserId
         );
     }
 
@@ -279,16 +279,20 @@ public class HomeServiceImpl implements HomeService {
 
     @Override
     public DailyQuoteApi.DailyQuote refreshDailyQuote(String userId) {
-        log.info("[HomeService] 强制刷新用户 {} 的每日一签", userId);
+        // 为未登录用户使用全局缓存key
+        String effectiveUserId = (userId == null || userId.isEmpty()) ? "anonymous" : userId;
+        
+        log.info("[HomeService] 强制刷新用户 {} 的每日一签", effectiveUserId);
         
         DailyQuoteApi.DailyQuote dailyQuote = dailyQuoteApi.getDailyQuote();
         
-        if (userId != null && !userId.isEmpty() && dailyQuote != null) {
+        if (dailyQuote != null) {
             String today = getTodayDate();
-            String cacheKey = buildDailyQuoteCacheKey(userId, today);
+            String cacheKey = buildDailyQuoteCacheKey(effectiveUserId, today);
             long expireSeconds = getSecondsUntilNextDay();
             redisUtil.setKey(cacheKey, dailyQuote, expireSeconds, TimeUnit.SECONDS);
-            log.info("[HomeService] 用户 {} 的每日一签已强制刷新并更新缓存", userId);
+            log.info("[HomeService] 用户 {} 的每日一签已强制刷新并更新缓存，缓存key: {}，过期时间: {} 秒", 
+                effectiveUserId, cacheKey, expireSeconds);
         }
         
         return dailyQuote;

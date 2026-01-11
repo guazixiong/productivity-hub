@@ -21,7 +21,7 @@ public class ApiResponse<T> implements Serializable {
     /**
      * 成功状态码
      */
-    public static final int SUCCESS = 0;
+    public static final int SUCCESS = 200;
 
     /**
      * 未授权
@@ -39,7 +39,7 @@ public class ApiResponse<T> implements Serializable {
     public static final int INTERNAL_ERROR = 500;
 
     /**
-     * 响应码：0=成功, 非0=失败
+     * 响应码：200=成功, 非200=失败
      */
     private int code;
 

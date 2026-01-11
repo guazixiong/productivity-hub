@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * @date: 2025-01-XX
  * @version: 1.0
  */
-@Component
+@Component("assetValidatorChainBuilder")
 @RequiredArgsConstructor
 public class ValidatorChainBuilder {
 

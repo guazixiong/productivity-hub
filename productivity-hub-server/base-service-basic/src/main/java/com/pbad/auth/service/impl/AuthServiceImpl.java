@@ -10,6 +10,10 @@ import com.pbad.auth.domain.vo.UserVO;
 import com.pbad.auth.mapper.UserMapper;
 import com.pbad.auth.service.AuthService;
 import com.pbad.auth.util.CaptchaUtil;
+import com.pbad.acl.domain.enums.RoleType;
+import com.pbad.acl.domain.po.AclRolePO;
+import com.pbad.acl.mapper.AclRoleMapper;
+import com.pbad.acl.mapper.AclUserRoleMapper;
 import com.pbad.cache.service.UserCacheService;
 import common.exception.BusinessException;
 import common.util.JwtUtil;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +44,8 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final RedisUtil redisUtil;
     private final UserCacheService userCacheService;
+    private final AclUserRoleMapper aclUserRoleMapper;
+    private final AclRoleMapper aclRoleMapper;
 
     /**
      * 默认密码
@@ -127,16 +134,43 @@ public class AuthServiceImpl implements AuthService {
         userVO.setAvatar(userPO.getAvatar());
         userVO.setBio(userPO.getBio());
         userVO.setPhone(userPO.getPhone());
+        
         // 解析角色 JSON 字符串
+        List<String> roles = new ArrayList<>();
         if (userPO.getRoles() != null && !userPO.getRoles().isEmpty()) {
             try {
-                List<String> roles = JSON.parseArray(userPO.getRoles(), String.class);
-                userVO.setRoles(roles);
+                roles = JSON.parseArray(userPO.getRoles(), String.class);
+                if (roles == null) {
+                    roles = new ArrayList<>();
+                }
             } catch (Exception e) {
                 log.warn("解析用户角色失败: {}", e.getMessage());
-                userVO.setRoles(null);
+                roles = new ArrayList<>();
             }
         }
+        
+        // 检查用户是否通过ACL系统拥有管理员角色
+        try {
+            List<Long> roleIds = aclUserRoleMapper.selectRoleIdsByUserId(userPO.getId());
+            if (roleIds != null && !roleIds.isEmpty()) {
+                for (Long roleId : roleIds) {
+                    AclRolePO role = aclRoleMapper.selectById(roleId);
+                    if (role != null && RoleType.ADMIN.getCode().equals(role.getType())) {
+                        // 用户通过ACL系统拥有管理员角色，确保 roles 中包含 'admin'
+                        if (!roles.contains("admin")) {
+                            roles.add("admin");
+                            log.debug("[Auth] 用户 {} 通过ACL系统拥有管理员角色，已添加到 roles 中", userPO.getId());
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // ACL系统检查失败不影响登录流程，只记录日志
+            log.warn("[Auth] 检查用户 {} ACL角色失败: {}", userPO.getId(), e.getMessage());
+        }
+        
+        userVO.setRoles(roles);
 
         // 构建响应
         LoginResponseVO response = new LoginResponseVO();

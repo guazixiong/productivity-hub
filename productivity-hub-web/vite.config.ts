@@ -217,6 +217,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/acl': {
+          // 代理 ACL 相关请求到后端服务器
+          target: apiBaseUrl,
+          changeOrigin: true,
+          secure: false,
+        },
         '/uploads': {
           // 代理静态资源请求到后端服务器
           target: apiBaseUrl,

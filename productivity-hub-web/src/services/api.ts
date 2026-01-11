@@ -17,6 +17,17 @@ import type {
   CodeGenerationConfig,
 } from '@/types/codeGenerator'
 import type { ScheduleTask } from '@/types/schedule'
+import type {
+  AclMenuTreeVO,
+  AclMenuVO,
+  AclRoleVO,
+  AclMenuCreateDTO,
+  AclMenuUpdateDTO,
+  AclRoleCreateDTO,
+  AclRoleUpdateDTO,
+  AclRoleMenuBindDTO,
+  AclUserRoleBindDTO,
+} from '@/types/acl'
 
 export const authApi = {
   login: (payload: LoginPayload) =>
@@ -591,5 +602,113 @@ export const chatWithDify = async (options: DifyChatOptions): Promise<void> => {
   } catch (error) {
     onError((error as Error).message || '请求失败')
   }
+}
+
+// ACL权限管理API
+export const aclMenuApi = {
+  // 获取菜单树
+  getTree: () =>
+    request<AclMenuTreeVO[]>({
+      url: '/acl/menus/tree',
+      method: 'GET',
+    }),
+  // 创建菜单
+  create: (payload: AclMenuCreateDTO) =>
+    request<AclMenuVO>({
+      url: '/acl/menus/create',
+      method: 'POST',
+      data: payload,
+    }),
+  // 更新菜单
+  update: (payload: AclMenuUpdateDTO) =>
+    request<AclMenuVO>({
+      url: '/acl/menus/update',
+      method: 'POST',
+      data: payload,
+    }),
+  // 删除菜单
+  delete: (id: number) =>
+    request<void>({
+      url: `/acl/menus/delete`,
+      method: 'POST',
+      params: { id },
+    }),
+}
+
+export const aclRoleApi = {
+  // 获取角色列表
+  list: () =>
+    request<AclRoleVO[]>({
+      url: '/acl/roles/list',
+      method: 'GET',
+    }),
+  // 获取角色详情
+  getDetail: (id: number) =>
+    request<AclRoleVO>({
+      url: `/acl/roles/detail`,
+      method: 'GET',
+      params: { id },
+    }),
+  // 创建角色
+  create: (payload: AclRoleCreateDTO) =>
+    request<AclRoleVO>({
+      url: '/acl/roles/create',
+      method: 'POST',
+      data: payload,
+    }),
+  // 更新角色
+  update: (payload: AclRoleUpdateDTO) =>
+    request<AclRoleVO>({
+      url: '/acl/roles/update',
+      method: 'POST',
+      data: payload,
+    }),
+  // 删除角色
+  delete: (id: number) =>
+    request<void>({
+      url: `/acl/roles/delete`,
+      method: 'POST',
+      params: { id },
+    }),
+  // 绑定角色-菜单关系
+  bindMenus: (payload: AclRoleMenuBindDTO) =>
+    request<void>({
+      url: '/acl/roles/bind-menus',
+      method: 'POST',
+      data: payload,
+    }),
+}
+
+export const aclUserRoleApi = {
+  // 绑定用户-角色关系
+  bindRoles: (payload: AclUserRoleBindDTO) =>
+    request<void>({
+      url: '/acl/users/bind-roles',
+      method: 'POST',
+      data: payload,
+    }),
+  // 获取用户的角色ID列表
+  getUserRoles: (userId: string) =>
+    request<number[]>({
+      url: '/acl/users/roles',
+      method: 'GET',
+      params: { userId },
+    }),
+  // 根据角色ID获取用户ID列表
+  getUsersByRole: (roleId: number) =>
+    request<string[]>({
+      url: '/acl/users/by-role',
+      method: 'GET',
+      params: { roleId },
+    }),
+}
+
+export const aclAuthApi = {
+  // 获取当前登录用户的菜单树
+  getCurrentUserMenus: () =>
+    request<AclMenuTreeVO[]>({
+      url: '/acl/auth/menus',
+      method: 'GET',
+    }),
 }
 

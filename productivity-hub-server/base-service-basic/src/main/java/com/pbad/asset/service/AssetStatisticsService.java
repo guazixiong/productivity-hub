@@ -7,6 +7,7 @@ import com.pbad.asset.domain.vo.AssetStatisticsVO;
 import com.pbad.asset.domain.vo.CategoryStatisticsVO;
 import com.pbad.asset.domain.vo.StatisticsOverviewVO;
 import com.pbad.asset.domain.vo.StatisticsTrendVO;
+import com.pbad.asset.domain.vo.WishlistCardStatisticsVO;
 
 import java.util.List;
 
@@ -73,6 +74,14 @@ public interface AssetStatisticsService {
      * @return 资产卡片统计数据
      */
     AssetCardStatisticsVO getAssetCardStatistics(StatisticsQueryDTO query);
+
+    /**
+     * 获取心愿单卡片统计信息
+     *
+     * @param query 查询条件
+     * @return 心愿单卡片统计数据
+     */
+    WishlistCardStatisticsVO getWishlistCardStatistics(StatisticsQueryDTO query);
 
     /**
      * 清理统计相关缓存.

@@ -6,6 +6,7 @@ import com.pbad.asset.domain.vo.AssetDistributionVO;
 import com.pbad.asset.domain.vo.CategoryStatisticsVO;
 import com.pbad.asset.domain.vo.StatisticsOverviewVO;
 import com.pbad.asset.domain.vo.StatisticsTrendVO;
+import com.pbad.asset.domain.vo.WishlistCardStatisticsVO;
 import com.pbad.asset.service.AssetStatisticsService;
 import common.core.domain.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -125,6 +126,23 @@ public class StatisticsController {
         query.setStartDate(startDate);
         query.setEndDate(endDate);
         AssetCardStatisticsVO statistics = statisticsService.getAssetCardStatistics(query);
+        return ApiResponse.ok(statistics);
+    }
+
+    /**
+     * 获取心愿单卡片统计信息
+     * 接口编号：API-REQ-003-07
+     */
+    @GetMapping("/wishlist-card")
+    public ApiResponse<WishlistCardStatisticsVO> getWishlistCardStatistics(
+            @RequestParam(required = false) String period,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setPeriod(period);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        WishlistCardStatisticsVO statistics = statisticsService.getWishlistCardStatistics(query);
         return ApiResponse.ok(statistics);
     }
 

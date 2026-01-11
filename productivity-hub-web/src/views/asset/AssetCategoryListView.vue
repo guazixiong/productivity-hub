@@ -131,8 +131,8 @@
       >
         <el-form-item label="分类级别" v-if="!isEdit">
           <el-radio-group v-model="categoryLevel" @change="handleLevelChange">
-            <el-radio :label="1">大分类</el-radio>
-            <el-radio :label="2">小分类</el-radio>
+            <el-radio :value="1">大分类</el-radio>
+            <el-radio :value="2">小分类</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item

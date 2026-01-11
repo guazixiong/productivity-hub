@@ -86,7 +86,8 @@ const typeTagType = (type: Announcement['type']) => {
   if (type === 'URGENT') return 'danger'
   if (type === 'WARNING') return 'warning'
   if (type === 'INFO') return 'info'
-  return ''
+  // 默认使用 info 类型，避免传入空字符串导致的 ElTag type 校验警告
+  return 'info'
 }
 
 const pushStrategyLabel = (strategy: Announcement['pushStrategy']) => {
@@ -341,7 +342,7 @@ onMounted(() => {
         <el-table-column prop="createdAt" label="创建时间" width="170" />
         <el-table-column label="操作" fixed="right" width="260">
           <template #default="{ row }">
-            <el-space size="8">
+            <el-space>
               <el-button type="primary" text size="small" @click="openEdit(row)">编辑</el-button>
               <el-button
                 type="success"
@@ -412,9 +413,9 @@ onMounted(() => {
         </el-form-item>
         <el-form-item label="推送策略" prop="pushStrategy">
           <el-radio-group v-model="formModel.pushStrategy">
-            <el-radio-button label="IMMEDIATE">立即</el-radio-button>
-            <el-radio-button label="LOGIN">登录提醒</el-radio-button>
-            <el-radio-button label="SCHEDULED">定时</el-radio-button>
+            <el-radio-button value="IMMEDIATE">立即</el-radio-button>
+            <el-radio-button value="LOGIN">登录提醒</el-radio-button>
+            <el-radio-button value="SCHEDULED">定时</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="isScheduled" label="定时时间" prop="scheduledTime">

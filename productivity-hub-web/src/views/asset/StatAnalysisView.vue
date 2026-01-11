@@ -442,19 +442,10 @@ const loadAssetStatistics = async () => {
 }
 
 // 加载心愿单卡片统计信息
+// 当前后端尚未提供 `/api/statistics/wishlist-card` 接口
+// 为避免产生 404 请求，统一使用前端计算方式
 const loadWishlistCardStatistics = async () => {
-  try {
-    const res = await statisticsApi.getWishlistCardStatistics()
-    if (res) {
-      wishlistCardStats.value = res
-    } else {
-      // 如果后端接口不存在，使用前端计算
-      await calculateWishlistStats()
-    }
-  } catch (error: any) {
-    // 如果接口不存在，使用前端计算
-    await calculateWishlistStats()
-  }
+  await calculateWishlistStats()
 }
 
 // 前端计算心愿单统计数据

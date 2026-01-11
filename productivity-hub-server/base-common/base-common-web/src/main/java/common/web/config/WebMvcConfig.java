@@ -50,20 +50,29 @@ public class WebMvcConfig implements WebMvcConfigurer {
         jwtAuthInterceptor.setExcludePaths(excludePaths);
         rateLimitInterceptor.setExcludePaths(excludePaths);
 
-        // 先注册JWT认证拦截器
+        // 先注册JWT认证拦截器（拦截 /api/** 和 /acl/** 路径）
         registry.addInterceptor(jwtAuthInterceptor)
-                .addPathPatterns(apiPathPrefix + "/**")
+                .addPathPatterns(apiPathPrefix + "/**", "/acl/**")
                 .excludePathPatterns(excludePaths.toArray(new String[0]));
 
         // 再注册限流拦截器（在JWT认证之后执行，以便获取用户ID）
         registry.addInterceptor(rateLimitInterceptor)
-                .addPathPatterns(apiPathPrefix + "/**")
+                .addPathPatterns(apiPathPrefix + "/**", "/acl/**")
                 .excludePathPatterns(excludePaths.toArray(new String[0]));
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // 配置 /api/** 路径的 CORS
         registry.addMapping(apiPathPrefix + "/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false)
+                .maxAge(3600);
+        
+        // 配置 /acl/** 路径的 CORS
+        registry.addMapping("/acl/**")
                 .allowedOrigins("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

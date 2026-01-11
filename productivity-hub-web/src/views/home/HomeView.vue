@@ -417,16 +417,55 @@ const handleRefreshWeather = async () => {
   ElMessage.success('天气信息已刷新')
 }
 
+// 获取今天的日期字符串（格式：YYYY-MM-DD）
+const getTodayDate = (): string => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // 获取每日一签（使用后端接口，带缓存）
 const fetchDailyFortune = async (forceRefresh = false) => {
   loadingFortune.value = true
+  const cacheKey = 'phub:daily-quote'
+  const cacheDateKey = 'phub:daily-quote:date'
+  const today = getTodayDate()
+  
   try {
+    // 如果不是强制刷新，先检查本地缓存
+    if (!forceRefresh) {
+      const cachedDate = localStorage.getItem(cacheDateKey)
+      const cachedData = localStorage.getItem(cacheKey)
+      
+      if (cachedDate === today && cachedData) {
+        try {
+          const dailyQuote = JSON.parse(cachedData)
+          fortune.value = {
+            name: '每日一言',
+            description: dailyQuote.quote || '今日运势良好',
+            advice: dailyQuote.from || '保持积极心态',
+          }
+          loadingFortune.value = false
+          return
+        } catch (e) {
+          // 缓存解析失败，继续调用API
+          console.warn('解析每日一签缓存失败', e)
+        }
+      }
+    }
+    
     // 根据是否强制刷新选择不同的接口
     const dailyQuote = forceRefresh 
       ? await homeApi.refreshDailyQuote()
       : await homeApi.getDailyQuote()
     
     if (dailyQuote) {
+      // 保存到本地缓存
+      localStorage.setItem(cacheKey, JSON.stringify(dailyQuote))
+      localStorage.setItem(cacheDateKey, today)
+      
       // 后端返回的是DailyQuote格式，需要转换为FortuneData格式
       fortune.value = {
         name: '每日一言',
@@ -434,7 +473,25 @@ const fetchDailyFortune = async (forceRefresh = false) => {
         advice: dailyQuote.from || '保持积极心态',
       }
     } else {
-      // 如果API失败，使用默认值
+      // 如果API失败，尝试使用缓存
+      const cachedDate = localStorage.getItem(cacheDateKey)
+      const cachedData = localStorage.getItem(cacheKey)
+      
+      if (cachedDate === today && cachedData) {
+        try {
+          const cachedQuote = JSON.parse(cachedData)
+          fortune.value = {
+            name: '每日一言',
+            description: cachedQuote.quote || '今日运势良好',
+            advice: cachedQuote.from || '保持积极心态',
+          }
+          return
+        } catch (e) {
+          console.warn('使用缓存失败', e)
+        }
+      }
+      
+      // 使用默认值
       fortune.value = {
         name: '每日一言',
         description: '今日运势良好',
@@ -442,8 +499,29 @@ const fetchDailyFortune = async (forceRefresh = false) => {
       }
     }
   } catch (error) {
+    console.error('获取每日一签失败', error)
+    
+    // 如果API失败，尝试使用缓存
+    const cachedDate = localStorage.getItem(cacheDateKey)
+    const cachedData = localStorage.getItem(cacheKey)
+    
+    if (cachedDate === today && cachedData) {
+      try {
+        const cachedQuote = JSON.parse(cachedData)
+        fortune.value = {
+          name: '每日一言',
+          description: cachedQuote.quote || '今日运势良好',
+          advice: cachedQuote.from || '保持积极心态',
+        }
+        loadingFortune.value = false
+        return
+      } catch (e) {
+        console.warn('使用缓存失败', e)
+      }
+    }
+    
+    // 如果缓存也不可用，显示错误并使用默认值
     ElMessage.error('获取每日一签失败，请稍后重试')
-    // 使用默认值
     fortune.value = {
       name: '每日一言',
       description: '今日运势良好',

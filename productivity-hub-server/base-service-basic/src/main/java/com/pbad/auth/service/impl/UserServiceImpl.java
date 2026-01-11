@@ -5,6 +5,10 @@ import com.pbad.auth.domain.po.UserPO;
 import com.pbad.auth.domain.vo.UserVO;
 import com.pbad.auth.mapper.UserMapper;
 import com.pbad.auth.service.UserService;
+import com.pbad.acl.domain.enums.RoleType;
+import com.pbad.acl.domain.po.AclRolePO;
+import com.pbad.acl.mapper.AclRoleMapper;
+import com.pbad.acl.mapper.AclUserRoleMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +34,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final AclUserRoleMapper aclUserRoleMapper;
+    private final AclRoleMapper aclRoleMapper;
 
     @Override
     public UserVO getProfile(String userId) {
@@ -130,17 +137,41 @@ public class UserServiceImpl implements UserService {
         userVO.setUpdatedAt(userPO.getUpdatedAt());
 
         // 解析角色列表
+        List<String> roles = new ArrayList<>();
         if (StringUtils.hasText(userPO.getRoles())) {
             try {
-                List<String> roles = objectMapper.readValue(userPO.getRoles(), new TypeReference<List<String>>() {});
-                userVO.setRoles(roles);
+                roles = objectMapper.readValue(userPO.getRoles(), new TypeReference<List<String>>() {});
+                if (roles == null) {
+                    roles = new ArrayList<>();
+                }
             } catch (Exception e) {
                 log.warn("解析用户角色失败: {}", userPO.getRoles(), e);
-                userVO.setRoles(Collections.emptyList());
+                roles = new ArrayList<>();
             }
-        } else {
-            userVO.setRoles(Collections.emptyList());
         }
+        
+        // 检查用户是否通过ACL系统拥有管理员角色
+        try {
+            List<Long> roleIds = aclUserRoleMapper.selectRoleIdsByUserId(userPO.getId());
+            if (roleIds != null && !roleIds.isEmpty()) {
+                for (Long roleId : roleIds) {
+                    AclRolePO role = aclRoleMapper.selectById(roleId);
+                    if (role != null && RoleType.ADMIN.getCode().equals(role.getType())) {
+                        // 用户通过ACL系统拥有管理员角色，确保 roles 中包含 'admin'
+                        if (!roles.contains("admin")) {
+                            roles.add("admin");
+                            log.debug("[UserService] 用户 {} 通过ACL系统拥有管理员角色，已添加到 roles 中", userPO.getId());
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // ACL系统检查失败不影响流程，只记录日志
+            log.warn("[UserService] 检查用户 {} ACL角色失败: {}", userPO.getId(), e.getMessage());
+        }
+        
+        userVO.setRoles(roles);
 
         return userVO;
     }

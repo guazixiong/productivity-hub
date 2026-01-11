@@ -24,6 +24,7 @@ export interface ToolMeta {
   description: string
   icon: Component
   path: string
+  category: 'life' | 'tech'
   keywords?: string[]
 }
 
@@ -34,6 +35,7 @@ export const toolList: ToolMeta[] = [
     description: 'AI架构师成长路线可视化，完整覆盖基础与卓越能力',
     icon: Promotion,
     path: '/tools/blueprint',
+    category: 'tech',
     keywords: ['AI', '成长', '蓝图', '路线图', '架构师'],
   },
   {
@@ -42,6 +44,7 @@ export const toolList: ToolMeta[] = [
     description: '提交规范与常用命令速览，Git工作流指南',
     icon: FolderOpened,
     path: '/tools/git-toolbox',
+    category: 'tech',
     keywords: ['git', '版本控制', '命令', '提交规范'],
   },
   {
@@ -50,6 +53,7 @@ export const toolList: ToolMeta[] = [
     description: '全屏数字时钟，支持12/24小时制，黑白主题切换',
     icon: Timer,
     path: '/tools/clock',
+    category: 'life',
     keywords: ['时钟', '时间', '全屏', '屏幕'],
   },
   {
@@ -58,6 +62,7 @@ export const toolList: ToolMeta[] = [
     description: '统一查看 Cursor 邮箱小店与链动小铺的库存与限购信息',
     icon: Shop,
     path: '/tools/cursor-inventory',
+    category: 'tech',
     keywords: ['cursor', '库存', '链动', '商品'],
   },
   {
@@ -66,6 +71,7 @@ export const toolList: ToolMeta[] = [
     description: '格式化、验证、压缩JSON数据',
     icon: Document,
     path: '/tools/json',
+    category: 'tech',
     keywords: ['格式化', 'json'],
   },
   {
@@ -74,6 +80,7 @@ export const toolList: ToolMeta[] = [
     description: '美食转盘，帮你决定今天吃什么',
     icon: Food,
     path: '/tools/food',
+    category: 'life',
     keywords: ['美食', '转盘', '吃什么'],
   },
   {
@@ -82,6 +89,7 @@ export const toolList: ToolMeta[] = [
     description: '解析表达式并预览未来执行时间',
     icon: CollectionTag,
     path: '/tools/cron',
+    category: 'tech',
     keywords: ['调度', 'cron'],
   },
   {
@@ -90,6 +98,7 @@ export const toolList: ToolMeta[] = [
     description: '计算指定日期范围内的工作日',
     icon: Calendar,
     path: '/tools/workday',
+    category: 'life',
     keywords: ['日历', '工作日'],
   },
   {
@@ -98,6 +107,7 @@ export const toolList: ToolMeta[] = [
     description: '将图片转换为Base64编码字符串',
     icon: Picture,
     path: '/tools/image-base64',
+    category: 'tech',
     keywords: ['图片', 'base64', '编码', '转换'],
   },
   {
@@ -106,6 +116,7 @@ export const toolList: ToolMeta[] = [
     description: '时间戳与日期时间相互转换',
     icon: Clock,
     path: '/tools/time',
+    category: 'tech',
     keywords: ['时间戳', '转换'],
   },
   {
@@ -114,6 +125,7 @@ export const toolList: ToolMeta[] = [
     description: '自定义字符集，一键生成强密码',
     icon: Key,
     path: '/tools/password',
+    category: 'tech',
     keywords: ['密码', '安全'],
   },
   {
@@ -122,6 +134,7 @@ export const toolList: ToolMeta[] = [
     description: '实时匹配与替换，支持多模式',
     icon: EditPen,
     path: '/tools/regex',
+    category: 'tech',
     keywords: ['正则', '匹配'],
   },
   {
@@ -130,6 +143,7 @@ export const toolList: ToolMeta[] = [
     description: '校验YAML并提示错误位置，附JSON预览',
     icon: Operation,
     path: '/tools/yaml',
+    category: 'tech',
     keywords: ['yaml', '校验'],
   },
   {
@@ -138,6 +152,7 @@ export const toolList: ToolMeta[] = [
     description: '格式化、压缩SQL语句，支持关键字大小写转换',
     icon: Connection,
     path: '/tools/sql-formatter',
+    category: 'tech',
     keywords: ['sql', '格式化', '数据库'],
   },
   {
@@ -146,6 +161,7 @@ export const toolList: ToolMeta[] = [
     description: '支持长度、面积、体积、时间、角度、速度、温度、压力、热量、功率等单位换算',
     icon: Switch,
     path: '/tools/unit-converter',
+    category: 'life',
     keywords: ['单位', '换算', '转换', '长度', '面积', '体积', '温度'],
   },
   {
@@ -154,6 +170,7 @@ export const toolList: ToolMeta[] = [
     description: '通过问卷评估商品购买价值，帮你理性消费决策',
     icon: Goods,
     path: '/tools/worth-buying',
+    category: 'life',
     keywords: ['购物', '消费', '决策', '评估', '值不值得'],
   },
 ]

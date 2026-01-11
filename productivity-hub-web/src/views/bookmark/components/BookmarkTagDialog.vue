@@ -16,8 +16,8 @@
       </el-form-item>
       <el-form-item v-if="!parentTag" label="标签层级" prop="level">
         <el-radio-group v-model="form.level">
-          <el-radio :label="1">一级标签</el-radio>
-          <el-radio :label="2">二级标签</el-radio>
+          <el-radio :value="1">一级标签</el-radio>
+          <el-radio :value="2">二级标签</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item

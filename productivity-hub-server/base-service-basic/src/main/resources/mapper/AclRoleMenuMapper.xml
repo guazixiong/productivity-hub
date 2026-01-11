@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pbad.acl.mapper.AclRoleMenuMapper">
+
+    <resultMap id="AclRoleMenuResultMap" type="com.pbad.acl.domain.po.AclRoleMenuPO">
+        <id property="id" column="id"/>
+        <result property="roleId" column="role_id"/>
+        <result property="menuId" column="menu_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, role_id, menu_id, created_at
+    </sql>
+
+    <!-- 根据角色ID查询菜单ID列表 -->
+    <select id="selectMenuIdsByRoleId" resultType="long">
+        SELECT menu_id
+        FROM acl_role_menu
+        WHERE role_id = #{roleId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 插入角色-菜单关联 -->
+    <insert id="insertRoleMenu">
+        INSERT INTO acl_role_menu (
+            role_id,
+            menu_id,
+            created_at
+        ) VALUES (
+            #{roleId},
+            #{menuId},
+            IFNULL(NOW(), CURRENT_TIMESTAMP)
+        )
+    </insert>
+
+    <!-- 删除角色下的所有菜单关联 -->
+    <delete id="deleteRoleMenuByRoleId">
+        DELETE FROM acl_role_menu
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <!-- 批量插入角色-菜单关联 -->
+    <insert id="batchInsertRoleMenu">
+        INSERT INTO acl_role_menu (
+            role_id,
+            menu_id,
+            created_at
+        ) VALUES
+        <foreach collection="menuIds" item="menuId" separator=",">
+            (#{roleId}, #{menuId}, IFNULL(NOW(), CURRENT_TIMESTAMP))
+        </foreach>
+    </insert>
+
+</mapper>
+

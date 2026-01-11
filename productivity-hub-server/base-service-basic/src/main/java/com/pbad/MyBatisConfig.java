@@ -26,7 +26,9 @@ import org.springframework.context.annotation.Configuration;
         // Health
         "com.pbad.health.mapper",
         // Asset
-        "com.pbad.asset.mapper"
+        "com.pbad.asset.mapper",
+        // ACL
+        "com.pbad.acl.mapper"
 })
 public class MyBatisConfig {
 }

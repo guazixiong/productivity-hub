@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNavigationStore } from '@/stores/navigation'
+import { useMenuStore } from '@/stores/menu'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -21,9 +22,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/home/HomeView.vue'),
       },
       {
+        path: 'ai-daily',
+        name: 'AIDaily',
+        meta: { title: 'AI日报' },
+        component: () => import('@/views/ai/AIDailyView.vue'),
+      },
+      {
         path: 'todo',
         name: 'Todo',
-        meta: { title: '行为级Todo' },
+        meta: { title: '待办事项' },
         component: () => import('@/views/todo/TodoView.vue'),
       },
       {
@@ -61,6 +68,18 @@ const routes: RouteRecordRaw[] = [
         name: 'AnnouncementManage',
         meta: { title: '公告管理', requiresAdmin: true },
         component: () => import('@/views/settings/AnnouncementManageView.vue'),
+      },
+      {
+        path: 'settings/menus',
+        name: 'MenuManagement',
+        meta: { title: '菜单管理', requiresAdmin: true },
+        component: () => import('@/views/settings/MenuManagementView.vue'),
+      },
+      {
+        path: 'settings/roles',
+        name: 'RoleManagement',
+        meta: { title: '角色管理', requiresAdmin: true },
+        component: () => import('@/views/settings/RoleManagementView.vue'),
       },
       {
         path: 'settings',
@@ -416,7 +435,7 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const navigationStore = useNavigationStore()
 
@@ -431,6 +450,9 @@ router.beforeEach((to, from, next) => {
 
   if (!authStore.isHydrated) {
     authStore.hydrateFromCache()
+    // 恢复菜单缓存
+    const menuStore = useMenuStore()
+    menuStore.hydrateFromCache()
   }
 
   if (!authStore.isAuthenticated) {
@@ -438,12 +460,32 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  // 如果已登录但菜单为空，尝试加载菜单
+  const menuStore = useMenuStore()
+  if (authStore.isAuthenticated && !menuStore.hasMenus && !menuStore.loading) {
+    menuStore.fetchMenus().catch(() => {
+      // 加载失败不影响页面显示
+    })
+  }
+
   // 权限校验：仅管理员可访问 requiresAdmin 路由
   if (to.meta.requiresAdmin) {
-    const roles = authStore.user?.roles || []
+    let roles = authStore.user?.roles || []
     if (!roles.includes('admin')) {
-      next({ name: 'NotFound' })
-      return
+      // 如果用户信息中没有admin角色，尝试刷新用户信息（可能通过ACL系统分配了管理员角色）
+      try {
+        await authStore.refreshUserInfo()
+        roles = authStore.user?.roles || []
+      } catch (error) {
+        // 刷新失败，使用原始角色继续检查
+        console.warn('刷新用户信息失败，使用缓存信息:', error)
+      }
+      
+      // 最终检查：如果仍然没有admin角色，跳转到NotFound
+      if (!roles.includes('admin')) {
+        next({ name: 'NotFound' })
+        return
+      }
     }
   }
 

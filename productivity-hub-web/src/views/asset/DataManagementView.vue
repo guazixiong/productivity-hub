@@ -31,14 +31,14 @@
             <el-form :model="importForm" label-width="120px" style="margin-top: 24px; max-width: 500px">
               <el-form-item label="数据类型">
                 <el-radio-group v-model="importForm.dataType">
-                  <el-radio label="asset">资产数据</el-radio>
-                  <el-radio label="wishlist">心愿单数据</el-radio>
+                  <el-radio value="asset">资产数据</el-radio>
+                  <el-radio value="wishlist">心愿单数据</el-radio>
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="导入模式">
                 <el-radio-group v-model="importForm.incremental">
-                  <el-radio :label="false">全量导入</el-radio>
-                  <el-radio :label="true">增量导入</el-radio>
+                  <el-radio :value="false">全量导入</el-radio>
+                  <el-radio :value="true">增量导入</el-radio>
                 </el-radio-group>
                 <div class="form-item-desc">
                   全量导入：清空现有数据后导入；增量导入：在现有数据基础上追加
@@ -92,14 +92,14 @@
             <el-form :model="exportForm" label-width="120px" style="max-width: 500px">
               <el-form-item label="数据类型">
                 <el-radio-group v-model="exportForm.dataType">
-                  <el-radio label="asset">资产数据</el-radio>
-                  <el-radio label="wishlist">心愿单数据</el-radio>
+                  <el-radio value="asset">资产数据</el-radio>
+                  <el-radio value="wishlist">心愿单数据</el-radio>
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="导出格式">
                 <el-radio-group v-model="exportForm.format">
-                  <el-radio label="excel">Excel (.xlsx)</el-radio>
-                  <el-radio label="csv">CSV (.csv)</el-radio>
+                  <el-radio value="excel">Excel (.xlsx)</el-radio>
+                  <el-radio value="csv">CSV (.csv)</el-radio>
                 </el-radio-group>
               </el-form-item>
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 消息中心页面组件
+ * 消息推送页面组件
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
@@ -485,9 +485,9 @@ watch(
               <div class="history-status-wrapper">
                 <span class="history-filter-label">筛选条件</span>
                 <el-radio-group v-model="historyFilters.status" class="status-filter-group">
-                  <el-radio-button label="all">全部</el-radio-button>
-                  <el-radio-button label="success">成功</el-radio-button>
-                  <el-radio-button label="failed">失败</el-radio-button>
+                  <el-radio-button value="all">全部</el-radio-button>
+                  <el-radio-button value="success">成功</el-radio-button>
+                  <el-radio-button value="failed">失败</el-radio-button>
                 </el-radio-group>
               </div>
               <el-select v-model="historyFilters.channel" class="channel-select" placeholder="选择渠道">

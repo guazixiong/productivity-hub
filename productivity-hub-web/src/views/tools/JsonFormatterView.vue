@@ -340,8 +340,8 @@ const highlightJson = (value: string) => {
     </div>
     <div class="mode-switch">
       <el-radio-group v-model="activeMode" size="large">
-        <el-radio-button label="format">JSON 格式化</el-radio-button>
-        <el-radio-button label="diff">JSON 对比</el-radio-button>
+        <el-radio-button value="format">JSON 格式化</el-radio-button>
+        <el-radio-button value="diff">JSON 对比</el-radio-button>
       </el-radio-group>
     </div>
     <template v-if="activeMode === 'format'">

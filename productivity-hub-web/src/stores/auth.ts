@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import type { LoginPayload, UserInfo, AuthResponse, UserProfileUpdatePayload } from '@/types/auth'
 import { authApi, userApi } from '@/services/api'
 import { useConfigStore } from '@/stores/config'
+import { useMenuStore } from '@/stores/menu'
 
 const TOKEN_KEY = 'phub/token'
 const REFRESH_KEY = 'phub/refreshToken'
@@ -32,6 +33,9 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await authApi.login(payload)
         this.applyAuthResponse(response)
+        // 登录成功后拉取菜单
+        const menuStore = useMenuStore()
+        await menuStore.fetchMenus()
       } finally {
         this.loading = false
       }
@@ -54,6 +58,9 @@ export const useAuthStore = defineStore('auth', {
       // 切换账号时清空配置缓存，避免沿用上一位用户的配置 ID
       const configStore = useConfigStore()
       configStore.reset()
+      // 清除菜单缓存
+      const menuStore = useMenuStore()
+      menuStore.clearCache()
     },
     hydrateFromCache() {
       if (this.isHydrated) return
@@ -77,6 +84,17 @@ export const useAuthStore = defineStore('auth', {
       this.user = updatedUser
       localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
       return updatedUser
+    },
+    async refreshUserInfo() {
+      try {
+        const userInfo = await userApi.getProfile()
+        this.user = userInfo
+        localStorage.setItem(USER_KEY, JSON.stringify(userInfo))
+        return userInfo
+      } catch (error) {
+        console.error('刷新用户信息失败:', error)
+        throw error
+      }
     },
   },
 })

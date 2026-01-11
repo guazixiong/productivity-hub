@@ -35,11 +35,19 @@ const loadCaptcha = async () => {
   loadingCaptcha.value = true
   try {
     const response = await authApi.getCaptcha()
+    // 确保 response 有 image 和 key 字段
+    if (!response || !response.image || !response.key) {
+      throw new Error('验证码响应数据不完整')
+    }
+    // 构建 Base64 图片数据 URL
     captchaImage.value = `data:image/png;base64,${response.image}`
     form.captchaKey = response.key
     form.captcha = ''
   } catch (error) {
+    console.error('获取验证码失败:', error)
     ElMessage.error('获取验证码失败，请刷新页面重试')
+    // 清空验证码图片，显示占位符
+    captchaImage.value = ''
   } finally {
     loadingCaptcha.value = false
   }
